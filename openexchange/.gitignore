@@ -7,9 +7,8 @@
 /public/storage
 /storage/*.key
 /storage/pail
-/resources/js/actions
-/resources/js/routes
-/resources/js/wayfinder
+# Wayfinder route helpers are committed so production builds don't require PHP
+# (vite.config runs the Wayfinder plugin in dev only).
 /vendor
 .DS_Store
 .env
