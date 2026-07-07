@@ -50,30 +50,28 @@ class BillingsClient
             return $client->billings_customer_id;
         }
 
-        // Search by our external_ref, then create. Only accept a result whose
-        // external_ref actually matches this client — some billings responses ignore
-        // the filter and return other customers, which must never be cross-linked.
+        $email = $client->users()->first()?->email ?? "client{$client->id}@openexchange.local";
         $ref = 'client_'.$client->id;
-        $search = $this->http()->get('/customers', ['external_ref' => $ref]);
-        $existing = null;
-        if ($search->ok()) {
-            $data = $search->json('data');
-            $rows = is_array($data) ? (array_is_list($data) ? $data : [$data]) : [];
-            foreach ($rows as $c) {
-                if (is_array($c) && ($c['external_ref'] ?? null) === $ref) {
-                    $existing = $c['id'] ?? null;
-                    break;
-                }
-            }
-        }
+
+        // billings enforces email uniqueness, so find an existing customer by email
+        // first (external_ref is not preserved on their side), then create if none.
+        $existing = $this->findCustomerByEmail($email);
 
         if (! $existing) {
-            $created = $this->data($this->http('cust_client_'.$client->id)->post('/customers', [
+            $res = $this->http('cust_client_'.$client->id)->post('/customers', [
                 'name' => $client->name,
-                'email' => $client->users()->first()?->email ?? "client{$client->id}@openexchange.local",
-                'external_ref' => 'client_'.$client->id,
-            ]), 'create customer');
-            $existing = $created['id'] ?? null;
+                'email' => $email,
+                'external_ref' => $ref,
+                'metadata' => ['client_id' => $client->id],
+            ]);
+            if ($res->ok()) {
+                $existing = (string) (data_get($res->json(), 'data.id') ?? data_get($res->json(), 'id') ?? '');
+            } elseif ($res->status() === 422) {
+                // Already exists (prior attempt / race) — recover it by email.
+                $existing = $this->findCustomerByEmail($email);
+            } else {
+                throw new RuntimeException("billings.systems create customer failed ({$res->status()}): ".$res->body());
+            }
         }
 
         if (! $existing) {
@@ -83,6 +81,24 @@ class BillingsClient
         $client->update(['billings_customer_id' => $existing]);
 
         return $existing;
+    }
+
+    /** Find an existing customer id by email (billings enforces email uniqueness). */
+    private function findCustomerByEmail(string $email): ?string
+    {
+        $res = $this->http()->get('/customers', ['email' => $email]);
+        if (! $res->ok()) {
+            return null;
+        }
+        $data = $res->json('data');
+        $rows = is_array($data) ? (array_is_list($data) ? $data : [$data]) : [];
+        foreach ($rows as $c) {
+            if (is_array($c) && ($c['email'] ?? null) === $email && ! empty($c['id'])) {
+                return (string) $c['id'];
+            }
+        }
+
+        return null;
     }
 
     public function createInvoice(string $customerId, int $amountCents, string $description, ?string $idempotencyKey = null): array
