@@ -14,11 +14,12 @@ type Props = {
     markupBps?: number;
     clientOptions?: { id: number; name: string }[];
     backends?: { provider: string; backend: string; label: string; project: string; region: string; status: string }[];
+    newAccessKey?: { name: string; client: string; secret: string } | null;
 };
 
 const TABS = [['clients', 'Clients'], ['keys', 'Provider keys'], ['rates', 'Rate card'], ['backends', 'Backends']] as const;
 
-export default function Admin({ stats, clients = [], keys = [], rateModels = [], markupBps = 2500, clientOptions = [], backends = [] }: Props) {
+export default function Admin({ stats, clients = [], keys = [], rateModels = [], markupBps = 2500, clientOptions = [], backends = [], newAccessKey = null }: Props) {
     const [tab, setTab] = useState<'clients' | 'keys' | 'rates' | 'backends'>('clients');
     const [markup, setMarkup] = useState(Math.round(markupBps / 100));
     const [modal, setModal] = useState<null | 'client' | 'key' | 'backend'>(null);
@@ -34,6 +35,10 @@ export default function Admin({ stats, clients = [], keys = [], rateModels = [],
     };
     const applyAdjust = () => manage && router.post('/console/admin/balance', { client_id: manage.id, amount: Number(adjust.amount) * adjust.dir, reason: adjust.reason }, { preserveScroll: true, onSuccess: () => setAdjust({ amount: '', dir: 1, reason: '' }) });
     const saveSettings = () => manage && router.post('/console/admin/client', { client_id: manage.id, ...mForm }, { preserveScroll: true, onSuccess: () => setManage(null) });
+    const [keyName, setKeyName] = useState('');
+    const [usage, setUsage] = useState<{ model: string; input_tokens: string; output_tokens: string }>({ model: '', input_tokens: '', output_tokens: '' });
+    const createKey = () => manage && router.post('/console/admin/access-key', { client_id: manage.id, name: keyName }, { preserveScroll: true, onSuccess: () => { setKeyName(''); setManage(null); } });
+    const addUsage = () => manage && router.post('/console/admin/usage', { client_id: manage.id, model: usage.model, input_tokens: Number(usage.input_tokens || 0), output_tokens: Number(usage.output_tokens || 0) }, { preserveScroll: true, onSuccess: () => setUsage({ model: '', input_tokens: '', output_tokens: '' }) });
 
     const persistRate = (pct: number) => router.post('/console/admin/rate', { markup_bps: pct * 100 }, { preserveScroll: true, preserveState: true });
     const sync = () => router.post('/console/admin/sync', {}, { preserveScroll: true });
@@ -55,6 +60,19 @@ export default function Admin({ stats, clients = [], keys = [], rateModels = [],
             </>}>
             <Head title="Admin — Console" />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                {newAccessKey && (
+                    <Card padding="lg" style={{ border: '1.5px solid var(--ox-green-500)', background: 'var(--ox-primary-subtle)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                            <Icon name="check" size={18} color="var(--ox-green-700)" />
+                            <span style={{ fontWeight: 700 }}>Gateway key for {newAccessKey.client} — “{newAccessKey.name}”</span>
+                            <span style={{ marginLeft: 'auto' }}><Badge tone="warning">Shown once</Badge></span>
+                        </div>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center', background: 'var(--ox-ink-900)', borderRadius: 10, padding: '12px 14px' }}>
+                            <code style={{ flex: 1, fontFamily: 'var(--ox-font-mono)', fontSize: 13, color: '#eef3f2', wordBreak: 'break-all' }}>{newAccessKey.secret}</code>
+                            <Button size="sm" variant="secondary" onClick={() => navigator.clipboard?.writeText(newAccessKey.secret)} leadingIcon={<Icon name="copy" size={14} />}>Copy</Button>
+                        </div>
+                    </Card>
+                )}
                 <div className="oe-grid-4" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
                     <StatCard label="Active clients" value={String(stats?.clients ?? 0)} hint="on the exchange" />
                     <StatCard label="Provider keys" value={String(stats?.keys ?? 0)} hint="OpenAI · Google" />
@@ -264,6 +282,22 @@ export default function Admin({ stats, clients = [], keys = [], rateModels = [],
                         <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, fontSize: 13, color: 'var(--ox-text)' }}>
                             <input type="checkbox" checked={!!mForm.auto_topup} onChange={(e) => setMForm((f) => ({ ...f, auto_topup: e.target.checked }))} /> Auto top-up enabled
                         </label>
+
+                        <div style={{ height: 1, background: 'var(--ox-divider)', margin: '20px 0' }} />
+                        <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ox-text-muted)', marginBottom: 8 }}>Create gateway key</div>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                            <input placeholder="Key name (e.g. Production app)" value={keyName} onChange={(e) => setKeyName(e.target.value)} style={inp} />
+                            <Button variant="secondary" onClick={createKey} style={{ flexShrink: 0 }}>Create</Button>
+                        </div>
+
+                        <div style={{ height: 1, background: 'var(--ox-divider)', margin: '20px 0' }} />
+                        <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ox-text-muted)', marginBottom: 8 }}>Add usage manually</div>
+                        <input placeholder="Model (e.g. gemini-2.5-flash)" value={usage.model} onChange={(e) => setUsage((u) => ({ ...u, model: e.target.value }))} style={{ ...inp, marginBottom: 8 }} />
+                        <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                            <input type="number" placeholder="Input tokens" value={usage.input_tokens} onChange={(e) => setUsage((u) => ({ ...u, input_tokens: e.target.value }))} style={inp} />
+                            <input type="number" placeholder="Output tokens" value={usage.output_tokens} onChange={(e) => setUsage((u) => ({ ...u, output_tokens: e.target.value }))} style={inp} />
+                        </div>
+                        <Button variant="secondary" fullWidth onClick={addUsage}>Add usage &amp; debit balance</Button>
 
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
                             <Button variant="ghost" onClick={() => setManage(null)}>Close</Button>

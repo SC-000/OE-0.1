@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Models\AccessKey;
 use App\Models\Client;
 use App\Models\ClientModelRate;
 use App\Models\ModelCatalog;
@@ -10,8 +11,10 @@ use App\Models\ProviderKey;
 use App\Models\UsageRecord;
 use App\Models\User;
 use App\Services\Billing\BalanceService;
+use App\Services\Metering\RateResolver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
@@ -80,7 +83,52 @@ class AdminController
                 'provider' => ucfirst($b->provider), 'backend' => $b->backend, 'label' => $b->label,
                 'project' => $b->project_id ?: '—', 'region' => $b->region ?: '—', 'status' => $b->status,
             ]),
+            'newAccessKey' => session('new_access_key'),
         ]);
+    }
+
+    /** Create a gateway access key on a client's behalf (shown once). */
+    public function createAccessKey(Request $request)
+    {
+        $data = $request->validate([
+            'client_id' => ['required', 'exists:clients,id'],
+            'name' => ['required', 'string', 'max:60'],
+        ]);
+        $client = Client::findOrFail($data['client_id']);
+        [$model, $secret] = AccessKey::generate($client, $data['name']);
+
+        return back()->with('new_access_key', ['name' => $model->name, 'client' => $client->name, 'secret' => $secret]);
+    }
+
+    /** Manually record usage for a client (backfill / off-platform) and debit their balance. */
+    public function addUsage(Request $request, RateResolver $rates, BalanceService $balance)
+    {
+        $data = $request->validate([
+            'client_id' => ['required', 'exists:clients,id'],
+            'model' => ['required', 'string', 'max:120'],
+            'input_tokens' => ['required', 'integer', 'min:0', 'max:1000000000'],
+            'output_tokens' => ['required', 'integer', 'min:0', 'max:1000000000'],
+        ]);
+        $client = Client::findOrFail($data['client_id']);
+        $catalog = ModelCatalog::where('model', $data['model'])->first();
+        $provider = $catalog?->provider ?? 'openai';
+        $providerCost = $catalog ? $catalog->costCents((int) $data['input_tokens'], (int) $data['output_tokens']) : 0;
+        $billed = (int) round($providerCost * (1 + $rates->markupBps($client, $provider, $data['model']) / 10000));
+        $rid = (string) Str::uuid();
+
+        DB::transaction(function () use ($client, $data, $provider, $providerCost, $billed, $rid, $balance) {
+            UsageRecord::create([
+                'client_id' => $client->id, 'provider_key_id' => null, 'access_key_id' => null,
+                'provider' => $provider, 'model' => $data['model'], 'period_start' => now(), 'period_end' => now(),
+                'input_tokens' => (int) $data['input_tokens'], 'output_tokens' => (int) $data['output_tokens'],
+                'provider_cost_cents' => $providerCost, 'billed_cents' => $billed, 'source' => 'manual', 'request_id' => $rid,
+            ]);
+            if ($billed > 0) {
+                $balance->debit($client, $billed, 'usage_debit', "manual {$provider}/{$data['model']}", "manual:{$rid}", ['tokens_in' => (int) $data['input_tokens'], 'tokens_out' => (int) $data['output_tokens']]);
+            }
+        });
+
+        return back();
     }
 
     public function storeBackend(Request $request)

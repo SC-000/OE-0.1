@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Actions\Fortify\CreateNewUser;
 use App\Models\Client;
+use App\Models\ModelCatalog;
 use App\Models\User;
 use App\Notifications\ResetPasswordNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -56,6 +57,29 @@ class AccountTest extends TestCase
 
         $this->assertSame(1000 + 2550, $client->fresh()->balance_cents);
         $this->assertDatabaseHas('balance_ledger', ['client_id' => $client->id, 'type' => 'adjustment']);
+    }
+
+    public function test_admin_can_create_a_gateway_key_for_a_client(): void
+    {
+        $client = Client::create(['name' => 'X', 'slug' => 'x']);
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)->post('/console/admin/access-key', ['client_id' => $client->id, 'name' => 'Prod']);
+
+        $this->assertDatabaseHas('access_keys', ['client_id' => $client->id, 'name' => 'Prod', 'status' => 'active']);
+    }
+
+    public function test_admin_can_add_usage_manually_and_debit_the_balance(): void
+    {
+        $client = Client::create(['name' => 'X', 'slug' => 'x', 'balance_cents' => 100000, 'default_markup_bps' => 2500]);
+        ModelCatalog::create(['provider' => 'google', 'model' => 'gemini-2.5-flash', 'input_usd_per_million' => 0.30, 'output_usd_per_million' => 2.50]);
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)->post('/console/admin/usage', ['client_id' => $client->id, 'model' => 'gemini-2.5-flash', 'input_tokens' => 1_000_000, 'output_tokens' => 1_000_000]);
+
+        // provider cost 0.30 + 2.50 = $2.80 = 280c; billed = 280 * 1.25 = 350c
+        $this->assertDatabaseHas('usage_records', ['client_id' => $client->id, 'model' => 'gemini-2.5-flash', 'source' => 'manual', 'billed_cents' => 350]);
+        $this->assertSame(100000 - 350, $client->fresh()->balance_cents);
     }
 
     public function test_an_owner_without_a_client_self_heals(): void
