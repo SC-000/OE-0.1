@@ -1,7 +1,7 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition } from './../../../../wayfinder'
 /**
 * @see \App\Http\Controllers\BillingsWebhookController::__invoke
-* @see app/Http/Controllers/BillingsWebhookController.php:25
+* @see app/Http/Controllers/BillingsWebhookController.php:26
 * @route '/webhooks/billings'
 */
 const BillingsWebhookController = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -16,7 +16,7 @@ BillingsWebhookController.definition = {
 
 /**
 * @see \App\Http\Controllers\BillingsWebhookController::__invoke
-* @see app/Http/Controllers/BillingsWebhookController.php:25
+* @see app/Http/Controllers/BillingsWebhookController.php:26
 * @route '/webhooks/billings'
 */
 BillingsWebhookController.url = (options?: RouteQueryOptions) => {
@@ -25,7 +25,7 @@ BillingsWebhookController.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\BillingsWebhookController::__invoke
-* @see app/Http/Controllers/BillingsWebhookController.php:25
+* @see app/Http/Controllers/BillingsWebhookController.php:26
 * @route '/webhooks/billings'
 */
 BillingsWebhookController.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -35,7 +35,7 @@ BillingsWebhookController.post = (options?: RouteQueryOptions): RouteDefinition<
 
 /**
 * @see \App\Http\Controllers\BillingsWebhookController::__invoke
-* @see app/Http/Controllers/BillingsWebhookController.php:25
+* @see app/Http/Controllers/BillingsWebhookController.php:26
 * @route '/webhooks/billings'
 */
 const BillingsWebhookControllerForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -45,7 +45,7 @@ const BillingsWebhookControllerForm = (options?: RouteQueryOptions): RouteFormDe
 
 /**
 * @see \App\Http\Controllers\BillingsWebhookController::__invoke
-* @see app/Http/Controllers/BillingsWebhookController.php:25
+* @see app/Http/Controllers/BillingsWebhookController.php:26
 * @route '/webhooks/billings'
 */
 BillingsWebhookControllerForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({

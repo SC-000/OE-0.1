@@ -114,6 +114,7 @@ class BillingController
             'publishableKey' => config('openexchange.billings.publishable'),
             'customerId' => $customerId,
             'widgetBase' => rtrim((string) config('openexchange.billings.base'), '/'),
+            'hasToken' => (bool) config('openexchange.billings.token'),
         ]);
     }
 }

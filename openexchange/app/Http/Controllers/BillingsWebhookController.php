@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Client;
+use App\Models\PaymentMethod;
 use App\Models\ProcessedWebhook;
 use App\Models\TopUp;
 use App\Models\User;
@@ -63,6 +64,13 @@ class BillingsWebhookController
             return;
         }
 
+        // A card was saved via the SetupWidget — persist it so it shows in billing.
+        if ($type === 'payment_method.attached') {
+            $this->linkPaymentMethod($payload);
+
+            return;
+        }
+
         $invoiceId = data_get($payload, 'data.invoice.id')
             ?? data_get($payload, 'data.invoice_id')
             ?? data_get($payload, 'data.id');
@@ -102,5 +110,35 @@ class BillingsWebhookController
         if ($client && ! $client->billings_customer_id) {
             $client->update(['billings_customer_id' => $customerId]);
         }
+    }
+
+    /** Persist a saved card onto the client's billing account. */
+    private function linkPaymentMethod(array $payload): void
+    {
+        $customerId = (string) data_get($payload, 'data.customer_id', '');
+        $pmId = (string) data_get($payload, 'data.id', '');
+        if ($customerId === '' || $pmId === '') {
+            return;
+        }
+        $client = Client::where('billings_customer_id', $customerId)->first();
+        if (! $client) {
+            return;
+        }
+
+        $hasDefault = PaymentMethod::where('client_id', $client->id)->where('is_default', true)->exists();
+        $makeDefault = (bool) data_get($payload, 'data.is_default', false) || ! $hasDefault;
+        if ($makeDefault) {
+            PaymentMethod::where('client_id', $client->id)->update(['is_default' => false]);
+        }
+        PaymentMethod::updateOrCreate(
+            ['client_id' => $client->id, 'billings_pm_id' => $pmId],
+            [
+                'brand' => (string) data_get($payload, 'data.card_brand', 'card'),
+                'last4' => (string) data_get($payload, 'data.last4', ''),
+                'exp_month' => ((int) data_get($payload, 'data.expiry_month', 0)) ?: null,
+                'exp_year' => ((int) data_get($payload, 'data.expiry_year', 0)) ?: null,
+                'is_default' => $makeDefault,
+            ],
+        );
     }
 }

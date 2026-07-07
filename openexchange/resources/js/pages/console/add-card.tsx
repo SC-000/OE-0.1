@@ -11,10 +11,15 @@ const STAGES = [
     { label: 'Enabling auto top-up', sub: 'Below your minimum → auto top-up' },
 ];
 
-type Props = { publishableKey?: string | null; customerId?: string | null; widgetBase?: string };
+type Props = { publishableKey?: string | null; customerId?: string | null; widgetBase?: string; hasToken?: boolean };
 
-export default function AddCard({ publishableKey, customerId, widgetBase = 'https://billings.systems' }: Props) {
+export default function AddCard({ publishableKey, customerId, widgetBase = 'https://billings.systems', hasToken = false }: Props) {
     const configured = !!(publishableKey && customerId);
+    const testReason = hasToken && !publishableKey
+        ? 'Live capture needs BILLINGS_PUBLISHABLE — a zero-scope publishable token, separate from your server token. Add it and reload.'
+        : !hasToken
+            ? 'Configure billings.systems (BILLINGS_TOKEN + BILLINGS_PUBLISHABLE) for live cards.'
+            : 'Connecting your billing account — reload in a moment.';
     const [step, setStep] = useState<'form' | 'connecting' | 'done'>('form');
     const [stage, setStage] = useState(0);
     const [card, setCard] = useState({ number: '', name: '', exp: '', cvc: '' });
@@ -39,10 +44,11 @@ export default function AddCard({ publishableKey, customerId, widgetBase = 'http
             w.SetupWidget({
                 config: {
                     customerId, apiKey: publishableKey,
-                    theme: 'modern', borderRadius: 'medium', showLogo: false,
+                    theme: 'minimal', borderRadius: 'medium', showLogo: false,
+                    title: '', buttonText: 'Connect card securely',
                     colors: { primary: '#33c13e', background: '#fffdf8', text: '#122023', danger: '#d84343', success: '#23a531' },
                     typography: { fontFamily: '"Manrope", sans-serif' },
-                    title: 'Card details', buttonText: 'Connect card',
+                    spacing: { padding: '0px', fieldSpacing: '14px' },
                     onSuccess: (data: { payment_method?: Record<string, unknown> }) => { pmRef.current = data?.payment_method ?? null; setStep('connecting'); setStage(0); },
                     onError: (err: { message?: string }) => setError(err?.message ?? 'Something went wrong'),
                 },
@@ -128,7 +134,7 @@ export default function AddCard({ publishableKey, customerId, widgetBase = 'http
                                     </div>
                                     <Button size="lg" fullWidth onClick={() => { setStep('connecting'); setStage(0); }} leadingIcon={<Icon name="lock" size={16} color="var(--ox-on-primary)" />}>Connect card securely</Button>
                                     <span style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center', fontSize: 12, color: 'var(--ox-text-subtle)' }}>
-                                        <Icon name="shield" size={13} color="var(--ox-text-subtle)" />Test mode — no live charge; the card is saved to your billing account so you can test. Configure billings.systems for live cards.
+                                        <Icon name="shield" size={13} color="var(--ox-text-subtle)" />Test mode — no live charge; the card is saved so you can test. {testReason}
                                     </span>
                                 </>
                             )}
