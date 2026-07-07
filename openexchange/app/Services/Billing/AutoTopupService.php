@@ -71,7 +71,7 @@ class AutoTopupService
 
         try {
             $customerId = $this->billings->ensureCustomer($client);
-            $invoice = $this->billings->createInvoice($customerId, $amount, 'Open Exchange balance top-up');
+            $invoice = $this->billings->createInvoice($customerId, $amount, 'Open Exchange balance top-up', "topup_{$topup->id}");
             $invoiceId = (string) ($invoice['id'] ?? '');
             $topup->update(['billings_invoice_id' => $invoiceId]);
 

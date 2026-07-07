@@ -5,6 +5,7 @@ namespace App\Services\Billing;
 use App\Models\Client;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 /**
@@ -14,18 +15,23 @@ use RuntimeException;
  */
 class BillingsClient
 {
-    private function http(): PendingRequest
+    private function http(?string $idempotencyKey = null): PendingRequest
     {
         $token = config('openexchange.billings.token');
         if (! $token) {
             throw new RuntimeException('BILLINGS_TOKEN is not configured.');
         }
 
-        return Http::withToken($token)
+        $req = Http::withToken($token)
             ->baseUrl(rtrim((string) config('openexchange.billings.base'), '/').'/api/v1')
             ->acceptJson()
             ->timeout(20)
             ->retry(2, 300, throw: false);
+
+        // billings.systems requires an Idempotency-Key on every mutating (POST)
+        // request. A stable key also makes our internal retries safe from creating
+        // duplicate customers or double-charging.
+        return $idempotencyKey ? $req->withHeaders(['Idempotency-Key' => $idempotencyKey]) : $req;
     }
 
     private function data(\Illuminate\Http\Client\Response $res, string $ctx): array
@@ -49,7 +55,7 @@ class BillingsClient
         $existing = $search->ok() ? ($search->json('data.0.id') ?? null) : null;
 
         if (! $existing) {
-            $created = $this->data($this->http()->post('/customers', [
+            $created = $this->data($this->http('cust_client_'.$client->id)->post('/customers', [
                 'name' => $client->name,
                 'email' => $client->users()->first()?->email ?? "client{$client->id}@openexchange.local",
                 'external_ref' => 'client_'.$client->id,
@@ -66,9 +72,9 @@ class BillingsClient
         return $existing;
     }
 
-    public function createInvoice(string $customerId, int $amountCents, string $description): array
+    public function createInvoice(string $customerId, int $amountCents, string $description, ?string $idempotencyKey = null): array
     {
-        return $this->data($this->http()->post('/invoices', [
+        return $this->data($this->http($idempotencyKey ?? (string) Str::uuid())->post('/invoices', [
             'customer_id' => $customerId,
             'currency' => config('openexchange.billings.currency', 'USD'),
             'line_items' => [[
@@ -81,12 +87,12 @@ class BillingsClient
 
     public function finalizeInvoice(string $invoiceId): array
     {
-        return $this->data($this->http()->post("/invoices/{$invoiceId}/finalize"), 'finalize invoice');
+        return $this->data($this->http("finalize_{$invoiceId}")->post("/invoices/{$invoiceId}/finalize"), 'finalize invoice');
     }
 
     public function payWithDefault(string $invoiceId): array
     {
-        return $this->data($this->http()->post("/invoices/{$invoiceId}/pay-with-default"), 'pay invoice');
+        return $this->data($this->http("pay_{$invoiceId}")->post("/invoices/{$invoiceId}/pay-with-default"), 'pay invoice');
     }
 
     /** @return array<int, array<string, mixed>> */
