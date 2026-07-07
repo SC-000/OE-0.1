@@ -59,15 +59,52 @@ export default function Register({ passwordRules }: Props) {
                             </div>
 
                             <div className="grid gap-2">
+                                <Label htmlFor="account_type">Account type</Label>
+                                <select
+                                    id="account_type"
+                                    name="account_type"
+                                    defaultValue="client"
+                                    required
+                                    tabIndex={3}
+                                    className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                                >
+                                    <option value="client">Client billing account</option>
+                                    <option value="platform">Platform billing account</option>
+                                    <option value="reseller">Reseller account</option>
+                                    <option value="enterprise">Enterprise account</option>
+                                </select>
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="platform_code">
+                                    Platform account code
+                                </Label>
+                                <Input
+                                    id="platform_code"
+                                    type="text"
+                                    name="platform_code"
+                                    required
+                                    inputMode="numeric"
+                                    pattern="[0-9]{6}"
+                                    maxLength={6}
+                                    minLength={6}
+                                    tabIndex={4}
+                                    autoComplete="off"
+                                    placeholder="6-digit code"
+                                    title="Enter your 6-digit platform account code"
+                                />
+                            </div>
+
+                            <div className="grid gap-2">
                                 <Label htmlFor="password">Password</Label>
                                 <PasswordInput
                                     id="password"
                                     required
-                                    tabIndex={3}
                                     autoComplete="new-password"
                                     name="password"
                                     placeholder="Password"
                                     passwordrules={passwordRules}
+                                    tabIndex={5}
                                 />
                                 <InputError message={errors.password} />
                             </div>
@@ -79,7 +116,7 @@ export default function Register({ passwordRules }: Props) {
                                 <PasswordInput
                                     id="password_confirmation"
                                     required
-                                    tabIndex={4}
+                                    tabIndex={6}
                                     autoComplete="new-password"
                                     name="password_confirmation"
                                     placeholder="Confirm password"
@@ -93,7 +130,7 @@ export default function Register({ passwordRules }: Props) {
                             <Button
                                 type="submit"
                                 className="mt-2 w-full"
-                                tabIndex={5}
+                                tabIndex={7}
                                 data-test="register-user-button"
                             >
                                 {processing && <Spinner />}
@@ -103,7 +140,7 @@ export default function Register({ passwordRules }: Props) {
 
                         <div className="text-center text-sm text-muted-foreground">
                             Already have an account?{' '}
-                            <TextLink href={login()} tabIndex={6}>
+                            <TextLink href={login()} tabIndex={8}>
                                 Log in
                             </TextLink>
                         </div>
