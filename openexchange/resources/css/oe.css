@@ -1,0 +1,319 @@
+/* ============================================================================
+   Open Exchange — design tokens (ported from the "Open Exchange" design system)
+   + a warm BEIGE tint layered onto the light theme, per brand direction.
+
+   Base palette, geometry, motion and the dot-matrix motif are faithful to the
+   design system. The light theme's grounds are re-based onto a cream/beige
+   family so the product reads warm + institutional rather than cold-white.
+   Dark theme keeps the brand-native deep teal-navy "ink".
+   ========================================================================== */
+
+:root {
+  /* ---- Brand green (Exchange Green) ---- */
+  --ox-green-50:  #eafaec;
+  --ox-green-100: #ccf2d2;
+  --ox-green-200: #a1e6ab;
+  --ox-green-300: #6dd67d;
+  --ox-green-400: #48ca5b;
+  --ox-green-500: #33c13e;  /* PRIMARY brand green */
+  --ox-green-600: #23a531;
+  --ox-green-700: #1c8528;
+  --ox-green-800: #176a22;
+  --ox-green-900: #114319;
+
+  /* ---- Ink (deep teal-navy — brand background family) ---- */
+  --ox-ink-950: #0c1719;
+  --ox-ink-900: #122023;  /* PRIMARY brand background */
+  --ox-ink-800: #182c2f;
+  --ox-ink-700: #22383c;
+  --ox-ink-600: #30474c;
+  --ox-ink-500: #415a5f;
+
+  /* ---- Slate (cool neutral) ---- */
+  --ox-slate-0:   #ffffff;
+  --ox-slate-50:  #f6f8f8;
+  --ox-slate-100: #edf0f1;
+  --ox-slate-200: #dee3e4;
+  --ox-slate-300: #c4cccd;
+  --ox-slate-400: #9aa6a9;
+  --ox-slate-500: #6f7d81;
+  --ox-slate-600: #52605f;
+  --ox-slate-700: #3b4746;
+  --ox-slate-800: #26302f;
+  --ox-slate-900: #151f21;
+
+  /* ---- Beige / cream (NEW — warm light ground) ---- */
+  --ox-beige-50:  #faf7f0;  /* lightest cream */
+  --ox-beige-100: #f5f0e6;  /* page ground */
+  --ox-beige-200: #ece4d3;  /* subtle panels */
+  --ox-beige-300: #e0d5bf;  /* muted / warm dividers */
+  --ox-beige-400: #cdbf9f;
+  --ox-cream:     #fffdf8;  /* warm white — cards lift off beige */
+
+  /* ---- Gold (carnival warm accent, used sparingly for "grades" / awards) ---- */
+  --ox-gold-400: #e0b64d;
+  --ox-gold-500: #c9992e;
+  --ox-gold-600: #a97d1f;
+
+  /* ---- Semantic status ---- */
+  --ox-success: #23a531;
+  --ox-success-surface: #eafaec;
+  --ox-warning: #d99511;
+  --ox-warning-surface: #fdf3dd;
+  --ox-danger:  #d84343;
+  --ox-danger-surface: #fdecec;
+  --ox-info:    #2a7de1;
+  --ox-info-surface: #e8f1fc;
+
+  /* ================= SEMANTIC ALIASES — light (beige) ================= */
+  --ox-bg:            var(--ox-beige-100);
+  --ox-bg-subtle:     var(--ox-beige-50);
+  --ox-bg-muted:      var(--ox-beige-200);
+  --ox-surface:       var(--ox-cream);
+  --ox-surface-raised:#ffffff;
+  --ox-overlay:       rgba(18, 32, 35, 0.45);
+
+  --ox-border:        #e7ddc9;   /* warm hairline */
+  --ox-border-strong: #d8cbb0;
+  --ox-divider:       #efe8d9;
+
+  --ox-text:          var(--ox-ink-900);
+  --ox-text-muted:    #5c655f;
+  --ox-text-subtle:   #837b6c;
+  --ox-text-inverse:  #ffffff;
+
+  --ox-primary:        var(--ox-green-500);
+  --ox-primary-hover:  var(--ox-green-600);
+  --ox-primary-active: var(--ox-green-700);
+  --ox-primary-subtle: var(--ox-green-50);
+  --ox-on-primary:     #06220b;
+
+  --ox-focus-ring:    rgba(51, 193, 62, 0.40);
+
+  /* ---- Typography ---- */
+  --ox-font-sans: 'Manrope', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  --ox-font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', 'Menlo', 'Consolas', monospace;
+
+  --ox-text-2xs: 0.6875rem;
+  --ox-text-xs:  0.75rem;
+  --ox-text-sm:  0.8125rem;
+  --ox-text-base:0.9375rem;
+  --ox-text-md:  1.0625rem;
+  --ox-text-lg:  1.25rem;
+  --ox-text-xl:  1.5rem;
+  --ox-text-2xl: 1.9375rem;
+  --ox-text-3xl: 2.5rem;
+  --ox-text-4xl: 3.25rem;
+  --ox-text-5xl: 4.25rem;
+
+  --ox-weight-regular: 400;
+  --ox-weight-medium:  500;
+  --ox-weight-semibold:600;
+  --ox-weight-bold:    700;
+  --ox-weight-extrabold:800;
+
+  --ox-leading-tight:   1.1;
+  --ox-leading-snug:    1.28;
+  --ox-leading-normal:  1.5;
+  --ox-leading-relaxed: 1.65;
+
+  --ox-tracking-tight:  -0.02em;
+  --ox-tracking-snug:   -0.01em;
+  --ox-tracking-normal: 0;
+  --ox-tracking-wide:   0.04em;
+  --ox-tracking-caps:   0.08em;
+
+  /* ---- Spacing / layout (4px grid) ---- */
+  --ox-space-1:  0.25rem;  --ox-space-2:  0.5rem;   --ox-space-3:  0.75rem;
+  --ox-space-4:  1rem;     --ox-space-5:  1.25rem;  --ox-space-6:  1.5rem;
+  --ox-space-8:  2rem;     --ox-space-10: 2.5rem;   --ox-space-12: 3rem;
+  --ox-space-16: 4rem;     --ox-space-20: 5rem;     --ox-space-24: 6rem;
+  --ox-container:  1200px;
+  --ox-container-wide: 1400px;
+  --ox-sidebar-w:  248px;
+
+  /* ---- Radii ---- */
+  --ox-radius-xs:  4px;
+  --ox-radius-sm:  6px;
+  --ox-radius-md:  9px;
+  --ox-radius-lg:  13px;
+  --ox-radius-xl:  20px;
+  --ox-radius-2xl: 28px;
+  --ox-radius-full:9999px;
+
+  /* ---- Elevation (ink-tinted, low-spread) ---- */
+  --ox-shadow-xs: 0 1px 2px rgba(18, 32, 35, 0.06);
+  --ox-shadow-sm: 0 1px 3px rgba(18, 32, 35, 0.08), 0 1px 2px rgba(18, 32, 35, 0.04);
+  --ox-shadow-md: 0 4px 12px rgba(18, 32, 35, 0.09), 0 2px 4px rgba(18, 32, 35, 0.05);
+  --ox-shadow-lg: 0 12px 28px rgba(18, 32, 35, 0.12), 0 4px 10px rgba(18, 32, 35, 0.06);
+  --ox-shadow-xl: 0 24px 56px rgba(18, 32, 35, 0.18), 0 8px 18px rgba(18, 32, 35, 0.08);
+  --ox-shadow-glow: 0 0 0 1px rgba(51, 193, 62, 0.35), 0 6px 22px rgba(51, 193, 62, 0.28);
+
+  /* ---- Motion ---- */
+  --ox-ease:         cubic-bezier(0.32, 0.72, 0, 1);
+  --ox-ease-out:     cubic-bezier(0.22, 1, 0.36, 1);
+  --ox-ease-in-out:  cubic-bezier(0.65, 0, 0.35, 1);
+  --ox-dur-fast:  120ms;
+  --ox-dur-base:  200ms;
+  --ox-dur-slow:  360ms;
+
+  /* ---- Dot-matrix pattern vars ---- */
+  --ox-dot-color:   rgba(51, 193, 62, 0.22);
+  --ox-dot-color-2: rgba(255, 255, 255, 0.05);
+  --ox-dot-size:    1.4px;
+  --ox-dot-gap:     22px;
+}
+
+/* ================= SEMANTIC ALIASES — dark (brand ink) ================= */
+.dark, [data-theme="dark"], .ox-dark {
+  --ox-bg:            var(--ox-ink-900);
+  --ox-bg-subtle:     var(--ox-ink-950);
+  --ox-bg-muted:      var(--ox-ink-800);
+  --ox-surface:       var(--ox-ink-800);
+  --ox-surface-raised:var(--ox-ink-700);
+  --ox-overlay:       rgba(6, 12, 13, 0.62);
+
+  --ox-border:        rgba(255, 255, 255, 0.09);
+  --ox-border-strong: rgba(255, 255, 255, 0.18);
+  --ox-divider:       rgba(255, 255, 255, 0.06);
+
+  --ox-text:          #eef3f2;
+  --ox-text-muted:    #9fb0b2;
+  --ox-text-subtle:   #728486;
+  --ox-text-inverse:  var(--ox-ink-900);
+
+  --ox-primary:        var(--ox-green-500);
+  --ox-primary-hover:  var(--ox-green-400);
+  --ox-primary-active: var(--ox-green-300);
+  --ox-primary-subtle: rgba(51, 193, 62, 0.14);
+  --ox-on-primary:     #06220b;
+
+  --ox-success-surface: rgba(35, 165, 49, 0.16);
+  --ox-warning-surface: rgba(217, 149, 17, 0.16);
+  --ox-danger-surface:  rgba(216, 67, 67, 0.16);
+  --ox-info-surface:    rgba(42, 125, 225, 0.16);
+
+  --ox-focus-ring:    rgba(51, 193, 62, 0.55);
+}
+
+/* ============================ Dot-matrix motif ============================ */
+.ox-dot-grid {
+  background-image: radial-gradient(var(--ox-dot-color) var(--ox-dot-size), transparent var(--ox-dot-size));
+  background-size: var(--ox-dot-gap) var(--ox-dot-gap);
+  background-position: 0 0;
+}
+.ox-dot-grid--neutral {
+  background-image: radial-gradient(rgba(18, 32, 35, 0.06) var(--ox-dot-size), transparent var(--ox-dot-size));
+  background-size: var(--ox-dot-gap) var(--ox-dot-gap);
+}
+/* warm neutral matrix for beige grounds */
+.ox-dot-grid--warm {
+  background-image: radial-gradient(rgba(120, 96, 40, 0.10) var(--ox-dot-size), transparent var(--ox-dot-size));
+  background-size: var(--ox-dot-gap) var(--ox-dot-gap);
+}
+.ox-dot-grid--dense { background-size: 14px 14px; }
+.ox-dot-grid--fade {
+  -webkit-mask-image: radial-gradient(ellipse 70% 70% at var(--ox-dot-focus, 30% 50%), #000 0%, transparent 72%);
+  mask-image: radial-gradient(ellipse 70% 70% at var(--ox-dot-focus, 30% 50%), #000 0%, transparent 72%);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ox-dot-grid--drift { animation: ox-dot-drift 24s linear infinite; }
+  .ox-gw-pulse { animation: ox-gw-pulse 2.8s ease-in-out infinite; }
+}
+@keyframes ox-dot-drift { to { background-position: var(--ox-dot-gap) var(--ox-dot-gap); } }
+@keyframes ox-gw-pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.045); } }
+
+/* ticker marquee for the live rates strip */
+@media (prefers-reduced-motion: no-preference) {
+  .ox-ticker-track { animation: ox-ticker 42s linear infinite; }
+}
+@keyframes ox-ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+/* pipeline node pulse (staggered per node via inline animation-delay) */
+@media (prefers-reduced-motion: no-preference) {
+  .ox-pipe-node { animation: ox-pipe-pulse 3.4s ease-in-out infinite; }
+}
+@keyframes ox-pipe-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(51, 193, 62, 0); }
+  50% { box-shadow: 0 0 0 5px rgba(51, 193, 62, 0.16); }
+}
+
+/* spinner — concentric rings each rotating independently */
+.ox-spin-1, .ox-spin-2, .ox-spin-3 { transform-box: fill-box; transform-origin: center; }
+@keyframes ox-spin { to { transform: rotate(360deg); } }
+@keyframes ox-spin-rev { to { transform: rotate(-360deg); } }
+@media (prefers-reduced-motion: no-preference) {
+  .ox-spin-1 { animation: ox-spin 1.5s linear infinite; }
+  .ox-spin-2 { animation: ox-spin-rev 2.2s linear infinite; }
+  .ox-spin-3 { animation: ox-spin 1.05s linear infinite; }
+}
+
+/* connection-flow traveling dot + success pop (billing add-card) */
+@keyframes oe-pop { 0% { transform: scale(0.6); opacity: 0; } 60% { transform: scale(1.08); } 100% { transform: scale(1); opacity: 1; } }
+.oe-pop { animation: oe-pop 440ms var(--ox-ease) both; }
+@keyframes oe-travel { 0% { left: 0; opacity: 0; } 12% { opacity: 1; } 88% { opacity: 1; } 100% { left: 100%; opacity: 0; } }
+@media (prefers-reduced-motion: no-preference) { .oe-travel { animation: oe-travel 1.3s linear infinite; } }
+
+/* ========================= Interaction states ========================= */
+.ox-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--ox-focus-ring); }
+.ox-btn--primary:not(:disabled):hover { background: var(--ox-primary-hover); }
+.ox-btn--primary:not(:disabled):active { background: var(--ox-primary-active); transform: translateY(0.5px); }
+.ox-btn--secondary:not(:disabled):hover { background: var(--ox-bg-subtle); border-color: var(--ox-border-strong); }
+.ox-btn--secondary:not(:disabled):active { background: var(--ox-bg-muted); }
+.ox-btn--ghost:not(:disabled):hover { background: var(--ox-bg-muted); }
+.ox-btn--ghost:not(:disabled):active { background: var(--ox-bg-muted); filter: brightness(0.97); }
+.ox-btn--danger:not(:disabled):hover { filter: brightness(1.06); }
+.ox-btn--danger:not(:disabled):active { filter: brightness(0.94); }
+.ox-iconbtn.ox-btn--ghost:not(:disabled):hover { color: var(--ox-text); }
+
+.ox-field:focus-within, select.ox-field:focus {
+  border-color: var(--ox-primary); box-shadow: 0 0 0 3px var(--ox-focus-ring);
+}
+.ox-field--error:focus-within { border-color: var(--ox-danger); box-shadow: 0 0 0 3px var(--ox-danger-surface); }
+select.ox-field:hover:not(:focus) { border-color: var(--ox-border-strong); }
+
+.ox-card--interactive { cursor: pointer; }
+.ox-card--interactive:hover { box-shadow: var(--ox-shadow-md); transform: translateY(-2px); border-color: var(--ox-border-strong); }
+.ox-card--interactive:active { transform: translateY(0); }
+
+/* link hover on ink nav */
+.ox-navlink { position: relative; transition: color var(--ox-dur-fast) var(--ox-ease); }
+.ox-navlink::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: -6px; height: 2px;
+  background: var(--ox-green-500); transform: scaleX(0); transform-origin: left;
+  transition: transform var(--ox-dur-base) var(--ox-ease);
+}
+.ox-navlink:hover::after, .ox-navlink[data-active="true"]::after { transform: scaleX(1); }
+
+/* ============================== Helpers ============================== */
+/* responsive nav show/hide (no competing inline display) */
+.oe-desktop-nav { display: flex; }
+.oe-mobile-toggle { display: none; }
+.oe-mobile-menu { display: flex; }
+@media (max-width: 960px) {
+  .oe-desktop-nav { display: none; }
+  .oe-mobile-toggle { display: inline-flex; }
+}
+@media (min-width: 961px) {
+  .oe-mobile-menu { display: none; }
+}
+
+/* responsive marketing grids */
+@media (max-width: 900px) {
+  .oe-footer-grid { grid-template-columns: 1fr 1fr !important; gap: 32px !important; }
+  .oe-hero-grid { grid-template-columns: 1fr !important; }
+  .oe-2col { grid-template-columns: 1fr !important; }
+  .oe-grid-3, .oe-grid-4 { grid-template-columns: repeat(2, 1fr) !important; }
+}
+@media (max-width: 600px) {
+  .oe-footer-grid { grid-template-columns: 1fr !important; }
+  .oe-grid-2, .oe-grid-3, .oe-grid-4 { grid-template-columns: 1fr !important; }
+}
+
+.ox-container { width: 100%; max-width: var(--ox-container); margin-inline: auto; padding-inline: 24px; }
+.ox-container-wide { width: 100%; max-width: var(--ox-container-wide); margin-inline: auto; padding-inline: 24px; }
+.ox-mono { font-family: var(--ox-font-mono); font-variant-numeric: tabular-nums; }
+.ox-eyebrow {
+  font-family: var(--ox-font-mono); font-size: var(--ox-text-xs);
+  letter-spacing: var(--ox-tracking-caps); text-transform: uppercase; color: var(--ox-green-600);
+}

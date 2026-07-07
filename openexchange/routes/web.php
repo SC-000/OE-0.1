@@ -1,0 +1,74 @@
+<?php
+
+use App\Http\Controllers\Admin\AdminController;
+use App\Http\Controllers\BillingsWebhookController;
+use App\Http\Controllers\Console\BillingController;
+use App\Http\Controllers\Console\DashboardController;
+use App\Http\Controllers\Console\SourcesController;
+use App\Http\Controllers\Console\UsageController;
+use App\Http\Controllers\GatewayController;
+use App\Http\Middleware\AuthenticateAccessKey;
+use App\Http\Middleware\EnsureAdmin;
+use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
+
+// Public marketing site
+Route::inertia('/', 'welcome')->name('home');
+
+Route::inertia('/products/ai-router', 'marketing/products/ai-router')->name('products.ai-router');
+Route::inertia('/products/hyperquay', 'marketing/products/hyperquay')->name('products.hyperquay');
+Route::inertia('/products/exchange', 'marketing/products/exchange')->name('products.exchange');
+Route::inertia('/products/openexchange', 'marketing/products/openexchange')->name('products.openexchange');
+Route::inertia('/products/data', 'marketing/products/data')->name('products.data');
+Route::inertia('/products/services', 'marketing/products/services')->name('products.services');
+
+Route::inertia('/pricing', 'marketing/pricing')->name('pricing');
+Route::inertia('/markets', 'marketing/markets')->name('markets');
+Route::inertia('/developers', 'marketing/developers')->name('developers');
+Route::inertia('/whitepaper', 'marketing/whitepaper')->name('whitepaper');
+Route::inertia('/company', 'marketing/company')->name('company');
+Route::inertia('/blog', 'marketing/blog')->name('blog');
+Route::get('/blog/{slug}', fn (string $slug) => Inertia::render('marketing/article', ['slug' => $slug]))->name('blog.article');
+
+// Inbound provider webhooks (HMAC-verified, CSRF-exempt)
+Route::post('/webhooks/billings', BillingsWebhookController::class)->name('webhooks.billings');
+
+// Inference gateway — access-key auth, real-time metering
+Route::middleware(AuthenticateAccessKey::class)->group(function () {
+    Route::post('/v1/chat', [GatewayController::class, 'chat'])->name('v1.chat');
+    Route::get('/v1/models', [GatewayController::class, 'models'])->name('v1.models');
+});
+
+// Authenticated platform console
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::redirect('dashboard', '/console')->name('dashboard');
+
+    Route::get('/console', DashboardController::class)->name('console');
+    Route::get('/console/usage', UsageController::class)->name('console.usage');
+    Route::get('/console/sources', [SourcesController::class, 'index'])->name('console.sources');
+    Route::post('/console/sources', [SourcesController::class, 'store'])->name('console.sources.store');
+    Route::post('/console/sources/{source}/label', [SourcesController::class, 'updateLabel'])->name('console.sources.label');
+    Route::post('/console/sources/{source}/revoke', [SourcesController::class, 'revoke'])->name('console.sources.revoke');
+
+    // Client billing account
+    Route::get('/console/billing', [BillingController::class, 'index'])->name('console.billing');
+    Route::post('/console/billing/settings', [BillingController::class, 'updateSettings'])->name('console.billing.settings');
+    Route::post('/console/billing/topup', [BillingController::class, 'topup'])->name('console.billing.topup');
+    Route::get('/console/billing/add-card', [BillingController::class, 'addCard'])->name('console.add-card');
+    Route::post('/console/billing/card', [BillingController::class, 'storeCard'])->name('console.billing.card');
+
+    // Platform admin
+    Route::middleware(EnsureAdmin::class)->group(function () {
+        Route::get('/console/admin', [AdminController::class, 'index'])->name('console.admin');
+        Route::post('/console/admin/clients', [AdminController::class, 'storeClient'])->name('admin.clients.store');
+        Route::post('/console/admin/keys', [AdminController::class, 'storeKey'])->name('admin.keys.store');
+        Route::post('/console/admin/rate', [AdminController::class, 'updateRate'])->name('admin.rate.update');
+        Route::post('/console/admin/backends', [AdminController::class, 'storeBackend'])->name('admin.backends.store');
+        Route::post('/console/admin/balance', [AdminController::class, 'adjustBalance'])->name('admin.balance.adjust');
+        Route::post('/console/admin/client', [AdminController::class, 'updateClient'])->name('admin.client.update');
+        Route::post('/console/admin/model-rate', [AdminController::class, 'updateModelRate'])->name('admin.model-rate.update');
+        Route::post('/console/admin/sync', [AdminController::class, 'sync'])->name('admin.sync');
+    });
+});
+
+require __DIR__.'/settings.php';
