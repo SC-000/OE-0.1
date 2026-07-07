@@ -1,7 +1,7 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition } from './../../wayfinder'
 /**
 * @see \App\Http\Controllers\BillingsWebhookController::__invoke
-* @see app/Http/Controllers/BillingsWebhookController.php:23
+* @see app/Http/Controllers/BillingsWebhookController.php:25
 * @route '/webhooks/billings'
 */
 export const billings = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -16,7 +16,7 @@ billings.definition = {
 
 /**
 * @see \App\Http\Controllers\BillingsWebhookController::__invoke
-* @see app/Http/Controllers/BillingsWebhookController.php:23
+* @see app/Http/Controllers/BillingsWebhookController.php:25
 * @route '/webhooks/billings'
 */
 billings.url = (options?: RouteQueryOptions) => {
@@ -25,7 +25,7 @@ billings.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\BillingsWebhookController::__invoke
-* @see app/Http/Controllers/BillingsWebhookController.php:23
+* @see app/Http/Controllers/BillingsWebhookController.php:25
 * @route '/webhooks/billings'
 */
 billings.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -35,7 +35,7 @@ billings.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 
 /**
 * @see \App\Http\Controllers\BillingsWebhookController::__invoke
-* @see app/Http/Controllers/BillingsWebhookController.php:23
+* @see app/Http/Controllers/BillingsWebhookController.php:25
 * @route '/webhooks/billings'
 */
 const billingsForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -45,7 +45,7 @@ const billingsForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> 
 
 /**
 * @see \App\Http\Controllers\BillingsWebhookController::__invoke
-* @see app/Http/Controllers/BillingsWebhookController.php:23
+* @see app/Http/Controllers/BillingsWebhookController.php:25
 * @route '/webhooks/billings'
 */
 billingsForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({

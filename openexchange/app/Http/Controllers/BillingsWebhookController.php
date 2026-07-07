@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Client;
 use App\Models\ProcessedWebhook;
 use App\Models\TopUp;
+use App\Models\User;
 use App\Services\Billing\AutoTopupService;
 use App\Services\Billing\BillingsClient;
 use Illuminate\Http\Request;
@@ -52,6 +54,15 @@ class BillingsWebhookController
 
     private function process(string $type, array $payload): void
     {
+        // Customer lifecycle — backfill the billings customer id onto the client.
+        // Self-heals even when the create-customer API returned a 500 but the
+        // customer was in fact created (billings still fires customer.created).
+        if ($type === 'customer.created' || $type === 'customer.updated') {
+            $this->linkCustomer($payload);
+
+            return;
+        }
+
         $invoiceId = data_get($payload, 'data.invoice.id')
             ?? data_get($payload, 'data.invoice_id')
             ?? data_get($payload, 'data.id');
@@ -69,5 +80,27 @@ class BillingsWebhookController
             'charge.refunded', 'refund.processed' => $this->topups->reverseTopup($topup),
             default => null,
         };
+    }
+
+    /** Persist the billings customer id onto the matching client. */
+    private function linkCustomer(array $payload): void
+    {
+        $customerId = (string) data_get($payload, 'data.id', '');
+        if ($customerId === '') {
+            return;
+        }
+        $externalRef = (string) data_get($payload, 'data.external_ref', '');
+        $email = (string) data_get($payload, 'data.email', '');
+
+        $client = null;
+        if (str_starts_with($externalRef, 'client_')) {
+            $client = Client::find((int) substr($externalRef, 7));
+        }
+        if (! $client && $email !== '') {
+            $client = User::where('email', $email)->first()?->client;
+        }
+        if ($client && ! $client->billings_customer_id) {
+            $client->update(['billings_customer_id' => $customerId]);
+        }
     }
 }

@@ -50,9 +50,22 @@ class BillingsClient
             return $client->billings_customer_id;
         }
 
-        // search by external_ref, then create
-        $search = $this->http()->get('/customers', ['external_ref' => 'client_'.$client->id]);
-        $existing = $search->ok() ? ($search->json('data.0.id') ?? null) : null;
+        // Search by our external_ref, then create. Only accept a result whose
+        // external_ref actually matches this client — some billings responses ignore
+        // the filter and return other customers, which must never be cross-linked.
+        $ref = 'client_'.$client->id;
+        $search = $this->http()->get('/customers', ['external_ref' => $ref]);
+        $existing = null;
+        if ($search->ok()) {
+            $data = $search->json('data');
+            $rows = is_array($data) ? (array_is_list($data) ? $data : [$data]) : [];
+            foreach ($rows as $c) {
+                if (is_array($c) && ($c['external_ref'] ?? null) === $ref) {
+                    $existing = $c['id'] ?? null;
+                    break;
+                }
+            }
+        }
 
         if (! $existing) {
             $created = $this->data($this->http('cust_client_'.$client->id)->post('/customers', [
