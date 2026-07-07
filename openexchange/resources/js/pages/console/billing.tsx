@@ -38,7 +38,10 @@ export default function Billing({ balance = 0, settings, card = null, transactio
 
     return (
         <ConsoleLayout active="billing" title="Billing" subtitle="Prepaid balance, auto top-up and payment method"
-            actions={<Button as={Link} href="/console/billing/add-card" size="sm" leadingIcon={<Icon name="credit-card" size={15} color="var(--ox-on-primary)" />}>{card ? 'Replace card' : 'Add card'}</Button>}>
+            actions={<>
+                {card && <Button size="sm" variant="secondary" onClick={() => router.post('/console/billing/topup', {}, { preserveScroll: true })} leadingIcon={<Icon name="refresh-cw" size={15} />}>Top up now</Button>}
+                <Button as={Link} href="/console/billing/add-card" size="sm" leadingIcon={<Icon name="credit-card" size={15} color="var(--ox-on-primary)" />}>{card ? 'Replace card' : 'Add card'}</Button>
+            </>}>
             <Head title="Billing — Console" />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                 <div className="oe-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>

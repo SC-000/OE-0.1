@@ -82,6 +82,18 @@ class AccountTest extends TestCase
         $this->assertSame(100000 - 350, $client->fresh()->balance_cents);
     }
 
+    public function test_owner_can_save_a_payment_method(): void
+    {
+        $client = Client::create(['name' => 'X', 'slug' => 'x']);
+        $user = User::factory()->create(['client_id' => $client->id, 'role' => 'owner']);
+
+        $this->actingAs($user)->post('/console/billing/card', [
+            'payment_method_id' => 'pm_test_ab', 'brand' => 'visa', 'last4' => '4242', 'exp_month' => 8, 'exp_year' => 2028,
+        ]);
+
+        $this->assertDatabaseHas('payment_methods', ['client_id' => $client->id, 'billings_pm_id' => 'pm_test_ab', 'is_default' => true]);
+    }
+
     public function test_an_owner_without_a_client_self_heals(): void
     {
         $user = User::factory()->create(['role' => 'owner', 'client_id' => null]);

@@ -60,19 +60,23 @@ export default function AddCard({ publishableKey, customerId, widgetBase = 'http
         return () => clearTimeout(t);
     }, [step, stage]);
 
-    // Persist the tokenised card once the flow completes (widget mode only).
+    // Persist the card once the flow completes. Live mode uses the widget's
+    // tokenised payment method; test mode saves the digits you typed so the card
+    // still appears on your billing account (no charge, no billings customer).
     useEffect(() => {
-        if (step !== 'done' || !configured || persisted.current) return;
+        if (step !== 'done' || persisted.current) return;
         persisted.current = true;
         const pm = pmRef.current ?? {};
+        const digits = card.number.replace(/\D/g, '');
+        const [em, ey] = (card.exp || '').split('/').map((s) => parseInt(s.trim(), 10) || 0);
         router.post('/console/billing/card', {
-            payment_method_id: (pm.id as string) ?? 'pm_unknown',
-            brand: (pm.type as string) ?? (pm.brand as string) ?? 'card',
-            last4: (pm.last4 as string) ?? null,
-            exp_month: (pm.expiry_month as number) ?? (pm.exp_month as number) ?? null,
-            exp_year: (pm.expiry_year as number) ?? (pm.exp_year as number) ?? null,
+            payment_method_id: (pm.id as string) || ('pm_test_' + Math.random().toString(16).slice(2, 10)),
+            brand: (pm.type as string) || (pm.brand as string) || 'visa',
+            last4: (pm.last4 as string) || (digits.slice(-4) || '4242'),
+            exp_month: (pm.expiry_month as number) || (em >= 1 && em <= 12 ? em : 8),
+            exp_year: (pm.expiry_year as number) || (ey ? (ey < 100 ? 2000 + ey : ey) : 2028),
         }, { preserveState: true, preserveScroll: true });
-    }, [step, configured]);
+    }, [step]);
 
     const fmtNum = (v: string) => v.replace(/\D/g, '').slice(0, 16).replace(/(.{4})/g, '$1 ').trim();
     const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) => setCard((c) => ({ ...c, [k]: e.target.value }));
@@ -124,7 +128,7 @@ export default function AddCard({ publishableKey, customerId, widgetBase = 'http
                                     </div>
                                     <Button size="lg" fullWidth onClick={() => { setStep('connecting'); setStage(0); }} leadingIcon={<Icon name="lock" size={16} color="var(--ox-on-primary)" />}>Connect card securely</Button>
                                     <span style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center', fontSize: 12, color: 'var(--ox-text-subtle)' }}>
-                                        <Icon name="shield" size={13} color="var(--ox-text-subtle)" />Demo mode — configure billings.systems to accept live cards. Numbers are never stored.
+                                        <Icon name="shield" size={13} color="var(--ox-text-subtle)" />Test mode — no live charge; the card is saved to your billing account so you can test. Configure billings.systems for live cards.
                                     </span>
                                 </>
                             )}
