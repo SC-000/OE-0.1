@@ -4,12 +4,15 @@ namespace App\Actions\Fortify;
 
 use App\Concerns\PasswordValidationRules;
 use App\Concerns\ProfileValidationRules;
+use App\Mail\WelcomeMail;
 use App\Models\Client;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
+use Throwable;
 
 class CreateNewUser implements CreatesNewUsers
 {
@@ -27,7 +30,7 @@ class CreateNewUser implements CreatesNewUsers
             'password' => $this->passwordRules(),
         ])->validate();
 
-        return DB::transaction(function () use ($input) {
+        $user = DB::transaction(function () use ($input) {
             $client = Client::create([
                 'name' => $input['name'],
                 'slug' => Str::slug($input['name']).'-'.Str::lower(Str::random(5)),
@@ -41,5 +44,13 @@ class CreateNewUser implements CreatesNewUsers
                 'role' => 'owner',
             ]);
         });
+
+        try {
+            Mail::to($user->email)->send(new WelcomeMail($user));
+        } catch (Throwable $e) {
+            report($e);
+        }
+
+        return $user;
     }
 }

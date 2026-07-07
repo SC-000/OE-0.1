@@ -3,11 +3,13 @@
 namespace Tests\Feature;
 
 use App\Actions\Fortify\CreateNewUser;
+use App\Mail\WelcomeMail;
 use App\Models\Client;
 use App\Models\ModelCatalog;
 use App\Models\User;
 use App\Notifications\ResetPasswordNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
@@ -17,6 +19,8 @@ class AccountTest extends TestCase
 
     public function test_signup_creates_its_own_billing_account(): void
     {
+        Mail::fake();
+
         $user = app(CreateNewUser::class)->create([
             'name' => 'Casey Owner',
             'email' => 'casey@example.com',
@@ -27,6 +31,7 @@ class AccountTest extends TestCase
         $this->assertNotNull($user->client_id);
         $this->assertSame('owner', $user->role);
         $this->assertDatabaseHas('clients', ['id' => $user->client_id]);
+        Mail::assertSent(WelcomeMail::class, fn ($m) => $m->hasTo('casey@example.com'));
     }
 
     public function test_admin_creating_a_client_provisions_an_owner_login(): void

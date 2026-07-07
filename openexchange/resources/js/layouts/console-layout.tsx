@@ -7,6 +7,7 @@ const NAV = [
     { id: 'usage', label: 'Usage', icon: 'trending-up', href: '/console/usage' },
     { id: 'sources', label: 'Sources', icon: 'layers', href: '/console/sources' },
     { id: 'billing', label: 'Billing', icon: 'credit-card', href: '/console/billing' },
+    { id: 'settings', label: 'Settings', icon: 'settings', href: '/settings/profile' },
 ];
 const ADMIN = [{ id: 'admin', label: 'Clients & rates', icon: 'sliders', href: '/console/admin' }];
 

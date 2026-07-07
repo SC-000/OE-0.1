@@ -227,7 +227,10 @@
 @media (prefers-reduced-motion: no-preference) {
   .ox-ticker-track { animation: ox-ticker 42s linear infinite; }
 }
-@keyframes ox-ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+/* translate3d + will-change promote the track to its own GPU layer so the
+   text and 1px borders composite smoothly instead of re-rasterising each frame */
+.ox-ticker-track { will-change: transform; backface-visibility: hidden; transform: translateZ(0); }
+@keyframes ox-ticker { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(-50%, 0, 0); } }
 
 /* pipeline node pulse (staggered per node via inline animation-delay) */
 @media (prefers-reduced-motion: no-preference) {
