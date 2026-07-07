@@ -64,7 +64,7 @@ class BillingsClient
                 'external_ref' => $ref,
                 'metadata' => ['client_id' => $client->id],
             ]);
-            if ($res->ok()) {
+            if ($res->successful()) {
                 $existing = (string) (data_get($res->json(), 'data.id') ?? data_get($res->json(), 'id') ?? '');
             } elseif ($res->status() === 422) {
                 // Already exists (prior attempt / race) — recover it by email.
@@ -87,18 +87,44 @@ class BillingsClient
     private function findCustomerByEmail(string $email): ?string
     {
         $res = $this->http()->get('/customers', ['email' => $email]);
-        if (! $res->ok()) {
+        if (! $res->successful()) {
             return null;
         }
-        $data = $res->json('data');
-        $rows = is_array($data) ? (array_is_list($data) ? $data : [$data]) : [];
+        $rows = $this->rows($res->json('data'));
+
+        // Exact (case-insensitive) email match first.
         foreach ($rows as $c) {
-            if (is_array($c) && ($c['email'] ?? null) === $email && ! empty($c['id'])) {
+            if (is_array($c) && ! empty($c['id']) && strcasecmp((string) ($c['email'] ?? ''), $email) === 0) {
+                return (string) $c['id'];
+            }
+        }
+        // The ?email= filter already scopes the result set — take the first with an id.
+        foreach ($rows as $c) {
+            if (is_array($c) && ! empty($c['id'])) {
                 return (string) $c['id'];
             }
         }
 
         return null;
+    }
+
+    /**
+     * Normalise a billings list response into an array of rows. `data` may be a
+     * flat list, or a Laravel paginator wrapper ({ data: [...], total, ... }).
+     */
+    private function rows(mixed $data): array
+    {
+        if (! is_array($data)) {
+            return [];
+        }
+        if (array_is_list($data)) {
+            return $data;
+        }
+        if (isset($data['data']) && is_array($data['data'])) {
+            return array_is_list($data['data']) ? $data['data'] : [$data['data']];
+        }
+
+        return [$data];
     }
 
     public function createInvoice(string $customerId, int $amountCents, string $description, ?string $idempotencyKey = null): array

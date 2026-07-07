@@ -16,10 +16,17 @@ class BillingsClientTest extends TestCase
     public function test_mutating_requests_send_an_idempotency_key(): void
     {
         config(['openexchange.billings.token' => 'test_token', 'openexchange.billings.base' => 'https://billings.test']);
-        Http::fake([
-            '*/customers*' => Http::response(['data' => ['id' => 'cus_1']], 200),
-            '*/invoices' => Http::response(['data' => ['id' => 'inv_1']], 200),
-        ]);
+        Http::fake(function ($request) {
+            if (str_contains($request->url(), '/invoices')) {
+                return Http::response(['data' => ['id' => 'inv_1']], 200);
+            }
+            // Email search returns none → forces the create POST this test checks.
+            if ($request->method() === 'GET') {
+                return Http::response(['data' => ['data' => []]], 200);
+            }
+
+            return Http::response(['data' => ['id' => 'cus_1']], 201);
+        });
 
         $client = Client::create(['name' => 'X', 'slug' => 'x']);
         $billings = app(BillingsClient::class);
@@ -36,8 +43,9 @@ class BillingsClientTest extends TestCase
         config(['openexchange.billings.token' => 'test_token', 'openexchange.billings.base' => 'https://billings.test']);
         $client = Client::create(['name' => 'X', 'slug' => 'x']);
         User::factory()->create(['client_id' => $client->id, 'email' => 'owner@x.test']);
+        // billings returns a paginated list: data.data[]
         Http::fake([
-            '*/customers*' => Http::response(['data' => [['id' => 'cus_existing', 'email' => 'owner@x.test']]], 200),
+            '*/customers*' => Http::response(['data' => ['data' => [['id' => 'cus_existing', 'email' => 'owner@x.test']], 'total' => 1]], 200),
         ]);
 
         $id = app(BillingsClient::class)->ensureCustomer($client);
