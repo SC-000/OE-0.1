@@ -33,7 +33,7 @@ export default function Markets() {
 
             <section className="ox-dark" style={{ position: 'relative', background: 'var(--ox-ink-900)', color: '#eef3f2', overflow: 'hidden' }}>
                 <div className="ox-dot-grid ox-dot-grid--fade" style={{ position: 'absolute', inset: 0, ['--ox-dot-focus' as string]: '30% 40%' }} />
-                <div className="ox-container-wide" style={{ position: 'relative', paddingBlock: '76px' }}>
+                <div className="ox-container-wide" style={{ position: 'relative', paddingBlock: 'clamp(48px, 9vw, 76px)' }}>
                     <div style={{ maxWidth: 680 }}>
                         <Badge tone="brand">Markets</Badge>
                         <h1 style={{ margin: '18px 0 0', fontWeight: 800, fontSize: 'clamp(2.2rem, 4.6vw, 3.4rem)', lineHeight: 1.07, letterSpacing: '-0.03em' }}>

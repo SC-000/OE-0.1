@@ -34,7 +34,7 @@ export default function Developers() {
 
             <section className="ox-dark" style={{ position: 'relative', background: 'var(--ox-ink-900)', color: '#eef3f2', overflow: 'hidden' }}>
                 <div className="ox-dot-grid ox-dot-grid--fade" style={{ position: 'absolute', inset: 0, ['--ox-dot-focus' as string]: '82% 40%' }} />
-                <div className="ox-container-wide oe-hero-grid" style={{ position: 'relative', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 44, alignItems: 'center', paddingBlock: '76px' }}>
+                <div className="ox-container-wide oe-hero-grid" style={{ position: 'relative', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 44, alignItems: 'center', paddingBlock: 'clamp(48px, 9vw, 76px)' }}>
                     <div style={{ maxWidth: 540 }}>
                         <Badge tone="brand">Developers</Badge>
                         <h1 style={{ margin: '18px 0 0', fontWeight: 800, fontSize: 'clamp(2.1rem, 4.4vw, 3.25rem)', lineHeight: 1.08, letterSpacing: '-0.03em' }}>

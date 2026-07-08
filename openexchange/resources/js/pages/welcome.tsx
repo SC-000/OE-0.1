@@ -90,7 +90,7 @@ export default function Home() {
                 <div style={{ marginTop: 44, padding: '28px 20px', borderRadius: 'var(--ox-radius-xl)', background: 'var(--ox-cream)', border: '1px solid var(--ox-border)', boxShadow: 'var(--ox-shadow-sm)', overflowX: 'auto' }}>
                     <PipelineFlow tone="light" style={{ minWidth: 680 }} />
                 </div>
-                <div className="oe-2col" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, marginTop: 28 }}>
+                <div className="oe-grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, marginTop: 28 }}>
                     {[
                         { k: 'Automatic or your call', v: 'Route by Auto, Cost, Quality, Fast, Code, Vision or JSON — or override the model outright.' },
                         { k: 'Ordered fallbacks', v: 'Primary model plus a ranked fallback list, so a provider hiccup never becomes your outage.' },

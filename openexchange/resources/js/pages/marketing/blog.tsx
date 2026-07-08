@@ -11,7 +11,7 @@ export default function Blog() {
 
             <section className="ox-dark" style={{ position: 'relative', background: 'var(--ox-ink-900)', color: '#eef3f2', overflow: 'hidden' }}>
                 <div className="ox-dot-grid ox-dot-grid--fade" style={{ position: 'absolute', inset: 0, ['--ox-dot-focus' as string]: '50% 40%' }} />
-                <div className="ox-container" style={{ position: 'relative', paddingBlock: '76px', textAlign: 'center' }}>
+                <div className="ox-container" style={{ position: 'relative', paddingBlock: 'clamp(44px, 9vw, 76px)', textAlign: 'center' }}>
                     <Badge tone="brand">Research &amp; blog</Badge>
                     <h1 style={{ margin: '20px auto 0', maxWidth: 720, fontWeight: 800, fontSize: 'clamp(2.2rem, 4.6vw, 3.4rem)', lineHeight: 1.08, letterSpacing: '-0.03em' }}>
                         How the exchange thinks
