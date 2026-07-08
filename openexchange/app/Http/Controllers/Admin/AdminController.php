@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Services\Billing\BalanceService;
 use App\Services\Metering\RateResolver;
 use App\Services\Providers\OpenAiDiscovery;
+use App\Services\Providers\ProviderModelSync;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
@@ -72,11 +73,16 @@ class AdminController
         // Discovered OpenAI projects (cached; refreshed via the Discover action),
         // joined to whichever client each is assigned to via ProviderKey.
         $discProjects = Cache::get('oe.discovery.openai.projects', []);
-        $discUsage = Cache::get('oe.discovery.openai.usage', []);
+        $discUsage = Cache::get('oe.discovery.openai.usage', []); // project_id => [day => tokens]
+        $days = [];
+        for ($i = 29; $i >= 0; $i--) {
+            $days[] = now()->subDays($i)->format('Y-m-d');
+        }
         $openaiKeys = ProviderKey::with('client')->where('provider', 'openai')->get()->keyBy('external_project_id');
-        $discovery = collect($discProjects)->map(function ($p) use ($openaiKeys, $discUsage) {
+        $discovery = collect($discProjects)->map(function ($p) use ($openaiKeys, $discUsage, $days) {
             $key = $openaiKeys->get($p['id']);
-            $u = $discUsage[$p['id']] ?? ['input' => 0, 'output' => 0];
+            $byDay = $discUsage[$p['id']] ?? [];
+            $series = array_map(fn ($d) => (int) ($byDay[$d] ?? 0), $days);
 
             return [
                 'id' => $p['id'],
@@ -86,17 +92,38 @@ class AdminController
                 'assigned_client' => $key?->client?->name,
                 'label' => $key?->display_label ?? $key?->label,
                 'key_status' => $key?->status,
-                'input' => $u['input'] ?? 0,
-                'output' => $u['output'] ?? 0,
-                'tokens' => ($u['input'] ?? 0) + ($u['output'] ?? 0),
+                'tokens' => array_sum($series),
+                'series' => $series,
             ];
         })->values();
 
-        // Full model catalogue (for the live "add usage" cost preview).
-        $catalog = ModelCatalog::where('active', true)->orderBy('provider')->orderBy('model')->get()->map(fn ($m) => [
-            'model' => $m->model, 'provider' => $m->provider,
-            'in' => (float) $m->input_usd_per_million, 'out' => (float) $m->output_usd_per_million,
-        ]);
+        // Full editable model catalogue (prices + per-model markup override + active).
+        $overrides = ClientModelRate::whereNull('client_id')->whereNotNull('model')->get()->keyBy(fn ($r) => $r->provider.'|'.$r->model);
+        $catalog = ModelCatalog::orderBy('provider')->orderBy('model')->get()->map(function ($m) use ($overrides) {
+            $ov = $overrides->get($m->provider.'|'.$m->model);
+
+            return [
+                'id' => $m->id, 'model' => $m->model, 'provider' => $m->provider,
+                'in' => (float) $m->input_usd_per_million, 'out' => (float) $m->output_usd_per_million,
+                'active' => (bool) $m->active, 'markup_bps' => $ov?->markup_bps,
+            ];
+        });
+
+        // Models seen in usage this month with NO catalogue price → they bill $0.
+        $catalogModels = ModelCatalog::pluck('model')->all();
+        $unpricedModels = UsageRecord::where('period_start', '>=', $monthStart)
+            ->whereNotIn('model', $catalogModels)->distinct()->orderBy('model')->limit(20)->pluck('model');
+
+        // Gateway access keys grouped by client (for the Manage panel: list + revoke).
+        $accessKeys = AccessKey::orderByDesc('created_at')->get()->groupBy('client_id')->map(fn ($grp) => $grp->map(fn ($k) => [
+            'id' => $k->id, 'name' => $k->name, 'frag' => $k->fragment(), 'status' => $k->status,
+            'last_used' => $k->last_used_at?->diffForHumans() ?? 'never',
+        ])->values());
+
+        // Per-client, per-model markup overrides (for the Manage panel).
+        $clientRates = ClientModelRate::whereNotNull('client_id')->get()->groupBy('client_id')->map(fn ($grp) => $grp->map(fn ($r) => [
+            'id' => $r->id, 'provider' => $r->provider, 'model' => $r->model, 'markup_bps' => $r->markup_bps,
+        ])->values());
 
         return Inertia::render('console/admin', [
             'stats' => [
@@ -118,6 +145,9 @@ class AdminController
             'discoveredAt' => Cache::get('oe.discovery.openai.at'),
             'openaiReady' => (bool) config('openexchange.openai.admin_key'),
             'catalog' => $catalog,
+            'unpricedModels' => $unpricedModels,
+            'accessKeys' => $accessKeys,
+            'clientRates' => $clientRates,
             'newAccessKey' => session('new_access_key'),
         ]);
     }
@@ -295,9 +325,9 @@ class AdminController
     {
         try {
             $projects = $discovery->projects();
-            $usage = $discovery->usageByProject(now()->startOfMonth()->toImmutable(), now()->toImmutable());
+            $series = $discovery->usageDaily(now()->subDays(29)->startOfDay()->toImmutable(), now()->toImmutable());
             Cache::put('oe.discovery.openai.projects', $projects, now()->addHours(6));
-            Cache::put('oe.discovery.openai.usage', $usage, now()->addHours(6));
+            Cache::put('oe.discovery.openai.usage', $series, now()->addHours(6));
             Cache::put('oe.discovery.openai.at', now()->toDateTimeString(), now()->addHours(6));
 
             return back();
@@ -349,5 +379,87 @@ class AdminController
         });
 
         return back();
+    }
+
+    /** Add or re-price a model in the catalogue (input/output $ per 1M tokens). */
+    public function storeModel(Request $request)
+    {
+        $data = $request->validate([
+            'provider' => ['required', 'string', 'max:40'],
+            'model' => ['required', 'string', 'max:120'],
+            'input' => ['required', 'numeric', 'min:0', 'max:100000'],
+            'output' => ['required', 'numeric', 'min:0', 'max:100000'],
+        ]);
+        ModelCatalog::updateOrCreate(
+            ['provider' => $data['provider'], 'model' => $data['model']],
+            ['input_usd_per_million' => $data['input'], 'output_usd_per_million' => $data['output'], 'active' => true],
+        );
+
+        return back();
+    }
+
+    /** Edit a catalogue model's prices / active flag. */
+    public function updateModel(Request $request)
+    {
+        $data = $request->validate([
+            'id' => ['required', 'exists:model_catalog,id'],
+            'input' => ['required', 'numeric', 'min:0', 'max:100000'],
+            'output' => ['required', 'numeric', 'min:0', 'max:100000'],
+            'active' => ['required', 'boolean'],
+        ]);
+        ModelCatalog::whereKey($data['id'])->update([
+            'input_usd_per_million' => $data['input'],
+            'output_usd_per_million' => $data['output'],
+            'active' => $data['active'],
+        ]);
+
+        return back();
+    }
+
+    /** Revoke a client's gateway access key. */
+    public function revokeAccessKey(Request $request)
+    {
+        $data = $request->validate(['access_key_id' => ['required', 'exists:access_keys,id']]);
+        AccessKey::whereKey($data['access_key_id'])->update(['status' => 'revoked']);
+
+        return back();
+    }
+
+    /** Set a per-client, per-model markup override (most specific — beats the client default). */
+    public function updateClientModelRate(Request $request)
+    {
+        $data = $request->validate([
+            'client_id' => ['required', 'exists:clients,id'],
+            'provider' => ['required', 'string', 'max:40'],
+            'model' => ['required', 'string', 'max:120'],
+            'markup_bps' => ['required', 'integer', 'min:0', 'max:100000'],
+        ]);
+        ClientModelRate::updateOrCreate(
+            ['client_id' => $data['client_id'], 'provider' => $data['provider'], 'model' => $data['model']],
+            ['markup_bps' => $data['markup_bps']],
+        );
+
+        return back();
+    }
+
+    /** Remove a per-client, per-model markup override (falls back to the client default). */
+    public function deleteClientModelRate(Request $request)
+    {
+        $data = $request->validate(['id' => ['required', 'exists:client_model_rates,id']]);
+        ClientModelRate::whereKey($data['id'])->delete();
+
+        return back();
+    }
+
+    /** Auto-discover models from OpenAI + Google and add any missing to the catalogue. */
+    public function syncModels(ProviderModelSync $sync)
+    {
+        try {
+            $sync->sync();
+
+            return back();
+        } catch (\Throwable $e) {
+            return back()->withErrors(['sync' => mb_substr($e->getMessage(), 0, 200)]);
+        }
     }
 }

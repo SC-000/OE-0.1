@@ -103,4 +103,39 @@ class OpenAiDiscovery
 
         return $out;
     }
+
+    /**
+     * Daily token totals per project over a window (for usage-over-time sparklines).
+     * @return array<string,array<string,int>> project_id => [ 'YYYY-MM-DD' => tokens ]
+     */
+    public function usageDaily(CarbonImmutable $since, CarbonImmutable $until): array
+    {
+        $series = [];
+        $page = null;
+        $guard = 0;
+        do {
+            $res = $this->http()->get($this->base().'/v1/organization/usage/completions', array_filter([
+                'start_time' => $since->getTimestamp(),
+                'end_time' => $until->getTimestamp(),
+                'bucket_width' => '1d',
+                'group_by' => ['project_id'],
+                'limit' => 31,
+                'page' => $page,
+            ], fn ($v) => $v !== null));
+            if ($res->failed()) {
+                break;
+            }
+            foreach ((array) $res->json('data', []) as $bucket) {
+                $day = CarbonImmutable::createFromTimestamp((int) ($bucket['start_time'] ?? $since->getTimestamp()))->format('Y-m-d');
+                foreach ((array) ($bucket['results'] ?? []) as $r) {
+                    $pid = (string) ($r['project_id'] ?? 'unknown');
+                    $tok = (int) ($r['input_tokens'] ?? 0) + (int) ($r['output_tokens'] ?? 0);
+                    $series[$pid][$day] = ($series[$pid][$day] ?? 0) + $tok;
+                }
+            }
+            $page = $res->json('has_more') ? $res->json('next_page') : null;
+        } while ($page && ++$guard < 50);
+
+        return $series;
+    }
 }

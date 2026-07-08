@@ -8,9 +8,11 @@ import client from './client'
 import modelRate from './model-rate'
 import accessKey from './access-key'
 import usage from './usage'
+import model from './model'
+import clientModelRate from './client-model-rate'
 /**
 * @see \App\Http\Controllers\Admin\AdminController::discover
-* @see app/Http/Controllers/Admin/AdminController.php:294
+* @see app/Http/Controllers/Admin/AdminController.php:324
 * @route '/console/admin/discover'
 */
 export const discover = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -25,7 +27,7 @@ discover.definition = {
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::discover
-* @see app/Http/Controllers/Admin/AdminController.php:294
+* @see app/Http/Controllers/Admin/AdminController.php:324
 * @route '/console/admin/discover'
 */
 discover.url = (options?: RouteQueryOptions) => {
@@ -34,7 +36,7 @@ discover.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::discover
-* @see app/Http/Controllers/Admin/AdminController.php:294
+* @see app/Http/Controllers/Admin/AdminController.php:324
 * @route '/console/admin/discover'
 */
 discover.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -44,7 +46,7 @@ discover.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::discover
-* @see app/Http/Controllers/Admin/AdminController.php:294
+* @see app/Http/Controllers/Admin/AdminController.php:324
 * @route '/console/admin/discover'
 */
 const discoverForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -54,7 +56,7 @@ const discoverForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> 
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::discover
-* @see app/Http/Controllers/Admin/AdminController.php:294
+* @see app/Http/Controllers/Admin/AdminController.php:324
 * @route '/console/admin/discover'
 */
 discoverForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -66,7 +68,7 @@ discover.form = discoverForm
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::assignProject
-* @see app/Http/Controllers/Admin/AdminController.php:310
+* @see app/Http/Controllers/Admin/AdminController.php:340
 * @route '/console/admin/assign-project'
 */
 export const assignProject = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -81,7 +83,7 @@ assignProject.definition = {
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::assignProject
-* @see app/Http/Controllers/Admin/AdminController.php:310
+* @see app/Http/Controllers/Admin/AdminController.php:340
 * @route '/console/admin/assign-project'
 */
 assignProject.url = (options?: RouteQueryOptions) => {
@@ -90,7 +92,7 @@ assignProject.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::assignProject
-* @see app/Http/Controllers/Admin/AdminController.php:310
+* @see app/Http/Controllers/Admin/AdminController.php:340
 * @route '/console/admin/assign-project'
 */
 assignProject.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -100,7 +102,7 @@ assignProject.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => (
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::assignProject
-* @see app/Http/Controllers/Admin/AdminController.php:310
+* @see app/Http/Controllers/Admin/AdminController.php:340
 * @route '/console/admin/assign-project'
 */
 const assignProjectForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -110,7 +112,7 @@ const assignProjectForm = (options?: RouteQueryOptions): RouteFormDefinition<'po
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::assignProject
-* @see app/Http/Controllers/Admin/AdminController.php:310
+* @see app/Http/Controllers/Admin/AdminController.php:340
 * @route '/console/admin/assign-project'
 */
 assignProjectForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -122,7 +124,7 @@ assignProject.form = assignProjectForm
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::toggleProject
-* @see app/Http/Controllers/Admin/AdminController.php:328
+* @see app/Http/Controllers/Admin/AdminController.php:358
 * @route '/console/admin/toggle-project'
 */
 export const toggleProject = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -137,7 +139,7 @@ toggleProject.definition = {
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::toggleProject
-* @see app/Http/Controllers/Admin/AdminController.php:328
+* @see app/Http/Controllers/Admin/AdminController.php:358
 * @route '/console/admin/toggle-project'
 */
 toggleProject.url = (options?: RouteQueryOptions) => {
@@ -146,7 +148,7 @@ toggleProject.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::toggleProject
-* @see app/Http/Controllers/Admin/AdminController.php:328
+* @see app/Http/Controllers/Admin/AdminController.php:358
 * @route '/console/admin/toggle-project'
 */
 toggleProject.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -156,7 +158,7 @@ toggleProject.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => (
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::toggleProject
-* @see app/Http/Controllers/Admin/AdminController.php:328
+* @see app/Http/Controllers/Admin/AdminController.php:358
 * @route '/console/admin/toggle-project'
 */
 const toggleProjectForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -166,7 +168,7 @@ const toggleProjectForm = (options?: RouteQueryOptions): RouteFormDefinition<'po
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::toggleProject
-* @see app/Http/Controllers/Admin/AdminController.php:328
+* @see app/Http/Controllers/Admin/AdminController.php:358
 * @route '/console/admin/toggle-project'
 */
 toggleProjectForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -177,8 +179,64 @@ toggleProjectForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'pos
 toggleProject.form = toggleProjectForm
 
 /**
+* @see \App\Http\Controllers\Admin\AdminController::syncModels
+* @see app/Http/Controllers/Admin/AdminController.php:455
+* @route '/console/admin/sync-models'
+*/
+export const syncModels = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+    url: syncModels.url(options),
+    method: 'post',
+})
+
+syncModels.definition = {
+    methods: ["post"],
+    url: '/console/admin/sync-models',
+} satisfies RouteDefinition<["post"]>
+
+/**
+* @see \App\Http\Controllers\Admin\AdminController::syncModels
+* @see app/Http/Controllers/Admin/AdminController.php:455
+* @route '/console/admin/sync-models'
+*/
+syncModels.url = (options?: RouteQueryOptions) => {
+    return syncModels.definition.url + queryParams(options)
+}
+
+/**
+* @see \App\Http\Controllers\Admin\AdminController::syncModels
+* @see app/Http/Controllers/Admin/AdminController.php:455
+* @route '/console/admin/sync-models'
+*/
+syncModels.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+    url: syncModels.url(options),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\AdminController::syncModels
+* @see app/Http/Controllers/Admin/AdminController.php:455
+* @route '/console/admin/sync-models'
+*/
+const syncModelsForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: syncModels.url(options),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\AdminController::syncModels
+* @see app/Http/Controllers/Admin/AdminController.php:455
+* @route '/console/admin/sync-models'
+*/
+syncModelsForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: syncModels.url(options),
+    method: 'post',
+})
+
+syncModels.form = syncModelsForm
+
+/**
 * @see \App\Http\Controllers\Admin\AdminController::sync
-* @see app/Http/Controllers/Admin/AdminController.php:238
+* @see app/Http/Controllers/Admin/AdminController.php:268
 * @route '/console/admin/sync'
 */
 export const sync = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -193,7 +251,7 @@ sync.definition = {
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::sync
-* @see app/Http/Controllers/Admin/AdminController.php:238
+* @see app/Http/Controllers/Admin/AdminController.php:268
 * @route '/console/admin/sync'
 */
 sync.url = (options?: RouteQueryOptions) => {
@@ -202,7 +260,7 @@ sync.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::sync
-* @see app/Http/Controllers/Admin/AdminController.php:238
+* @see app/Http/Controllers/Admin/AdminController.php:268
 * @route '/console/admin/sync'
 */
 sync.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -212,7 +270,7 @@ sync.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::sync
-* @see app/Http/Controllers/Admin/AdminController.php:238
+* @see app/Http/Controllers/Admin/AdminController.php:268
 * @route '/console/admin/sync'
 */
 const syncForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -222,7 +280,7 @@ const syncForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => (
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::sync
-* @see app/Http/Controllers/Admin/AdminController.php:238
+* @see app/Http/Controllers/Admin/AdminController.php:268
 * @route '/console/admin/sync'
 */
 syncForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -245,6 +303,9 @@ const admin = {
     discover: Object.assign(discover, discover),
     assignProject: Object.assign(assignProject, assignProject),
     toggleProject: Object.assign(toggleProject, toggleProject),
+    model: Object.assign(model, model),
+    clientModelRate: Object.assign(clientModelRate, clientModelRate),
+    syncModels: Object.assign(syncModels, syncModels),
     sync: Object.assign(sync, sync),
 }
 

@@ -73,6 +73,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/console/admin/assign-project', [AdminController::class, 'assignProject'])->name('admin.assign-project');
         Route::post('/console/admin/toggle-project', [AdminController::class, 'toggleProject'])->name('admin.toggle-project');
         Route::post('/console/admin/client/delete', [AdminController::class, 'destroyClient'])->name('admin.client.delete');
+        Route::post('/console/admin/model', [AdminController::class, 'storeModel'])->name('admin.model.store');
+        Route::post('/console/admin/model/update', [AdminController::class, 'updateModel'])->name('admin.model.update');
+        Route::post('/console/admin/access-key/revoke', [AdminController::class, 'revokeAccessKey'])->name('admin.access-key.revoke');
+        Route::post('/console/admin/client-model-rate', [AdminController::class, 'updateClientModelRate'])->name('admin.client-model-rate.update');
+        Route::post('/console/admin/client-model-rate/delete', [AdminController::class, 'deleteClientModelRate'])->name('admin.client-model-rate.delete');
+        Route::post('/console/admin/sync-models', [AdminController::class, 'syncModels'])->name('admin.sync-models');
         Route::post('/console/admin/sync', [AdminController::class, 'sync'])->name('admin.sync');
     });
 });

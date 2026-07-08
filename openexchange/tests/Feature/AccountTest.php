@@ -113,6 +113,25 @@ class AccountTest extends TestCase
         ]);
     }
 
+    public function test_admin_can_add_a_model_price(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)->post('/console/admin/model', ['provider' => 'openai', 'model' => 'gpt-x', 'input' => 1.5, 'output' => 4.0]);
+
+        $this->assertDatabaseHas('model_catalog', ['provider' => 'openai', 'model' => 'gpt-x', 'input_usd_per_million' => 1.5, 'output_usd_per_million' => 4.0]);
+    }
+
+    public function test_admin_can_set_a_per_client_per_model_markup(): void
+    {
+        $client = Client::create(['name' => 'Z', 'slug' => 'z']);
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)->post('/console/admin/client-model-rate', ['client_id' => $client->id, 'provider' => 'openai', 'model' => 'gpt-x', 'markup_bps' => 5000]);
+
+        $this->assertDatabaseHas('client_model_rates', ['client_id' => $client->id, 'provider' => 'openai', 'model' => 'gpt-x', 'markup_bps' => 5000]);
+    }
+
     public function test_owner_can_save_a_payment_method(): void
     {
         $client = Client::create(['name' => 'X', 'slug' => 'x']);

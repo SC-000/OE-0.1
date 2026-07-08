@@ -1,7 +1,7 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition } from './../../../wayfinder'
 /**
 * @see \App\Http\Controllers\Admin\AdminController::add
-* @see app/Http/Controllers/Admin/AdminController.php:139
+* @see app/Http/Controllers/Admin/AdminController.php:169
 * @route '/console/admin/usage'
 */
 export const add = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -16,7 +16,7 @@ add.definition = {
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::add
-* @see app/Http/Controllers/Admin/AdminController.php:139
+* @see app/Http/Controllers/Admin/AdminController.php:169
 * @route '/console/admin/usage'
 */
 add.url = (options?: RouteQueryOptions) => {
@@ -25,7 +25,7 @@ add.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::add
-* @see app/Http/Controllers/Admin/AdminController.php:139
+* @see app/Http/Controllers/Admin/AdminController.php:169
 * @route '/console/admin/usage'
 */
 add.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -35,7 +35,7 @@ add.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::add
-* @see app/Http/Controllers/Admin/AdminController.php:139
+* @see app/Http/Controllers/Admin/AdminController.php:169
 * @route '/console/admin/usage'
 */
 const addForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -45,7 +45,7 @@ const addForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::add
-* @see app/Http/Controllers/Admin/AdminController.php:139
+* @see app/Http/Controllers/Admin/AdminController.php:169
 * @route '/console/admin/usage'
 */
 addForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
