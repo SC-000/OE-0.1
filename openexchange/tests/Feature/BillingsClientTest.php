@@ -67,8 +67,7 @@ class BillingsClientTest extends TestCase
         ]);
         $user = User::factory()->create(['client_id' => $client->id, 'role' => 'owner']);
         Http::fake([
-            '*/invoices/*/finalize' => Http::response(['data' => ['id' => 'inv_1']], 200),
-            '*/invoices/*/pay-with-default' => Http::response(['data' => ['transaction' => ['id' => 'txn_1']]], 200),
+            '*/invoices/*/process-autopay' => Http::response(['data' => ['transaction' => ['id' => 'txn_1']]], 200),
             '*/invoices' => Http::response(['data' => ['id' => 'inv_1']], 201),
         ]);
 

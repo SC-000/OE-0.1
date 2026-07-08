@@ -38,11 +38,10 @@ class EmailTest extends TestCase
         Config::set('openexchange.billings.base', 'https://billings.test');
         Http::fake([
             'billings.test/api/v1/customers*' => Http::response(['data' => ['id' => 'cus_1']]),
-            'billings.test/api/v1/invoices' => Http::response(['data' => ['id' => 'inv_1']]),
-            'billings.test/api/v1/invoices/*/finalize' => Http::response(['data' => []]),
-            'billings.test/api/v1/invoices/*/pay-with-default' => $paySucceeds
+            'billings.test/api/v1/invoices/*/process-autopay' => $paySucceeds
                 ? Http::response(['data' => ['transaction' => ['id' => 'txn_1']]])
                 : Http::response('card_declined', 402),
+            'billings.test/api/v1/invoices' => Http::response(['data' => ['id' => 'inv_1']]),
         ]);
     }
 

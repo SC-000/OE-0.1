@@ -229,6 +229,7 @@
   overflow: hidden;
   contain: paint;
   isolation: isolate;
+  min-height: 34px;
 }
 .ox-ticker-viewport::before,
 .ox-ticker-viewport::after {
@@ -248,26 +249,10 @@
   right: 0;
   background: linear-gradient(270deg, var(--ox-ticker-bg), transparent);
 }
-.ox-ticker-track {
-  display: flex;
-  width: max-content;
-  white-space: nowrap;
-  transform: translate3d(0, 0, 0);
-  backface-visibility: hidden;
-  will-change: transform;
-}
-.ox-ticker-segment {
-  display: inline-flex;
-  flex: 0 0 auto;
-}
-@media (prefers-reduced-motion: no-preference) {
-  .ox-ticker-track { animation: ox-ticker var(--ox-ticker-duration, 48s) linear infinite; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .ox-ticker-track { animation: none; transform: translate3d(0, 0, 0); }
-}
-@keyframes ox-ticker {
-  to { transform: translate3d(calc(var(--ox-ticker-distance, 0px) * -1), 0, 0); }
+.ox-ticker-canvas {
+  display: block;
+  width: 100%;
+  height: 34px;
 }
 
 /* pipeline node pulse (staggered per node via inline animation-delay) */

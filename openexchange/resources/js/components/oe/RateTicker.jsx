@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 
 /**
  * Live rate ticker — an exchange-style scrolling marquee of model/instrument
@@ -16,49 +16,149 @@ const DEFAULTS = [
 ];
 
 export function RateTicker({ items = DEFAULTS, tone = 'dark', label = 'GRADE RATES · $/1M in·out', style = {} }) {
-    const segmentRef = useRef(null);
-    const [distance, setDistance] = useState(0);
+    const canvasRef = useRef(null);
+    const viewportRef = useRef(null);
     const dark = tone === 'dark';
     const bg = dark ? 'var(--ox-ink-900)' : 'var(--ox-cream)';
     const border = dark ? 'rgba(255,255,255,0.09)' : 'var(--ox-border)';
-    const sym = dark ? '#e6ecea' : 'var(--ox-text)';
-    const price = dark ? 'rgba(230,236,234,0.7)' : 'var(--ox-text-muted)';
-    const deltaColor = (d) => (d === 'up' ? 'var(--ox-success)' : d === 'down' ? 'var(--ox-danger)' : dark ? 'rgba(230,236,234,0.5)' : 'var(--ox-text-subtle)');
+    const tickerLabel = `${label}: ${items.map((it) => `${it.symbol} ${it.price} ${it.delta}`).join(', ')}`;
 
-    useLayoutEffect(() => {
-        const node = segmentRef.current;
-        if (!node) return undefined;
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        const viewport = viewportRef.current;
+        const ctx = canvas?.getContext('2d', { alpha: true });
+        if (!canvas || !viewport || !ctx) return undefined;
 
         let frame = 0;
-        const measure = () => {
-            cancelAnimationFrame(frame);
-            frame = requestAnimationFrame(() => {
-                const next = Math.ceil(node.getBoundingClientRect().width);
-                setDistance((current) => (next > 0 && Math.abs(next - current) > 1 ? next : current));
-            });
+        let width = 0;
+        let height = 0;
+        let segmentWidth = 1;
+        let dpr = 1;
+        let start = performance.now();
+        let rows = [];
+        let reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        const resolve = (value, fallback) => {
+            if (!value) return fallback;
+            if (!value.startsWith('var(')) return value;
+            const key = value.slice(4, -1).trim();
+            return getComputedStyle(document.documentElement).getPropertyValue(key).trim() || fallback;
         };
 
-        measure();
-        const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null;
-        observer?.observe(node);
-        document.fonts?.ready?.then(measure).catch(() => {});
-        window.addEventListener('resize', measure, { passive: true });
+        const colors = () => ({
+            border: resolve(border, 'rgba(255,255,255,0.09)'),
+            symbol: dark ? '#e6ecea' : resolve('var(--ox-text)', '#122023'),
+            price: dark ? 'rgba(230,236,234,0.7)' : resolve('var(--ox-text-muted)', '#60706d'),
+            up: resolve('var(--ox-success)', '#23a531'),
+            down: resolve('var(--ox-danger)', '#d84343'),
+            flat: dark ? 'rgba(230,236,234,0.5)' : resolve('var(--ox-text-subtle)', '#7f8c89'),
+            mono: resolve('var(--ox-font-mono)', "'IBM Plex Mono', ui-monospace, monospace"),
+        });
+
+        const measureRows = () => {
+            const c = colors();
+            ctx.font = `600 12px ${c.mono}`;
+            rows = items.map((it) => {
+                const symbolWidth = ctx.measureText(it.symbol).width;
+                ctx.font = `400 12px ${c.mono}`;
+                const priceWidth = ctx.measureText(it.price).width;
+                ctx.font = `600 12px ${c.mono}`;
+                const deltaWidth = ctx.measureText(it.delta).width;
+                return {
+                    item: it,
+                    width: Math.ceil(40 + symbolWidth + priceWidth + deltaWidth + 16),
+                    symbolWidth,
+                    priceWidth,
+                    deltaWidth,
+                };
+            });
+            segmentWidth = Math.max(1, rows.reduce((sum, row) => sum + row.width, 0));
+        };
+
+        const resize = () => {
+            const rect = viewport.getBoundingClientRect();
+            width = Math.max(1, Math.ceil(rect.width));
+            height = Math.max(1, Math.ceil(rect.height));
+            dpr = Math.min(window.devicePixelRatio || 1, 2);
+            canvas.width = Math.round(width * dpr);
+            canvas.height = Math.round(height * dpr);
+            canvas.style.width = `${width}px`;
+            canvas.style.height = `${height}px`;
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            measureRows();
+        };
+
+        const drawItem = (row, x, y, c) => {
+            const { item } = row;
+            let cursor = x + 20;
+            ctx.font = `600 12px ${c.mono}`;
+            ctx.fillStyle = c.symbol;
+            ctx.fillText(item.symbol, cursor, y);
+            cursor += row.symbolWidth + 8;
+            ctx.font = `400 12px ${c.mono}`;
+            ctx.fillStyle = c.price;
+            ctx.fillText(item.price, cursor, y);
+            cursor += row.priceWidth + 8;
+            ctx.font = `600 12px ${c.mono}`;
+            ctx.fillStyle = item.dir === 'up' ? c.up : item.dir === 'down' ? c.down : c.flat;
+            ctx.fillText(item.delta, cursor, y);
+            ctx.strokeStyle = c.border;
+            ctx.beginPath();
+            ctx.moveTo(Math.round(x + row.width) + 0.5, 7);
+            ctx.lineTo(Math.round(x + row.width) + 0.5, height - 7);
+            ctx.stroke();
+        };
+
+        const draw = (now) => {
+            const c = colors();
+            const speed = 30;
+            const offset = reducedMotion ? 0 : ((now - start) / 1000 * speed) % segmentWidth;
+            ctx.clearRect(0, 0, width, height);
+            ctx.textBaseline = 'middle';
+            ctx.lineWidth = 1;
+            if (rows.length === 0) return;
+
+            let x = -offset;
+            while (x < width + segmentWidth) {
+                for (const row of rows) {
+                    if (x + row.width >= -40 && x <= width + 40) {
+                        drawItem(row, x, height / 2, c);
+                    }
+                    x += row.width;
+                }
+            }
+
+            if (!reducedMotion) {
+                frame = requestAnimationFrame(draw);
+            }
+        };
+
+        const redraw = () => {
+            cancelAnimationFrame(frame);
+            resize();
+            start = performance.now();
+            frame = requestAnimationFrame(draw);
+        };
+
+        redraw();
+        const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(redraw) : null;
+        observer?.observe(viewport);
+        const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+        const onMotion = () => {
+            reducedMotion = motion.matches;
+            redraw();
+        };
+        motion.addEventListener?.('change', onMotion);
+        document.fonts?.ready?.then(redraw).catch(() => {});
+        window.addEventListener('resize', redraw, { passive: true });
 
         return () => {
             cancelAnimationFrame(frame);
             observer?.disconnect();
-            window.removeEventListener('resize', measure);
+            motion.removeEventListener?.('change', onMotion);
+            window.removeEventListener('resize', redraw);
         };
-    }, [items]);
-
-    const duration = distance ? `${Math.max(48, Math.round(distance / 26))}s` : '48s';
-    const renderItem = (it, key) => (
-        <span key={key} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 20px', borderRight: `1px solid ${border}` }}>
-            <span style={{ fontFamily: 'var(--ox-font-mono)', fontSize: 12, fontWeight: 600, color: sym }}>{it.symbol}</span>
-            <span style={{ fontFamily: 'var(--ox-font-mono)', fontSize: 12, color: price }}>{it.price}</span>
-            <span style={{ fontFamily: 'var(--ox-font-mono)', fontSize: 12, fontWeight: 600, color: deltaColor(it.dir) }}>{it.delta}</span>
-        </span>
-    );
+    }, [border, dark, items]);
 
     return (
         <div style={{
@@ -73,15 +173,8 @@ export function RateTicker({ items = DEFAULTS, tone = 'dark', label = 'GRADE RAT
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--ox-green-500)', boxShadow: '0 0 8px var(--ox-green-500)' }} />
                 {label}
             </div>
-            <div className="ox-ticker-viewport" style={{ flex: 1, '--ox-ticker-bg': bg }}>
-                <div className="ox-ticker-track" style={{ '--ox-ticker-distance': `${distance}px`, '--ox-ticker-duration': duration }}>
-                    <div ref={segmentRef} className="ox-ticker-segment">
-                        {items.map((it, i) => renderItem(it, `a-${i}`))}
-                    </div>
-                    <div className="ox-ticker-segment" aria-hidden="true">
-                        {items.map((it, i) => renderItem(it, `b-${i}`))}
-                    </div>
-                </div>
+            <div ref={viewportRef} className="ox-ticker-viewport" role="img" aria-label={tickerLabel} style={{ flex: 1, '--ox-ticker-bg': bg }}>
+                <canvas ref={canvasRef} className="ox-ticker-canvas" />
             </div>
         </div>
     );

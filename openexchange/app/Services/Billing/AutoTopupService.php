@@ -75,10 +75,10 @@ class AutoTopupService
             $invoiceId = (string) ($invoice['id'] ?? '');
             $topup->update(['billings_invoice_id' => $invoiceId]);
 
-            $this->billings->finalizeInvoice($invoiceId);
-            $payment = $this->billings->payWithDefault($invoiceId);
+            // Create → trigger autobill immediately (charges the default card now).
+            $payment = $this->billings->processAutopay($invoiceId);
 
-            $this->confirmTopup($topup->fresh(), $payment['transaction']['id'] ?? null);
+            $this->confirmTopup($topup->fresh(), data_get($payment, 'transaction.id') ?? data_get($payment, 'id'));
         } catch (Throwable $e) {
             $topup->update(['status' => 'failed', 'failure_reason' => mb_substr($e->getMessage(), 0, 250)]);
             report($e);

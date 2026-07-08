@@ -129,13 +129,19 @@ class BillingsClient
 
     public function createInvoice(string $customerId, int $amountCents, string $description, ?string $idempotencyKey = null): array
     {
+        // Schema per billings master doc §5.2: items[].unit_amount (cents),
+        // lowercase currency, a required due_date, and auto_bill so the charge
+        // can be triggered immediately after finalize.
         return $this->data($this->http($idempotencyKey ?? (string) Str::uuid())->post('/invoices', [
             'customer_id' => $customerId,
-            'currency' => config('openexchange.billings.currency', 'USD'),
-            'line_items' => [[
+            'currency' => strtolower((string) config('openexchange.billings.currency', 'USD')),
+            'due_date' => now()->toDateString(),
+            'status' => 'draft',
+            'auto_bill' => true,
+            'items' => [[
                 'description' => $description,
-                'amount' => $amountCents,
                 'quantity' => 1,
+                'unit_amount' => $amountCents,
             ]],
         ]), 'create invoice');
     }
@@ -148,6 +154,12 @@ class BillingsClient
     public function payWithDefault(string $invoiceId): array
     {
         return $this->data($this->http("pay_{$invoiceId}")->post("/invoices/{$invoiceId}/pay-with-default"), 'pay invoice');
+    }
+
+    /** Trigger autobill on an invoice immediately — finalizes + charges the default card in one call. */
+    public function processAutopay(string $invoiceId): array
+    {
+        return $this->data($this->http("autopay_{$invoiceId}")->post("/invoices/{$invoiceId}/process-autopay"), 'process autopay');
     }
 
     /** @return array<int, array<string, mixed>> */
