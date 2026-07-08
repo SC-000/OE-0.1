@@ -72,6 +72,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/console/admin/discover', [AdminController::class, 'discover'])->name('admin.discover');
         Route::post('/console/admin/assign-project', [AdminController::class, 'assignProject'])->name('admin.assign-project');
         Route::post('/console/admin/toggle-project', [AdminController::class, 'toggleProject'])->name('admin.toggle-project');
+        Route::get('/console/admin/client/{client}', [AdminController::class, 'manageClient'])->name('admin.client.manage');
         Route::post('/console/admin/client/delete', [AdminController::class, 'destroyClient'])->name('admin.client.delete');
         Route::post('/console/admin/model', [AdminController::class, 'storeModel'])->name('admin.model.store');
         Route::post('/console/admin/model/update', [AdminController::class, 'updateModel'])->name('admin.model.update');

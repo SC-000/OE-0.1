@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Head, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import ConsoleLayout from '@/layouts/console-layout';
 import { Card, Button, Icon, Badge, Tag, StatCard } from '@/components/oe';
 
@@ -147,7 +147,7 @@ export default function Admin({ stats, clients = [], keys = [], rateModels = [],
                                             <td style={{ ...td, fontFamily: 'var(--ox-font-mono)' }}>{c.usage}</td>
                                             <td style={{ ...td, fontFamily: 'var(--ox-font-mono)' }}>{c.markup}</td>
                                             <td style={{ ...td, fontFamily: 'var(--ox-font-sans)' }}><Badge tone={c.status === 'suspended' ? 'danger' : c.status === 'low' ? 'warning' : 'success'}>{c.status === 'suspended' ? 'Suspended' : c.status === 'low' ? 'Low balance' : 'Active'}</Badge></td>
-                                            <td style={{ ...td, textAlign: 'right' }}><Button variant="ghost" size="sm" onClick={() => openManage(c)}>Manage</Button></td>
+                                            <td style={{ ...td, textAlign: 'right' }}><Button as={Link} href={`/console/admin/client/${c.id}`} variant="ghost" size="sm">Manage</Button></td>
                                         </tr>
                                     ))}
                                 </tbody>

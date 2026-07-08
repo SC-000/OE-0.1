@@ -1,7 +1,7 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition } from './../../../wayfinder'
 /**
 * @see \App\Http\Controllers\Admin\AdminController::store
-* @see app/Http/Controllers/Admin/AdminController.php:199
+* @see app/Http/Controllers/Admin/AdminController.php:238
 * @route '/console/admin/backends'
 */
 export const store = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -16,7 +16,7 @@ store.definition = {
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::store
-* @see app/Http/Controllers/Admin/AdminController.php:199
+* @see app/Http/Controllers/Admin/AdminController.php:238
 * @route '/console/admin/backends'
 */
 store.url = (options?: RouteQueryOptions) => {
@@ -25,7 +25,7 @@ store.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::store
-* @see app/Http/Controllers/Admin/AdminController.php:199
+* @see app/Http/Controllers/Admin/AdminController.php:238
 * @route '/console/admin/backends'
 */
 store.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -35,7 +35,7 @@ store.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::store
-* @see app/Http/Controllers/Admin/AdminController.php:199
+* @see app/Http/Controllers/Admin/AdminController.php:238
 * @route '/console/admin/backends'
 */
 const storeForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -45,7 +45,7 @@ const storeForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => 
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::store
-* @see app/Http/Controllers/Admin/AdminController.php:199
+* @see app/Http/Controllers/Admin/AdminController.php:238
 * @route '/console/admin/backends'
 */
 storeForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({

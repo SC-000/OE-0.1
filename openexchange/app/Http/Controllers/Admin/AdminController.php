@@ -152,6 +152,45 @@ class AdminController
         ]);
     }
 
+    /** Full-screen manage page for a single client. */
+    public function manageClient(Client $client): Response
+    {
+        $monthStart = now()->startOfMonth();
+        $usageMtd = (int) $client->usageRecords()->where('period_start', '>=', $monthStart)->sum('billed_cents');
+
+        return Inertia::render('console/admin-client', [
+            'client' => [
+                'id' => $client->id, 'name' => $client->name, 'status' => $client->status,
+                'balance' => '$'.number_format($client->balance_cents / 100, 2), 'balance_cents' => $client->balance_cents,
+                'usage_mtd' => '$'.number_format($usageMtd / 100, 2),
+                'markup_bps' => $client->default_markup_bps, 'min_cents' => $client->min_balance_cents,
+                'topup_cents' => $client->topup_amount_cents, 'auto_topup' => (bool) $client->auto_topup,
+            ],
+            'catalog' => ModelCatalog::where('active', true)->orderBy('provider')->orderBy('model')->get()->map(fn ($m) => [
+                'model' => $m->model, 'provider' => $m->provider,
+                'in' => (float) $m->input_usd_per_million, 'out' => (float) $m->output_usd_per_million,
+            ]),
+            'accessKeys' => AccessKey::where('client_id', $client->id)->orderByDesc('created_at')->get()->map(fn ($k) => [
+                'id' => $k->id, 'name' => $k->name, 'frag' => $k->fragment(), 'status' => $k->status,
+                'last_used' => $k->last_used_at?->diffForHumans() ?? 'never',
+            ]),
+            'rates' => ClientModelRate::where('client_id', $client->id)->get()->map(fn ($r) => [
+                'id' => $r->id, 'provider' => $r->provider, 'model' => $r->model, 'markup_bps' => $r->markup_bps,
+            ]),
+            'ledger' => $client->ledger()->latest()->limit(10)->get()->map(fn ($e) => [
+                'date' => $e->created_at->format('M j, H:i'), 'type' => $e->type, 'desc' => $e->description,
+                'amount' => ($e->amount_cents >= 0 ? '+' : '−').'$'.number_format(abs($e->amount_cents) / 100, 2),
+                'credit' => $e->amount_cents >= 0,
+            ]),
+            'projects' => $client->providerKeys()->get()->map(function ($k) use ($monthStart) {
+                $u = (int) UsageRecord::where('provider_key_id', $k->id)->where('period_start', '>=', $monthStart)->sum('billed_cents');
+
+                return ['provider' => ucfirst($k->provider), 'project' => $k->external_project_id, 'label' => $k->displayLabel(), 'status' => $k->status, 'usage' => '$'.number_format($u / 100, 2)];
+            }),
+            'newKey' => session('new_access_key'),
+        ]);
+    }
+
     /** Create a gateway access key on a client's behalf (shown once). */
     public function createAccessKey(Request $request)
     {
