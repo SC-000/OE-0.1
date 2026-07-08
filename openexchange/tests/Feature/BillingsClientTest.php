@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Client;
 use App\Models\User;
+use App\Services\Billing\AutoTopupService;
 use App\Services\Billing\BillingsClient;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -78,5 +79,27 @@ class BillingsClientTest extends TestCase
 
         // Adding a card charged the $10 top-up and funded the balance.
         $this->assertSame(1000, $client->fresh()->balance_cents);
+    }
+
+    public function test_topup_clears_a_negative_balance_in_one_charge(): void
+    {
+        config(['openexchange.billings.token' => 't', 'openexchange.billings.publishable' => 'p', 'openexchange.billings.base' => 'https://billings.test']);
+        Mail::fake();
+        $client = Client::create([
+            'name' => 'X', 'slug' => 'x', 'balance_cents' => -22191, 'min_balance_cents' => 1000,
+            'topup_amount_cents' => 1000, 'billings_customer_id' => 'cus_1', 'auto_topup' => true,
+        ]);
+        User::factory()->create(['client_id' => $client->id, 'role' => 'owner']);
+        Http::fake([
+            '*/invoices/*/finalize' => Http::response(['data' => ['id' => 'inv_1']], 200),
+            '*/invoices/*/pay-with-default' => Http::response(['data' => ['transaction' => ['id' => 'txn_1']]], 200),
+            '*/invoices' => Http::response(['data' => ['id' => 'inv_1']], 201),
+        ]);
+
+        app(AutoTopupService::class)->topup($client, 'manual');
+
+        // deficit 22191 + topup 1000 = 23191 charged; balance -22191 + 23191 = 1000.
+        $this->assertSame(1000, $client->fresh()->balance_cents);
+        Http::assertSent(fn ($r) => $r->method() === 'POST' && str_ends_with((string) parse_url($r->url(), PHP_URL_PATH), '/invoices') && (int) data_get($r->data(), 'items.0.unit_amount') === 23191);
     }
 }

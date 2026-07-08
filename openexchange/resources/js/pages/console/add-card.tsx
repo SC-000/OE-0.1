@@ -120,7 +120,7 @@ export default function AddCard({ publishableKey, customerId, widgetBase = 'http
                                 <>
                                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                         <span style={{ fontWeight: 700, fontSize: 15 }}>Card details</span>
-                                        <Badge tone="success">Secured by billings.systems</Badge>
+                                        <Badge tone="success">Secured · Open Exchange gateway</Badge>
                                     </div>
                                     <div ref={widgetRef} style={{ minHeight: 200 }} />
                                     {error && <span style={{ color: 'var(--ox-danger)', fontSize: 13 }}>{error}</span>}

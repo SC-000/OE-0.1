@@ -61,7 +61,11 @@ class AutoTopupService
     /** Perform a top-up. HTTP is outside any DB transaction. */
     public function topup(Client $client, string $trigger = 'auto'): TopUp
     {
-        $amount = max(100, (int) $client->topup_amount_cents);
+        // Cover any negative balance in one charge, plus the configured buffer — so a
+        // balance that's gone below zero (e.g. a big single request) is fully cleared,
+        // not chipped away $topup at a time (which can never catch up).
+        $deficit = max(0, -(int) $client->balance_cents);
+        $amount = max(100, (int) $client->topup_amount_cents + $deficit);
         $topup = TopUp::create([
             'client_id' => $client->id,
             'amount_cents' => $amount,
