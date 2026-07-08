@@ -51,7 +51,10 @@ export function DotField({
             ctx.clearRect(0, 0, w, h);
             const cx = w * (variant === 'wave' ? 0.5 : 0.46);
             const cy = h * 0.5;
-            const scale = Math.min(w, h) * (variant === 'wave' ? 0.42 : 0.46) * fit;
+            // On narrow (mobile) widths, scale the loop up off the width so it fills
+            // the screen rather than shrinking to a short hero's height.
+            const baseMul = variant === 'wave' ? 0.42 : 0.46;
+            const scale = (w <= 700 ? Math.max(Math.min(w, h) * baseMul, w * 0.5) : Math.min(w, h) * baseMul) * fit;
             const rot = variant === 'wave' ? 0 : -0.35;
             const cosR = Math.cos(rot), sinR = Math.sin(rot);
 

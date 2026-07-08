@@ -250,7 +250,7 @@ export function ProductPage({ slug }: { slug: string }) {
 
             <section className="ox-dark" style={{ position: 'relative', background: 'var(--ox-ink-900)', color: '#eef3f2', overflow: 'hidden' }}>
                 <div className="ox-dot-grid ox-dot-grid--fade" style={{ position: 'absolute', inset: 0, ['--ox-dot-focus' as string]: '78% 40%' }} />
-                <div className="ox-container-wide oe-hero-grid" style={{ position: 'relative', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, alignItems: 'center', paddingBlock: '76px' }}>
+                <div className="ox-container-wide oe-hero-grid" style={{ position: 'relative', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, alignItems: 'center', paddingBlock: 'clamp(48px, 9vw, 76px)' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 20, maxWidth: 560 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                             <Badge tone="brand">{c.tag}</Badge>

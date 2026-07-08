@@ -57,7 +57,7 @@ export default function Whitepaper() {
             {/* hero */}
             <section className="ox-dark" style={{ position: 'relative', background: 'var(--ox-ink-900)', color: '#eef3f2', overflow: 'hidden' }}>
                 <div className="ox-dot-grid ox-dot-grid--fade" style={{ position: 'absolute', inset: 0, ['--ox-dot-focus' as string]: '50% 35%' }} />
-                <div className="ox-container" style={{ position: 'relative', paddingBlock: '84px', textAlign: 'center' }}>
+                <div className="ox-container" style={{ position: 'relative', paddingBlock: 'clamp(48px, 10vw, 84px)', textAlign: 'center' }}>
                     <Badge tone="brand">White paper · v1.1</Badge>
                     <h1 style={{ margin: '20px auto 0', maxWidth: 800, fontWeight: 800, fontSize: 'clamp(2.2rem, 4.6vw, 3.5rem)', lineHeight: 1.07, letterSpacing: '-0.03em' }}>
                         The exchange for a commoditised AI economy

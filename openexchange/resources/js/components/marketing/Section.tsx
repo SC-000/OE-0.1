@@ -28,7 +28,8 @@ export function Section({
     innerStyle?: CSSProperties;
 }) {
     const isInk = tone === 'ink' || tone === 'ink-deep';
-    const py = { sm: '48px', md: '64px', lg: '84px', xl: '112px' }[pad];
+    // Responsive vertical rhythm — shrinks on mobile, same maximum on desktop.
+    const py = { sm: 'clamp(36px, 7vw, 48px)', md: 'clamp(40px, 8vw, 64px)', lg: 'clamp(48px, 9vw, 84px)', xl: 'clamp(56px, 11vw, 112px)' }[pad];
     return (
         <section
             id={id}

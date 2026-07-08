@@ -27,7 +27,7 @@ export default function Home() {
             <section className="ox-dark" style={{ position: 'relative', background: 'var(--ox-ink-900)', color: '#eef3f2', overflow: 'hidden' }}>
                 <div className="ox-dot-grid ox-dot-grid--fade" style={{ position: 'absolute', inset: 0, ['--ox-dot-focus' as string]: '22% 40%' }} />
                 <DotField style={{ left: 'auto', right: '-16%', top: '-10%', width: '62%', height: '120%', opacity: 0.5 }} />
-                <div className="ox-container-wide oe-hero-grid" style={{ position: 'relative', display: 'grid', gridTemplateColumns: '1.05fr 0.95fr', gap: 48, alignItems: 'center', paddingBlock: '92px' }}>
+                <div className="ox-container-wide oe-hero-grid" style={{ position: 'relative', display: 'grid', gridTemplateColumns: '1.05fr 0.95fr', gap: 48, alignItems: 'center', paddingBlock: 'clamp(52px, 11vw, 92px)' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 22, maxWidth: 620 }}>
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, alignSelf: 'flex-start', padding: '5px 12px', borderRadius: 999, background: 'rgba(51,193,62,0.12)', border: '1px solid rgba(51,193,62,0.28)' }}>
                             <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--ox-green-500)', boxShadow: '0 0 8px var(--ox-green-500)' }} />
