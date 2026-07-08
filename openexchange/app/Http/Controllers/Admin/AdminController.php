@@ -12,8 +12,10 @@ use App\Models\UsageRecord;
 use App\Models\User;
 use App\Services\Billing\BalanceService;
 use App\Services\Metering\RateResolver;
+use App\Services\Providers\OpenAiDiscovery;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
@@ -67,6 +69,35 @@ class AdminController
             'cost' => (float) $m->output_usd_per_million,
         ]);
 
+        // Discovered OpenAI projects (cached; refreshed via the Discover action),
+        // joined to whichever client each is assigned to via ProviderKey.
+        $discProjects = Cache::get('oe.discovery.openai.projects', []);
+        $discUsage = Cache::get('oe.discovery.openai.usage', []);
+        $openaiKeys = ProviderKey::with('client')->where('provider', 'openai')->get()->keyBy('external_project_id');
+        $discovery = collect($discProjects)->map(function ($p) use ($openaiKeys, $discUsage) {
+            $key = $openaiKeys->get($p['id']);
+            $u = $discUsage[$p['id']] ?? ['input' => 0, 'output' => 0];
+
+            return [
+                'id' => $p['id'],
+                'name' => $p['name'],
+                'status' => $p['status'],
+                'assigned_client_id' => $key?->client_id,
+                'assigned_client' => $key?->client?->name,
+                'label' => $key?->display_label ?? $key?->label,
+                'key_status' => $key?->status,
+                'input' => $u['input'] ?? 0,
+                'output' => $u['output'] ?? 0,
+                'tokens' => ($u['input'] ?? 0) + ($u['output'] ?? 0),
+            ];
+        })->values();
+
+        // Full model catalogue (for the live "add usage" cost preview).
+        $catalog = ModelCatalog::where('active', true)->orderBy('provider')->orderBy('model')->get()->map(fn ($m) => [
+            'model' => $m->model, 'provider' => $m->provider,
+            'in' => (float) $m->input_usd_per_million, 'out' => (float) $m->output_usd_per_million,
+        ]);
+
         return Inertia::render('console/admin', [
             'stats' => [
                 'clients' => Client::count(),
@@ -83,6 +114,10 @@ class AdminController
                 'provider' => ucfirst($b->provider), 'backend' => $b->backend, 'label' => $b->label,
                 'project' => $b->project_id ?: '—', 'region' => $b->region ?: '—', 'status' => $b->status,
             ]),
+            'discovery' => $discovery,
+            'discoveredAt' => Cache::get('oe.discovery.openai.at'),
+            'openaiReady' => (bool) config('openexchange.openai.admin_key'),
+            'catalog' => $catalog,
             'newAccessKey' => session('new_access_key'),
         ]);
     }
@@ -251,6 +286,67 @@ class AdminController
             ['client_id' => null, 'provider' => $data['provider'], 'model' => $data['model']],
             ['markup_bps' => $data['markup_bps']],
         );
+
+        return back();
+    }
+
+    /** Refresh the list of OpenAI org projects + their usage (cached for the admin view). */
+    public function discover(OpenAiDiscovery $discovery)
+    {
+        try {
+            $projects = $discovery->projects();
+            $usage = $discovery->usageByProject(now()->startOfMonth()->toImmutable(), now()->toImmutable());
+            Cache::put('oe.discovery.openai.projects', $projects, now()->addHours(6));
+            Cache::put('oe.discovery.openai.usage', $usage, now()->addHours(6));
+            Cache::put('oe.discovery.openai.at', now()->toDateTimeString(), now()->addHours(6));
+
+            return back();
+        } catch (\Throwable $e) {
+            return back()->withErrors(['discover' => mb_substr($e->getMessage(), 0, 200)]);
+        }
+    }
+
+    /** Assign (or re-assign) a discovered project to a client so its usage is metered + billed. */
+    public function assignProject(Request $request)
+    {
+        $data = $request->validate([
+            'client_id' => ['required', 'exists:clients,id'],
+            'provider' => ['required', 'in:openai,google'],
+            'external_project_id' => ['required', 'string', 'max:190'],
+            'label' => ['nullable', 'string', 'max:120'],
+        ]);
+        $label = $data['label'] ?: $data['external_project_id'];
+        ProviderKey::updateOrCreate(
+            ['provider' => $data['provider'], 'external_project_id' => $data['external_project_id']],
+            ['client_id' => $data['client_id'], 'label' => $label, 'display_label' => $label, 'status' => 'active'],
+        );
+
+        return back();
+    }
+
+    /** Enable/disable metering for an assigned project (keeps its usage history). */
+    public function toggleProject(Request $request)
+    {
+        $data = $request->validate([
+            'provider' => ['required', 'in:openai,google'],
+            'external_project_id' => ['required', 'string', 'max:190'],
+        ]);
+        $key = ProviderKey::where('provider', $data['provider'])->where('external_project_id', $data['external_project_id'])->first();
+        $key?->update(['status' => $key->status === 'active' ? 'disabled' : 'active']);
+
+        return back();
+    }
+
+    /** Permanently delete a client and everything owned by it (users, keys, usage, ledger). */
+    public function destroyClient(Request $request)
+    {
+        $data = $request->validate(['client_id' => ['required', 'exists:clients,id']]);
+        $client = Client::findOrFail($data['client_id']);
+
+        DB::transaction(function () use ($client) {
+            User::where('client_id', $client->id)->delete();
+            $client->delete(); // FKs cascade: provider_keys, usage_records, ledger, top_ups, payment_methods, access_keys
+        });
 
         return back();
     }

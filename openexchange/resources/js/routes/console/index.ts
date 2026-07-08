@@ -327,7 +327,7 @@ addCard.form = addCardForm
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::admin
-* @see app/Http/Controllers/Admin/AdminController.php:26
+* @see app/Http/Controllers/Admin/AdminController.php:28
 * @route '/console/admin'
 */
 export const admin = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -342,7 +342,7 @@ admin.definition = {
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::admin
-* @see app/Http/Controllers/Admin/AdminController.php:26
+* @see app/Http/Controllers/Admin/AdminController.php:28
 * @route '/console/admin'
 */
 admin.url = (options?: RouteQueryOptions) => {
@@ -351,7 +351,7 @@ admin.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::admin
-* @see app/Http/Controllers/Admin/AdminController.php:26
+* @see app/Http/Controllers/Admin/AdminController.php:28
 * @route '/console/admin'
 */
 admin.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -361,7 +361,7 @@ admin.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::admin
-* @see app/Http/Controllers/Admin/AdminController.php:26
+* @see app/Http/Controllers/Admin/AdminController.php:28
 * @route '/console/admin'
 */
 admin.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -371,7 +371,7 @@ admin.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::admin
-* @see app/Http/Controllers/Admin/AdminController.php:26
+* @see app/Http/Controllers/Admin/AdminController.php:28
 * @route '/console/admin'
 */
 const adminForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -381,7 +381,7 @@ const adminForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => (
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::admin
-* @see app/Http/Controllers/Admin/AdminController.php:26
+* @see app/Http/Controllers/Admin/AdminController.php:28
 * @route '/console/admin'
 */
 adminForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -391,7 +391,7 @@ adminForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::admin
-* @see app/Http/Controllers/Admin/AdminController.php:26
+* @see app/Http/Controllers/Admin/AdminController.php:28
 * @route '/console/admin'
 */
 adminForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({

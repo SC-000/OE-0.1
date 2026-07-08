@@ -1,7 +1,7 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition } from './../../../wayfinder'
 /**
 * @see \App\Http\Controllers\Admin\AdminController::create
-* @see app/Http/Controllers/Admin/AdminController.php:91
+* @see app/Http/Controllers/Admin/AdminController.php:126
 * @route '/console/admin/access-key'
 */
 export const create = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -16,7 +16,7 @@ create.definition = {
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::create
-* @see app/Http/Controllers/Admin/AdminController.php:91
+* @see app/Http/Controllers/Admin/AdminController.php:126
 * @route '/console/admin/access-key'
 */
 create.url = (options?: RouteQueryOptions) => {
@@ -25,7 +25,7 @@ create.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::create
-* @see app/Http/Controllers/Admin/AdminController.php:91
+* @see app/Http/Controllers/Admin/AdminController.php:126
 * @route '/console/admin/access-key'
 */
 create.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -35,7 +35,7 @@ create.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::create
-* @see app/Http/Controllers/Admin/AdminController.php:91
+* @see app/Http/Controllers/Admin/AdminController.php:126
 * @route '/console/admin/access-key'
 */
 const createForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -45,7 +45,7 @@ const createForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> =>
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::create
-* @see app/Http/Controllers/Admin/AdminController.php:91
+* @see app/Http/Controllers/Admin/AdminController.php:126
 * @route '/console/admin/access-key'
 */
 createForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({

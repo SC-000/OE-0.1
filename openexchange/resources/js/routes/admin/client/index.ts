@@ -1,7 +1,7 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition } from './../../../wayfinder'
 /**
 * @see \App\Http\Controllers\Admin\AdminController::update
-* @see app/Http/Controllers/Admin/AdminController.php:227
+* @see app/Http/Controllers/Admin/AdminController.php:262
 * @route '/console/admin/client'
 */
 export const update = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -16,7 +16,7 @@ update.definition = {
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::update
-* @see app/Http/Controllers/Admin/AdminController.php:227
+* @see app/Http/Controllers/Admin/AdminController.php:262
 * @route '/console/admin/client'
 */
 update.url = (options?: RouteQueryOptions) => {
@@ -25,7 +25,7 @@ update.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::update
-* @see app/Http/Controllers/Admin/AdminController.php:227
+* @see app/Http/Controllers/Admin/AdminController.php:262
 * @route '/console/admin/client'
 */
 update.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -35,7 +35,7 @@ update.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::update
-* @see app/Http/Controllers/Admin/AdminController.php:227
+* @see app/Http/Controllers/Admin/AdminController.php:262
 * @route '/console/admin/client'
 */
 const updateForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -45,7 +45,7 @@ const updateForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> =>
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::update
-* @see app/Http/Controllers/Admin/AdminController.php:227
+* @see app/Http/Controllers/Admin/AdminController.php:262
 * @route '/console/admin/client'
 */
 updateForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -55,8 +55,65 @@ updateForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => 
 
 update.form = updateForm
 
+/**
+* @see \App\Http\Controllers\Admin\AdminController::deleteMethod
+* @see app/Http/Controllers/Admin/AdminController.php:341
+* @route '/console/admin/client/delete'
+*/
+export const deleteMethod = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+    url: deleteMethod.url(options),
+    method: 'post',
+})
+
+deleteMethod.definition = {
+    methods: ["post"],
+    url: '/console/admin/client/delete',
+} satisfies RouteDefinition<["post"]>
+
+/**
+* @see \App\Http\Controllers\Admin\AdminController::deleteMethod
+* @see app/Http/Controllers/Admin/AdminController.php:341
+* @route '/console/admin/client/delete'
+*/
+deleteMethod.url = (options?: RouteQueryOptions) => {
+    return deleteMethod.definition.url + queryParams(options)
+}
+
+/**
+* @see \App\Http\Controllers\Admin\AdminController::deleteMethod
+* @see app/Http/Controllers/Admin/AdminController.php:341
+* @route '/console/admin/client/delete'
+*/
+deleteMethod.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+    url: deleteMethod.url(options),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\AdminController::deleteMethod
+* @see app/Http/Controllers/Admin/AdminController.php:341
+* @route '/console/admin/client/delete'
+*/
+const deleteMethodForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: deleteMethod.url(options),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\AdminController::deleteMethod
+* @see app/Http/Controllers/Admin/AdminController.php:341
+* @route '/console/admin/client/delete'
+*/
+deleteMethodForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: deleteMethod.url(options),
+    method: 'post',
+})
+
+deleteMethod.form = deleteMethodForm
+
 const client = {
     update: Object.assign(update, update),
+    delete: Object.assign(deleteMethod, deleteMethod),
 }
 
 export default client

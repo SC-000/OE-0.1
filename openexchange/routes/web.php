@@ -69,6 +69,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/console/admin/model-rate', [AdminController::class, 'updateModelRate'])->name('admin.model-rate.update');
         Route::post('/console/admin/access-key', [AdminController::class, 'createAccessKey'])->name('admin.access-key.create');
         Route::post('/console/admin/usage', [AdminController::class, 'addUsage'])->name('admin.usage.add');
+        Route::post('/console/admin/discover', [AdminController::class, 'discover'])->name('admin.discover');
+        Route::post('/console/admin/assign-project', [AdminController::class, 'assignProject'])->name('admin.assign-project');
+        Route::post('/console/admin/toggle-project', [AdminController::class, 'toggleProject'])->name('admin.toggle-project');
+        Route::post('/console/admin/client/delete', [AdminController::class, 'destroyClient'])->name('admin.client.delete');
         Route::post('/console/admin/sync', [AdminController::class, 'sync'])->name('admin.sync');
     });
 });

@@ -1,7 +1,7 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition } from './../../../../../wayfinder'
 /**
 * @see \App\Http\Controllers\Admin\AdminController::index
-* @see app/Http/Controllers/Admin/AdminController.php:26
+* @see app/Http/Controllers/Admin/AdminController.php:28
 * @route '/console/admin'
 */
 export const index = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -16,7 +16,7 @@ index.definition = {
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::index
-* @see app/Http/Controllers/Admin/AdminController.php:26
+* @see app/Http/Controllers/Admin/AdminController.php:28
 * @route '/console/admin'
 */
 index.url = (options?: RouteQueryOptions) => {
@@ -25,7 +25,7 @@ index.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::index
-* @see app/Http/Controllers/Admin/AdminController.php:26
+* @see app/Http/Controllers/Admin/AdminController.php:28
 * @route '/console/admin'
 */
 index.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -35,7 +35,7 @@ index.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::index
-* @see app/Http/Controllers/Admin/AdminController.php:26
+* @see app/Http/Controllers/Admin/AdminController.php:28
 * @route '/console/admin'
 */
 index.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -45,7 +45,7 @@ index.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::index
-* @see app/Http/Controllers/Admin/AdminController.php:26
+* @see app/Http/Controllers/Admin/AdminController.php:28
 * @route '/console/admin'
 */
 const indexForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -55,7 +55,7 @@ const indexForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => (
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::index
-* @see app/Http/Controllers/Admin/AdminController.php:26
+* @see app/Http/Controllers/Admin/AdminController.php:28
 * @route '/console/admin'
 */
 indexForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -65,7 +65,7 @@ indexForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::index
-* @see app/Http/Controllers/Admin/AdminController.php:26
+* @see app/Http/Controllers/Admin/AdminController.php:28
 * @route '/console/admin'
 */
 indexForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -82,7 +82,7 @@ index.form = indexForm
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::storeClient
-* @see app/Http/Controllers/Admin/AdminController.php:149
+* @see app/Http/Controllers/Admin/AdminController.php:184
 * @route '/console/admin/clients'
 */
 export const storeClient = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -97,7 +97,7 @@ storeClient.definition = {
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::storeClient
-* @see app/Http/Controllers/Admin/AdminController.php:149
+* @see app/Http/Controllers/Admin/AdminController.php:184
 * @route '/console/admin/clients'
 */
 storeClient.url = (options?: RouteQueryOptions) => {
@@ -106,7 +106,7 @@ storeClient.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::storeClient
-* @see app/Http/Controllers/Admin/AdminController.php:149
+* @see app/Http/Controllers/Admin/AdminController.php:184
 * @route '/console/admin/clients'
 */
 storeClient.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -116,7 +116,7 @@ storeClient.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::storeClient
-* @see app/Http/Controllers/Admin/AdminController.php:149
+* @see app/Http/Controllers/Admin/AdminController.php:184
 * @route '/console/admin/clients'
 */
 const storeClientForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -126,7 +126,7 @@ const storeClientForm = (options?: RouteQueryOptions): RouteFormDefinition<'post
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::storeClient
-* @see app/Http/Controllers/Admin/AdminController.php:149
+* @see app/Http/Controllers/Admin/AdminController.php:184
 * @route '/console/admin/clients'
 */
 storeClientForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -138,7 +138,7 @@ storeClient.form = storeClientForm
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::storeKey
-* @see app/Http/Controllers/Admin/AdminController.php:177
+* @see app/Http/Controllers/Admin/AdminController.php:212
 * @route '/console/admin/keys'
 */
 export const storeKey = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -153,7 +153,7 @@ storeKey.definition = {
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::storeKey
-* @see app/Http/Controllers/Admin/AdminController.php:177
+* @see app/Http/Controllers/Admin/AdminController.php:212
 * @route '/console/admin/keys'
 */
 storeKey.url = (options?: RouteQueryOptions) => {
@@ -162,7 +162,7 @@ storeKey.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::storeKey
-* @see app/Http/Controllers/Admin/AdminController.php:177
+* @see app/Http/Controllers/Admin/AdminController.php:212
 * @route '/console/admin/keys'
 */
 storeKey.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -172,7 +172,7 @@ storeKey.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::storeKey
-* @see app/Http/Controllers/Admin/AdminController.php:177
+* @see app/Http/Controllers/Admin/AdminController.php:212
 * @route '/console/admin/keys'
 */
 const storeKeyForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -182,7 +182,7 @@ const storeKeyForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> 
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::storeKey
-* @see app/Http/Controllers/Admin/AdminController.php:177
+* @see app/Http/Controllers/Admin/AdminController.php:212
 * @route '/console/admin/keys'
 */
 storeKeyForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -194,7 +194,7 @@ storeKey.form = storeKeyForm
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::updateRate
-* @see app/Http/Controllers/Admin/AdminController.php:192
+* @see app/Http/Controllers/Admin/AdminController.php:227
 * @route '/console/admin/rate'
 */
 export const updateRate = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -209,7 +209,7 @@ updateRate.definition = {
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::updateRate
-* @see app/Http/Controllers/Admin/AdminController.php:192
+* @see app/Http/Controllers/Admin/AdminController.php:227
 * @route '/console/admin/rate'
 */
 updateRate.url = (options?: RouteQueryOptions) => {
@@ -218,7 +218,7 @@ updateRate.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::updateRate
-* @see app/Http/Controllers/Admin/AdminController.php:192
+* @see app/Http/Controllers/Admin/AdminController.php:227
 * @route '/console/admin/rate'
 */
 updateRate.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -228,7 +228,7 @@ updateRate.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::updateRate
-* @see app/Http/Controllers/Admin/AdminController.php:192
+* @see app/Http/Controllers/Admin/AdminController.php:227
 * @route '/console/admin/rate'
 */
 const updateRateForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -238,7 +238,7 @@ const updateRateForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::updateRate
-* @see app/Http/Controllers/Admin/AdminController.php:192
+* @see app/Http/Controllers/Admin/AdminController.php:227
 * @route '/console/admin/rate'
 */
 updateRateForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -250,7 +250,7 @@ updateRate.form = updateRateForm
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::storeBackend
-* @see app/Http/Controllers/Admin/AdminController.php:134
+* @see app/Http/Controllers/Admin/AdminController.php:169
 * @route '/console/admin/backends'
 */
 export const storeBackend = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -265,7 +265,7 @@ storeBackend.definition = {
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::storeBackend
-* @see app/Http/Controllers/Admin/AdminController.php:134
+* @see app/Http/Controllers/Admin/AdminController.php:169
 * @route '/console/admin/backends'
 */
 storeBackend.url = (options?: RouteQueryOptions) => {
@@ -274,7 +274,7 @@ storeBackend.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::storeBackend
-* @see app/Http/Controllers/Admin/AdminController.php:134
+* @see app/Http/Controllers/Admin/AdminController.php:169
 * @route '/console/admin/backends'
 */
 storeBackend.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -284,7 +284,7 @@ storeBackend.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::storeBackend
-* @see app/Http/Controllers/Admin/AdminController.php:134
+* @see app/Http/Controllers/Admin/AdminController.php:169
 * @route '/console/admin/backends'
 */
 const storeBackendForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -294,7 +294,7 @@ const storeBackendForm = (options?: RouteQueryOptions): RouteFormDefinition<'pos
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::storeBackend
-* @see app/Http/Controllers/Admin/AdminController.php:134
+* @see app/Http/Controllers/Admin/AdminController.php:169
 * @route '/console/admin/backends'
 */
 storeBackendForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -306,7 +306,7 @@ storeBackend.form = storeBackendForm
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::adjustBalance
-* @see app/Http/Controllers/Admin/AdminController.php:212
+* @see app/Http/Controllers/Admin/AdminController.php:247
 * @route '/console/admin/balance'
 */
 export const adjustBalance = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -321,7 +321,7 @@ adjustBalance.definition = {
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::adjustBalance
-* @see app/Http/Controllers/Admin/AdminController.php:212
+* @see app/Http/Controllers/Admin/AdminController.php:247
 * @route '/console/admin/balance'
 */
 adjustBalance.url = (options?: RouteQueryOptions) => {
@@ -330,7 +330,7 @@ adjustBalance.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::adjustBalance
-* @see app/Http/Controllers/Admin/AdminController.php:212
+* @see app/Http/Controllers/Admin/AdminController.php:247
 * @route '/console/admin/balance'
 */
 adjustBalance.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -340,7 +340,7 @@ adjustBalance.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => (
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::adjustBalance
-* @see app/Http/Controllers/Admin/AdminController.php:212
+* @see app/Http/Controllers/Admin/AdminController.php:247
 * @route '/console/admin/balance'
 */
 const adjustBalanceForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -350,7 +350,7 @@ const adjustBalanceForm = (options?: RouteQueryOptions): RouteFormDefinition<'po
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::adjustBalance
-* @see app/Http/Controllers/Admin/AdminController.php:212
+* @see app/Http/Controllers/Admin/AdminController.php:247
 * @route '/console/admin/balance'
 */
 adjustBalanceForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -362,7 +362,7 @@ adjustBalance.form = adjustBalanceForm
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::updateClient
-* @see app/Http/Controllers/Admin/AdminController.php:227
+* @see app/Http/Controllers/Admin/AdminController.php:262
 * @route '/console/admin/client'
 */
 export const updateClient = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -377,7 +377,7 @@ updateClient.definition = {
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::updateClient
-* @see app/Http/Controllers/Admin/AdminController.php:227
+* @see app/Http/Controllers/Admin/AdminController.php:262
 * @route '/console/admin/client'
 */
 updateClient.url = (options?: RouteQueryOptions) => {
@@ -386,7 +386,7 @@ updateClient.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::updateClient
-* @see app/Http/Controllers/Admin/AdminController.php:227
+* @see app/Http/Controllers/Admin/AdminController.php:262
 * @route '/console/admin/client'
 */
 updateClient.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -396,7 +396,7 @@ updateClient.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::updateClient
-* @see app/Http/Controllers/Admin/AdminController.php:227
+* @see app/Http/Controllers/Admin/AdminController.php:262
 * @route '/console/admin/client'
 */
 const updateClientForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -406,7 +406,7 @@ const updateClientForm = (options?: RouteQueryOptions): RouteFormDefinition<'pos
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::updateClient
-* @see app/Http/Controllers/Admin/AdminController.php:227
+* @see app/Http/Controllers/Admin/AdminController.php:262
 * @route '/console/admin/client'
 */
 updateClientForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -418,7 +418,7 @@ updateClient.form = updateClientForm
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::updateModelRate
-* @see app/Http/Controllers/Admin/AdminController.php:243
+* @see app/Http/Controllers/Admin/AdminController.php:278
 * @route '/console/admin/model-rate'
 */
 export const updateModelRate = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -433,7 +433,7 @@ updateModelRate.definition = {
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::updateModelRate
-* @see app/Http/Controllers/Admin/AdminController.php:243
+* @see app/Http/Controllers/Admin/AdminController.php:278
 * @route '/console/admin/model-rate'
 */
 updateModelRate.url = (options?: RouteQueryOptions) => {
@@ -442,7 +442,7 @@ updateModelRate.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::updateModelRate
-* @see app/Http/Controllers/Admin/AdminController.php:243
+* @see app/Http/Controllers/Admin/AdminController.php:278
 * @route '/console/admin/model-rate'
 */
 updateModelRate.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -452,7 +452,7 @@ updateModelRate.post = (options?: RouteQueryOptions): RouteDefinition<'post'> =>
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::updateModelRate
-* @see app/Http/Controllers/Admin/AdminController.php:243
+* @see app/Http/Controllers/Admin/AdminController.php:278
 * @route '/console/admin/model-rate'
 */
 const updateModelRateForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -462,7 +462,7 @@ const updateModelRateForm = (options?: RouteQueryOptions): RouteFormDefinition<'
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::updateModelRate
-* @see app/Http/Controllers/Admin/AdminController.php:243
+* @see app/Http/Controllers/Admin/AdminController.php:278
 * @route '/console/admin/model-rate'
 */
 updateModelRateForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -474,7 +474,7 @@ updateModelRate.form = updateModelRateForm
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::createAccessKey
-* @see app/Http/Controllers/Admin/AdminController.php:91
+* @see app/Http/Controllers/Admin/AdminController.php:126
 * @route '/console/admin/access-key'
 */
 export const createAccessKey = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -489,7 +489,7 @@ createAccessKey.definition = {
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::createAccessKey
-* @see app/Http/Controllers/Admin/AdminController.php:91
+* @see app/Http/Controllers/Admin/AdminController.php:126
 * @route '/console/admin/access-key'
 */
 createAccessKey.url = (options?: RouteQueryOptions) => {
@@ -498,7 +498,7 @@ createAccessKey.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::createAccessKey
-* @see app/Http/Controllers/Admin/AdminController.php:91
+* @see app/Http/Controllers/Admin/AdminController.php:126
 * @route '/console/admin/access-key'
 */
 createAccessKey.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -508,7 +508,7 @@ createAccessKey.post = (options?: RouteQueryOptions): RouteDefinition<'post'> =>
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::createAccessKey
-* @see app/Http/Controllers/Admin/AdminController.php:91
+* @see app/Http/Controllers/Admin/AdminController.php:126
 * @route '/console/admin/access-key'
 */
 const createAccessKeyForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -518,7 +518,7 @@ const createAccessKeyForm = (options?: RouteQueryOptions): RouteFormDefinition<'
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::createAccessKey
-* @see app/Http/Controllers/Admin/AdminController.php:91
+* @see app/Http/Controllers/Admin/AdminController.php:126
 * @route '/console/admin/access-key'
 */
 createAccessKeyForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -530,7 +530,7 @@ createAccessKey.form = createAccessKeyForm
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::addUsage
-* @see app/Http/Controllers/Admin/AdminController.php:104
+* @see app/Http/Controllers/Admin/AdminController.php:139
 * @route '/console/admin/usage'
 */
 export const addUsage = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -545,7 +545,7 @@ addUsage.definition = {
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::addUsage
-* @see app/Http/Controllers/Admin/AdminController.php:104
+* @see app/Http/Controllers/Admin/AdminController.php:139
 * @route '/console/admin/usage'
 */
 addUsage.url = (options?: RouteQueryOptions) => {
@@ -554,7 +554,7 @@ addUsage.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::addUsage
-* @see app/Http/Controllers/Admin/AdminController.php:104
+* @see app/Http/Controllers/Admin/AdminController.php:139
 * @route '/console/admin/usage'
 */
 addUsage.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -564,7 +564,7 @@ addUsage.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::addUsage
-* @see app/Http/Controllers/Admin/AdminController.php:104
+* @see app/Http/Controllers/Admin/AdminController.php:139
 * @route '/console/admin/usage'
 */
 const addUsageForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -574,7 +574,7 @@ const addUsageForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> 
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::addUsage
-* @see app/Http/Controllers/Admin/AdminController.php:104
+* @see app/Http/Controllers/Admin/AdminController.php:139
 * @route '/console/admin/usage'
 */
 addUsageForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -585,8 +585,232 @@ addUsageForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> =
 addUsage.form = addUsageForm
 
 /**
+* @see \App\Http\Controllers\Admin\AdminController::discover
+* @see app/Http/Controllers/Admin/AdminController.php:294
+* @route '/console/admin/discover'
+*/
+export const discover = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+    url: discover.url(options),
+    method: 'post',
+})
+
+discover.definition = {
+    methods: ["post"],
+    url: '/console/admin/discover',
+} satisfies RouteDefinition<["post"]>
+
+/**
+* @see \App\Http\Controllers\Admin\AdminController::discover
+* @see app/Http/Controllers/Admin/AdminController.php:294
+* @route '/console/admin/discover'
+*/
+discover.url = (options?: RouteQueryOptions) => {
+    return discover.definition.url + queryParams(options)
+}
+
+/**
+* @see \App\Http\Controllers\Admin\AdminController::discover
+* @see app/Http/Controllers/Admin/AdminController.php:294
+* @route '/console/admin/discover'
+*/
+discover.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+    url: discover.url(options),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\AdminController::discover
+* @see app/Http/Controllers/Admin/AdminController.php:294
+* @route '/console/admin/discover'
+*/
+const discoverForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: discover.url(options),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\AdminController::discover
+* @see app/Http/Controllers/Admin/AdminController.php:294
+* @route '/console/admin/discover'
+*/
+discoverForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: discover.url(options),
+    method: 'post',
+})
+
+discover.form = discoverForm
+
+/**
+* @see \App\Http\Controllers\Admin\AdminController::assignProject
+* @see app/Http/Controllers/Admin/AdminController.php:310
+* @route '/console/admin/assign-project'
+*/
+export const assignProject = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+    url: assignProject.url(options),
+    method: 'post',
+})
+
+assignProject.definition = {
+    methods: ["post"],
+    url: '/console/admin/assign-project',
+} satisfies RouteDefinition<["post"]>
+
+/**
+* @see \App\Http\Controllers\Admin\AdminController::assignProject
+* @see app/Http/Controllers/Admin/AdminController.php:310
+* @route '/console/admin/assign-project'
+*/
+assignProject.url = (options?: RouteQueryOptions) => {
+    return assignProject.definition.url + queryParams(options)
+}
+
+/**
+* @see \App\Http\Controllers\Admin\AdminController::assignProject
+* @see app/Http/Controllers/Admin/AdminController.php:310
+* @route '/console/admin/assign-project'
+*/
+assignProject.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+    url: assignProject.url(options),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\AdminController::assignProject
+* @see app/Http/Controllers/Admin/AdminController.php:310
+* @route '/console/admin/assign-project'
+*/
+const assignProjectForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: assignProject.url(options),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\AdminController::assignProject
+* @see app/Http/Controllers/Admin/AdminController.php:310
+* @route '/console/admin/assign-project'
+*/
+assignProjectForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: assignProject.url(options),
+    method: 'post',
+})
+
+assignProject.form = assignProjectForm
+
+/**
+* @see \App\Http\Controllers\Admin\AdminController::toggleProject
+* @see app/Http/Controllers/Admin/AdminController.php:328
+* @route '/console/admin/toggle-project'
+*/
+export const toggleProject = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+    url: toggleProject.url(options),
+    method: 'post',
+})
+
+toggleProject.definition = {
+    methods: ["post"],
+    url: '/console/admin/toggle-project',
+} satisfies RouteDefinition<["post"]>
+
+/**
+* @see \App\Http\Controllers\Admin\AdminController::toggleProject
+* @see app/Http/Controllers/Admin/AdminController.php:328
+* @route '/console/admin/toggle-project'
+*/
+toggleProject.url = (options?: RouteQueryOptions) => {
+    return toggleProject.definition.url + queryParams(options)
+}
+
+/**
+* @see \App\Http\Controllers\Admin\AdminController::toggleProject
+* @see app/Http/Controllers/Admin/AdminController.php:328
+* @route '/console/admin/toggle-project'
+*/
+toggleProject.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+    url: toggleProject.url(options),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\AdminController::toggleProject
+* @see app/Http/Controllers/Admin/AdminController.php:328
+* @route '/console/admin/toggle-project'
+*/
+const toggleProjectForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: toggleProject.url(options),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\AdminController::toggleProject
+* @see app/Http/Controllers/Admin/AdminController.php:328
+* @route '/console/admin/toggle-project'
+*/
+toggleProjectForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: toggleProject.url(options),
+    method: 'post',
+})
+
+toggleProject.form = toggleProjectForm
+
+/**
+* @see \App\Http\Controllers\Admin\AdminController::destroyClient
+* @see app/Http/Controllers/Admin/AdminController.php:341
+* @route '/console/admin/client/delete'
+*/
+export const destroyClient = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+    url: destroyClient.url(options),
+    method: 'post',
+})
+
+destroyClient.definition = {
+    methods: ["post"],
+    url: '/console/admin/client/delete',
+} satisfies RouteDefinition<["post"]>
+
+/**
+* @see \App\Http\Controllers\Admin\AdminController::destroyClient
+* @see app/Http/Controllers/Admin/AdminController.php:341
+* @route '/console/admin/client/delete'
+*/
+destroyClient.url = (options?: RouteQueryOptions) => {
+    return destroyClient.definition.url + queryParams(options)
+}
+
+/**
+* @see \App\Http\Controllers\Admin\AdminController::destroyClient
+* @see app/Http/Controllers/Admin/AdminController.php:341
+* @route '/console/admin/client/delete'
+*/
+destroyClient.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+    url: destroyClient.url(options),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\AdminController::destroyClient
+* @see app/Http/Controllers/Admin/AdminController.php:341
+* @route '/console/admin/client/delete'
+*/
+const destroyClientForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: destroyClient.url(options),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\AdminController::destroyClient
+* @see app/Http/Controllers/Admin/AdminController.php:341
+* @route '/console/admin/client/delete'
+*/
+destroyClientForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: destroyClient.url(options),
+    method: 'post',
+})
+
+destroyClient.form = destroyClientForm
+
+/**
 * @see \App\Http\Controllers\Admin\AdminController::sync
-* @see app/Http/Controllers/Admin/AdminController.php:203
+* @see app/Http/Controllers/Admin/AdminController.php:238
 * @route '/console/admin/sync'
 */
 export const sync = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -601,7 +825,7 @@ sync.definition = {
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::sync
-* @see app/Http/Controllers/Admin/AdminController.php:203
+* @see app/Http/Controllers/Admin/AdminController.php:238
 * @route '/console/admin/sync'
 */
 sync.url = (options?: RouteQueryOptions) => {
@@ -610,7 +834,7 @@ sync.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::sync
-* @see app/Http/Controllers/Admin/AdminController.php:203
+* @see app/Http/Controllers/Admin/AdminController.php:238
 * @route '/console/admin/sync'
 */
 sync.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -620,7 +844,7 @@ sync.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::sync
-* @see app/Http/Controllers/Admin/AdminController.php:203
+* @see app/Http/Controllers/Admin/AdminController.php:238
 * @route '/console/admin/sync'
 */
 const syncForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -630,7 +854,7 @@ const syncForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => (
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::sync
-* @see app/Http/Controllers/Admin/AdminController.php:203
+* @see app/Http/Controllers/Admin/AdminController.php:238
 * @route '/console/admin/sync'
 */
 syncForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -640,6 +864,6 @@ syncForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
 
 sync.form = syncForm
 
-const AdminController = { index, storeClient, storeKey, updateRate, storeBackend, adjustBalance, updateClient, updateModelRate, createAccessKey, addUsage, sync }
+const AdminController = { index, storeClient, storeKey, updateRate, storeBackend, adjustBalance, updateClient, updateModelRate, createAccessKey, addUsage, discover, assignProject, toggleProject, destroyClient, sync }
 
 export default AdminController

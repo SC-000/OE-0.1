@@ -87,6 +87,32 @@ class AccountTest extends TestCase
         $this->assertSame(100000 - 350, $client->fresh()->balance_cents);
     }
 
+    public function test_admin_can_delete_a_client_and_its_users(): void
+    {
+        $client = Client::create(['name' => 'Z', 'slug' => 'z']);
+        $owner = User::factory()->create(['client_id' => $client->id, 'role' => 'owner']);
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)->post('/console/admin/client/delete', ['client_id' => $client->id]);
+
+        $this->assertDatabaseMissing('clients', ['id' => $client->id]);
+        $this->assertDatabaseMissing('users', ['id' => $owner->id]);
+    }
+
+    public function test_admin_can_assign_a_discovered_project_to_a_client(): void
+    {
+        $client = Client::create(['name' => 'Z', 'slug' => 'z']);
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)->post('/console/admin/assign-project', [
+            'client_id' => $client->id, 'provider' => 'openai', 'external_project_id' => 'proj_123', 'label' => 'Prod',
+        ]);
+
+        $this->assertDatabaseHas('provider_keys', [
+            'client_id' => $client->id, 'provider' => 'openai', 'external_project_id' => 'proj_123', 'label' => 'Prod', 'status' => 'active',
+        ]);
+    }
+
     public function test_owner_can_save_a_payment_method(): void
     {
         $client = Client::create(['name' => 'X', 'slug' => 'x']);

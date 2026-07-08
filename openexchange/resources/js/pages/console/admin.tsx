@@ -6,6 +6,8 @@ import { Card, Button, Icon, Badge, Tag, StatCard } from '@/components/oe';
 type Client = { id: number; client: string; balance: string; balance_cents: number; usage: string; markup: string; markup_bps: number; min_cents: number; topup_cents: number; auto_topup: boolean; account_status: string; status: string };
 type Key = { provider: string; frag: string; client: string; usage: string; sync: string };
 type RateModel = { model: string; provider: string; cost: number };
+type Proj = { id: string; name: string; status: string; assigned_client_id: number | null; assigned_client: string | null; label: string | null; key_status: string | null; input: number; output: number; tokens: number };
+type Cat = { model: string; provider: string; in: number; out: number };
 type Props = {
     stats?: { clients: number; keys: number; metered: string; margin: string };
     clients?: Client[];
@@ -15,12 +17,16 @@ type Props = {
     clientOptions?: { id: number; name: string }[];
     backends?: { provider: string; backend: string; label: string; project: string; region: string; status: string }[];
     newAccessKey?: { name: string; client: string; secret: string } | null;
+    discovery?: Proj[];
+    discoveredAt?: string | null;
+    openaiReady?: boolean;
+    catalog?: Cat[];
 };
 
-const TABS = [['clients', 'Clients'], ['keys', 'Provider keys'], ['rates', 'Rate card'], ['backends', 'Backends']] as const;
+const TABS = [['clients', 'Clients'], ['discovery', 'Discovery'], ['keys', 'Provider keys'], ['rates', 'Rate card'], ['backends', 'Backends']] as const;
 
-export default function Admin({ stats, clients = [], keys = [], rateModels = [], markupBps = 2500, clientOptions = [], backends = [], newAccessKey = null }: Props) {
-    const [tab, setTab] = useState<'clients' | 'keys' | 'rates' | 'backends'>('clients');
+export default function Admin({ stats, clients = [], keys = [], rateModels = [], markupBps = 2500, clientOptions = [], backends = [], newAccessKey = null, discovery = [], discoveredAt = null, openaiReady = false, catalog = [] }: Props) {
+    const [tab, setTab] = useState<'clients' | 'discovery' | 'keys' | 'rates' | 'backends'>('clients');
     const [markup, setMarkup] = useState(Math.round(markupBps / 100));
     const [modal, setModal] = useState<null | 'client' | 'key' | 'backend'>(null);
     const [form, setForm] = useState<Record<string, string>>({ provider: 'openai' });
@@ -32,6 +38,8 @@ export default function Admin({ stats, clients = [], keys = [], rateModels = [],
         setManage(c);
         setMForm({ default_markup_bps: c.markup_bps, min_balance_cents: c.min_cents, topup_amount_cents: c.topup_cents, auto_topup: c.auto_topup, status: c.account_status });
         setAdjust({ amount: '', dir: 1, reason: '' });
+        setConfirmDel(false);
+        setUsage({ model: '', input_tokens: '', output_tokens: '' });
     };
     const applyAdjust = () => manage && router.post('/console/admin/balance', { client_id: manage.id, amount: Number(adjust.amount) * adjust.dir, reason: adjust.reason }, { preserveScroll: true, onSuccess: () => setAdjust({ amount: '', dir: 1, reason: '' }) });
     const saveSettings = () => manage && router.post('/console/admin/client', { client_id: manage.id, ...mForm }, { preserveScroll: true, onSuccess: () => setManage(null) });
@@ -39,6 +47,23 @@ export default function Admin({ stats, clients = [], keys = [], rateModels = [],
     const [usage, setUsage] = useState<{ model: string; input_tokens: string; output_tokens: string }>({ model: '', input_tokens: '', output_tokens: '' });
     const createKey = () => manage && router.post('/console/admin/access-key', { client_id: manage.id, name: keyName }, { preserveScroll: true, onSuccess: () => { setKeyName(''); setManage(null); } });
     const addUsage = () => manage && router.post('/console/admin/usage', { client_id: manage.id, model: usage.model, input_tokens: Number(usage.input_tokens || 0), output_tokens: Number(usage.output_tokens || 0) }, { preserveScroll: true, onSuccess: () => setUsage({ model: '', input_tokens: '', output_tokens: '' }) });
+
+    // Discovery + project assignment + client delete
+    const [assignId, setAssignId] = useState<string | null>(null);
+    const [assignForm, setAssignForm] = useState<{ client_id: string; label: string }>({ client_id: '', label: '' });
+    const [confirmDel, setConfirmDel] = useState(false);
+    const openAssign = (p: Proj) => { setAssignId(p.id); setAssignForm({ client_id: String(p.assigned_client_id ?? ''), label: p.label ?? p.name }); };
+    const doAssign = (p: Proj) => router.post('/console/admin/assign-project', { client_id: assignForm.client_id, provider: 'openai', external_project_id: p.id, label: assignForm.label }, { preserveScroll: true, onSuccess: () => setAssignId(null) });
+    const toggleProject = (p: Proj) => router.post('/console/admin/toggle-project', { provider: 'openai', external_project_id: p.id }, { preserveScroll: true });
+    const discover = () => router.post('/console/admin/discover', {}, { preserveScroll: true });
+    const deleteClient = () => manage && router.post('/console/admin/client/delete', { client_id: manage.id }, { preserveScroll: true, onSuccess: () => { setManage(null); setConfirmDel(false); } });
+    const fmtTok = (n: number) => (n >= 1e6 ? (n / 1e6).toFixed(2) + 'M' : n >= 1e3 ? (n / 1e3).toFixed(1) + 'K' : String(n));
+
+    // Live "add usage" cost preview
+    const uCat = catalog.find((c) => c.model === usage.model);
+    const uMarkup = Number(mForm.default_markup_bps ?? manage?.markup_bps ?? 2500) / 10000;
+    const uProvCost = uCat ? (uCat.in * Number(usage.input_tokens || 0) / 1e6 + uCat.out * Number(usage.output_tokens || 0) / 1e6) : 0;
+    const uBilled = uProvCost * (1 + uMarkup);
 
     const persistRate = (pct: number) => router.post('/console/admin/rate', { markup_bps: pct * 100 }, { preserveScroll: true, preserveState: true });
     const sync = () => router.post('/console/admin/sync', {}, { preserveScroll: true });
@@ -103,6 +128,58 @@ export default function Admin({ stats, clients = [], keys = [], rateModels = [],
                                             <td style={{ ...td, fontFamily: 'var(--ox-font-mono)' }}>{c.markup}</td>
                                             <td style={{ ...td, fontFamily: 'var(--ox-font-sans)' }}><Badge tone={c.status === 'suspended' ? 'danger' : c.status === 'low' ? 'warning' : 'success'}>{c.status === 'suspended' ? 'Suspended' : c.status === 'low' ? 'Low balance' : 'Active'}</Badge></td>
                                             <td style={{ ...td, textAlign: 'right' }}><Button variant="ghost" size="sm" onClick={() => openManage(c)}>Manage</Button></td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </Card>
+                )}
+
+                {tab === 'discovery' && (
+                    <Card padding="none">
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '16px 20px', borderBottom: '1px solid var(--ox-divider)', flexWrap: 'wrap' }}>
+                            <div style={{ fontSize: 14, color: 'var(--ox-text-muted)', maxWidth: 580 }}>
+                                Projects in your OpenAI organization. Assign each to a client — its usage is then metered and billed to them automatically. No keys to create by hand.
+                                {discoveredAt && <span style={{ display: 'block', fontSize: 12, color: 'var(--ox-text-subtle)', marginTop: 3 }}>Last refreshed {discoveredAt}</span>}
+                            </div>
+                            <Button size="sm" variant="secondary" leadingIcon={<Icon name="refresh-cw" size={15} />} onClick={discover}>{discoveredAt ? 'Refresh from OpenAI' : 'Discover projects'}</Button>
+                        </div>
+                        {!openaiReady && (
+                            <div style={{ padding: '12px 20px', background: 'var(--ox-warning-surface)', color: 'var(--ox-warning)', fontSize: 13 }}>Set <span className="ox-mono">OPENAI_ADMIN_KEY</span> (an organization admin key) in your environment to discover projects.</div>
+                        )}
+                        <div style={{ overflowX: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 760 }}>
+                                <thead><tr>{['Project', 'Project ID', 'Usage (MTD)', 'Assigned to'].map((h) => <th key={h} style={th}>{h}</th>)}</tr></thead>
+                                <tbody>
+                                    {discovery.length === 0 && <tr><td style={{ ...td, color: 'var(--ox-text-subtle)' }} colSpan={4}>{openaiReady ? 'No projects loaded yet — click Discover projects.' : 'Configure OPENAI_ADMIN_KEY, then discover.'}</td></tr>}
+                                    {discovery.map((p) => (
+                                        <tr key={p.id}>
+                                            <td style={{ ...td, color: 'var(--ox-text)', fontWeight: 600, fontFamily: 'var(--ox-font-sans)' }}>{p.name}</td>
+                                            <td style={td}><Tag mono>{p.id}</Tag></td>
+                                            <td style={{ ...td, fontFamily: 'var(--ox-font-mono)' }}>{fmtTok(p.tokens)} tok</td>
+                                            <td style={{ ...td, minWidth: 320 }}>
+                                                {assignId === p.id ? (
+                                                    <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                                                        <select value={assignForm.client_id} onChange={(e) => setAssignForm((f) => ({ ...f, client_id: e.target.value }))} style={{ ...inp, width: 150, height: 34 }}>
+                                                            <option value="">Client…</option>
+                                                            {clientOptions.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                                        </select>
+                                                        <input placeholder="Label" value={assignForm.label} onChange={(e) => setAssignForm((f) => ({ ...f, label: e.target.value }))} style={{ ...inp, width: 130, height: 34 }} />
+                                                        <Button size="sm" onClick={() => doAssign(p)} disabled={!assignForm.client_id}>Save</Button>
+                                                        <Button size="sm" variant="ghost" onClick={() => setAssignId(null)}>Cancel</Button>
+                                                    </div>
+                                                ) : p.assigned_client ? (
+                                                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                                                        <Badge tone={p.key_status === 'disabled' ? 'neutral' : 'success'}>{p.assigned_client}</Badge>
+                                                        {p.label && <span style={{ fontSize: 12, color: 'var(--ox-text-subtle)' }}>{p.label}</span>}
+                                                        <Button size="sm" variant="ghost" onClick={() => openAssign(p)}>Reassign</Button>
+                                                        <Button size="sm" variant="ghost" onClick={() => toggleProject(p)}>{p.key_status === 'disabled' ? 'Enable' : 'Disable'}</Button>
+                                                    </div>
+                                                ) : (
+                                                    <Button size="sm" variant="secondary" onClick={() => openAssign(p)}>Assign to client</Button>
+                                                )}
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -292,12 +369,36 @@ export default function Admin({ stats, clients = [], keys = [], rateModels = [],
 
                         <div style={{ height: 1, background: 'var(--ox-divider)', margin: '20px 0' }} />
                         <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ox-text-muted)', marginBottom: 8 }}>Add usage manually</div>
-                        <input placeholder="Model (e.g. gemini-2.5-flash)" value={usage.model} onChange={(e) => setUsage((u) => ({ ...u, model: e.target.value }))} style={{ ...inp, marginBottom: 8 }} />
+                        <select value={usage.model} onChange={(e) => setUsage((u) => ({ ...u, model: e.target.value }))} style={{ ...inp, marginBottom: 8 }}>
+                            <option value="">Select model…</option>
+                            {catalog.map((c) => <option key={c.provider + c.model} value={c.model}>{c.model} ({c.provider})</option>)}
+                        </select>
                         <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
                             <input type="number" placeholder="Input tokens" value={usage.input_tokens} onChange={(e) => setUsage((u) => ({ ...u, input_tokens: e.target.value }))} style={inp} />
                             <input type="number" placeholder="Output tokens" value={usage.output_tokens} onChange={(e) => setUsage((u) => ({ ...u, output_tokens: e.target.value }))} style={inp} />
                         </div>
-                        <Button variant="secondary" fullWidth onClick={addUsage}>Add usage &amp; debit balance</Button>
+                        {usage.model && (
+                            <div style={{ fontSize: 12, color: 'var(--ox-text-subtle)', marginBottom: 10, lineHeight: 1.5 }}>
+                                {uCat
+                                    ? <>Provider cost <span className="ox-mono" style={{ color: 'var(--ox-text-muted)' }}>${uProvCost.toFixed(4)}</span> → billed to client <span className="ox-mono" style={{ color: 'var(--ox-green-700)', fontWeight: 700 }}>${uBilled.toFixed(4)}</span> (+{Math.round(uMarkup * 100)}% markup)</>
+                                    : <span style={{ color: 'var(--ox-warning)' }}>Not in the catalogue — provider cost $0, nothing billed.</span>}
+                            </div>
+                        )}
+                        <Button variant="secondary" fullWidth onClick={addUsage} disabled={!usage.model}>Add usage · debit ${uBilled.toFixed(2)}</Button>
+
+                        <div style={{ height: 1, background: 'var(--ox-divider)', margin: '20px 0' }} />
+                        {!confirmDel ? (
+                            <button onClick={() => setConfirmDel(true)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--ox-danger)', fontSize: 13, fontWeight: 600, fontFamily: 'var(--ox-font-sans)', padding: 0 }}>Delete this client…</button>
+                        ) : (
+                            <div style={{ background: 'var(--ox-danger-surface)', borderRadius: 10, padding: 14 }}>
+                                <div style={{ fontSize: 13, color: 'var(--ox-danger)', fontWeight: 700, marginBottom: 6 }}>Permanently delete {manage.client}?</div>
+                                <div style={{ fontSize: 12, color: 'var(--ox-text-muted)', marginBottom: 12, lineHeight: 1.5 }}>Removes the client, its users, assigned projects, usage records and balance history. This cannot be undone.</div>
+                                <div style={{ display: 'flex', gap: 8 }}>
+                                    <Button variant="ghost" size="sm" onClick={() => setConfirmDel(false)}>Cancel</Button>
+                                    <Button size="sm" onClick={deleteClient} style={{ background: 'var(--ox-danger)', color: '#fff' }}>Yes, delete</Button>
+                                </div>
+                            </div>
+                        )}
 
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
                             <Button variant="ghost" onClick={() => setManage(null)}>Close</Button>
