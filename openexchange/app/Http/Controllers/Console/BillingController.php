@@ -72,7 +72,7 @@ class BillingController
     }
 
     /** Persist a payment method after the billings.systems SetupWidget tokenises a card. */
-    public function storeCard(Request $request)
+    public function storeCard(Request $request, AutoTopupService $topups)
     {
         $data = $request->validate([
             'payment_method_id' => ['required', 'string', 'max:120'],
@@ -92,6 +92,18 @@ class BillingController
             'exp_year' => $data['exp_year'] ?? null,
             'is_default' => true,
         ]);
+
+        // Fund the prepaid balance immediately so the account is ready to use.
+        // Charges the client's top-up amount once, only when live and below minimum.
+        $client->refresh();
+        $live = config('openexchange.billings.token') && config('openexchange.billings.publishable') && $client->billings_customer_id;
+        if ($live && $client->balance_cents < $client->min_balance_cents) {
+            try {
+                $topups->topup($client, 'initial');
+            } catch (Throwable $e) {
+                report($e);
+            }
+        }
 
         return back();
     }

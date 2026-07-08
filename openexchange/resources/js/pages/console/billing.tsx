@@ -45,7 +45,7 @@ export default function Billing({ balance = 0, settings, card = null, transactio
             <Head title="Billing — Console" />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                 <div className="oe-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-                    <BalanceMeter balance={balance} min={min} topUp={amount} />
+                    <BalanceMeter balance={balance} min={min} topUp={amount} hasCard={!!card} autoTopup={autoTopup} />
 
                     <Card padding="lg" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -66,8 +66,8 @@ export default function Billing({ balance = 0, settings, card = null, transactio
                                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{[10, 25, 50, 100].map((v) => seg(v, min, setMinP))}</div>
                             </div>
                             <div>
-                                <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ox-text-muted)', marginBottom: 8 }}>Top up by</div>
-                                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{[50, 100, 250, 500].map((v) => seg(v, amount, setAmtP))}</div>
+                                <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ox-text-muted)', marginBottom: 8 }}>Top up by <span style={{ fontWeight: 400, color: 'var(--ox-text-subtle)' }}>(also the initial charge when you add a card)</span></div>
+                                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{[10, 50, 100, 250].map((v) => seg(v, amount, setAmtP))}</div>
                             </div>
                             <div style={{ fontSize: 12.5, color: 'var(--ox-text-subtle)', display: 'flex', alignItems: 'center', gap: 6 }}>
                                 <Icon name="refresh-cw" size={13} color="var(--ox-text-subtle)" />

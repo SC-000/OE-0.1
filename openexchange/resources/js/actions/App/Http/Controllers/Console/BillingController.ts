@@ -194,7 +194,7 @@ topup.form = topupForm
 
 /**
 * @see \App\Http\Controllers\Console\BillingController::addCard
-* @see app/Http/Controllers/Console/BillingController.php:100
+* @see app/Http/Controllers/Console/BillingController.php:112
 * @route '/console/billing/add-card'
 */
 export const addCard = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -209,7 +209,7 @@ addCard.definition = {
 
 /**
 * @see \App\Http\Controllers\Console\BillingController::addCard
-* @see app/Http/Controllers/Console/BillingController.php:100
+* @see app/Http/Controllers/Console/BillingController.php:112
 * @route '/console/billing/add-card'
 */
 addCard.url = (options?: RouteQueryOptions) => {
@@ -218,7 +218,7 @@ addCard.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\Console\BillingController::addCard
-* @see app/Http/Controllers/Console/BillingController.php:100
+* @see app/Http/Controllers/Console/BillingController.php:112
 * @route '/console/billing/add-card'
 */
 addCard.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -228,7 +228,7 @@ addCard.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
 
 /**
 * @see \App\Http\Controllers\Console\BillingController::addCard
-* @see app/Http/Controllers/Console/BillingController.php:100
+* @see app/Http/Controllers/Console/BillingController.php:112
 * @route '/console/billing/add-card'
 */
 addCard.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -238,7 +238,7 @@ addCard.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 
 /**
 * @see \App\Http\Controllers\Console\BillingController::addCard
-* @see app/Http/Controllers/Console/BillingController.php:100
+* @see app/Http/Controllers/Console/BillingController.php:112
 * @route '/console/billing/add-card'
 */
 const addCardForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -248,7 +248,7 @@ const addCardForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> =>
 
 /**
 * @see \App\Http\Controllers\Console\BillingController::addCard
-* @see app/Http/Controllers/Console/BillingController.php:100
+* @see app/Http/Controllers/Console/BillingController.php:112
 * @route '/console/billing/add-card'
 */
 addCardForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -258,7 +258,7 @@ addCardForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => (
 
 /**
 * @see \App\Http\Controllers\Console\BillingController::addCard
-* @see app/Http/Controllers/Console/BillingController.php:100
+* @see app/Http/Controllers/Console/BillingController.php:112
 * @route '/console/billing/add-card'
 */
 addCardForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({

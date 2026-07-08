@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useLayoutEffect, useRef, useState } from 'react';
 
 /**
  * Live rate ticker — an exchange-style scrolling marquee of model/instrument
@@ -16,13 +16,50 @@ const DEFAULTS = [
 ];
 
 export function RateTicker({ items = DEFAULTS, tone = 'dark', label = 'GRADE RATES · $/1M in·out', style = {} }) {
-    const list = [...items, ...items];
+    const segmentRef = useRef(null);
+    const [distance, setDistance] = useState(0);
     const dark = tone === 'dark';
     const bg = dark ? 'var(--ox-ink-900)' : 'var(--ox-cream)';
     const border = dark ? 'rgba(255,255,255,0.09)' : 'var(--ox-border)';
     const sym = dark ? '#e6ecea' : 'var(--ox-text)';
     const price = dark ? 'rgba(230,236,234,0.7)' : 'var(--ox-text-muted)';
     const deltaColor = (d) => (d === 'up' ? 'var(--ox-success)' : d === 'down' ? 'var(--ox-danger)' : dark ? 'rgba(230,236,234,0.5)' : 'var(--ox-text-subtle)');
+
+    useLayoutEffect(() => {
+        const node = segmentRef.current;
+        if (!node) return undefined;
+
+        let frame = 0;
+        const measure = () => {
+            cancelAnimationFrame(frame);
+            frame = requestAnimationFrame(() => {
+                const next = Math.ceil(node.getBoundingClientRect().width);
+                setDistance((current) => (next > 0 && Math.abs(next - current) > 1 ? next : current));
+            });
+        };
+
+        measure();
+        const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null;
+        observer?.observe(node);
+        document.fonts?.ready?.then(measure).catch(() => {});
+        window.addEventListener('resize', measure, { passive: true });
+
+        return () => {
+            cancelAnimationFrame(frame);
+            observer?.disconnect();
+            window.removeEventListener('resize', measure);
+        };
+    }, [items]);
+
+    const duration = distance ? `${Math.max(48, Math.round(distance / 26))}s` : '48s';
+    const renderItem = (it, key) => (
+        <span key={key} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 20px', borderRight: `1px solid ${border}` }}>
+            <span style={{ fontFamily: 'var(--ox-font-mono)', fontSize: 12, fontWeight: 600, color: sym }}>{it.symbol}</span>
+            <span style={{ fontFamily: 'var(--ox-font-mono)', fontSize: 12, color: price }}>{it.price}</span>
+            <span style={{ fontFamily: 'var(--ox-font-mono)', fontSize: 12, fontWeight: 600, color: deltaColor(it.dir) }}>{it.delta}</span>
+        </span>
+    );
+
     return (
         <div style={{
             position: 'relative', display: 'flex', alignItems: 'stretch', background: bg,
@@ -36,15 +73,14 @@ export function RateTicker({ items = DEFAULTS, tone = 'dark', label = 'GRADE RAT
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--ox-green-500)', boxShadow: '0 0 8px var(--ox-green-500)' }} />
                 {label}
             </div>
-            <div style={{ overflow: 'hidden', flex: 1, maskImage: 'linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent)' }}>
-                <div className="ox-ticker-track" style={{ display: 'inline-flex', width: 'max-content', whiteSpace: 'nowrap' }}>
-                    {list.map((it, i) => (
-                        <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 20px', borderRight: `1px solid ${border}` }}>
-                            <span style={{ fontFamily: 'var(--ox-font-mono)', fontSize: 12, fontWeight: 600, color: sym }}>{it.symbol}</span>
-                            <span style={{ fontFamily: 'var(--ox-font-mono)', fontSize: 12, color: price }}>{it.price}</span>
-                            <span style={{ fontFamily: 'var(--ox-font-mono)', fontSize: 12, fontWeight: 600, color: deltaColor(it.dir) }}>{it.delta}</span>
-                        </span>
-                    ))}
+            <div className="ox-ticker-viewport" style={{ flex: 1, '--ox-ticker-bg': bg }}>
+                <div className="ox-ticker-track" style={{ '--ox-ticker-distance': `${distance}px`, '--ox-ticker-duration': duration }}>
+                    <div ref={segmentRef} className="ox-ticker-segment">
+                        {items.map((it, i) => renderItem(it, `a-${i}`))}
+                    </div>
+                    <div className="ox-ticker-segment" aria-hidden="true">
+                        {items.map((it, i) => renderItem(it, `b-${i}`))}
+                    </div>
                 </div>
             </div>
         </div>

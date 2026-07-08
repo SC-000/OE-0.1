@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\Billing\BillingsClient;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 class BillingsClientTest extends TestCase
@@ -54,5 +55,28 @@ class BillingsClientTest extends TestCase
         $this->assertSame('cus_existing', $client->fresh()->billings_customer_id);
         // It recovered via email search — no duplicate create.
         Http::assertNotSent(fn ($r) => $r->method() === 'POST' && str_contains($r->url(), '/customers'));
+    }
+
+    public function test_saving_a_card_funds_the_balance_when_below_minimum(): void
+    {
+        config(['openexchange.billings.token' => 't', 'openexchange.billings.publishable' => 'p', 'openexchange.billings.base' => 'https://billings.test']);
+        Mail::fake();
+        $client = Client::create([
+            'name' => 'X', 'slug' => 'x', 'balance_cents' => 0, 'min_balance_cents' => 1000,
+            'topup_amount_cents' => 1000, 'billings_customer_id' => 'cus_1', 'auto_topup' => true,
+        ]);
+        $user = User::factory()->create(['client_id' => $client->id, 'role' => 'owner']);
+        Http::fake([
+            '*/invoices/*/finalize' => Http::response(['data' => ['id' => 'inv_1']], 200),
+            '*/invoices/*/pay-with-default' => Http::response(['data' => ['transaction' => ['id' => 'txn_1']]], 200),
+            '*/invoices' => Http::response(['data' => ['id' => 'inv_1']], 201),
+        ]);
+
+        $this->actingAs($user)->post('/console/billing/card', [
+            'payment_method_id' => 'pm_1', 'brand' => 'visa', 'last4' => '4242', 'exp_month' => 12, 'exp_year' => 2030,
+        ]);
+
+        // Adding a card charged the $10 top-up and funded the balance.
+        $this->assertSame(1000, $client->fresh()->balance_cents);
     }
 }

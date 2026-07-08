@@ -5,12 +5,14 @@ import React from 'react';
  * minimum-balance threshold and the auto-top-up amount that fires when it's
  * crossed. The core of the advanced billing portal, in one glanceable tile.
  */
-export function BalanceMeter({ balance = 42.5, min = 10, topUp = 50, currency = '$', tone = 'light', style = {} }) {
+export function BalanceMeter({ balance = 42.5, min = 10, topUp = 50, currency = '$', tone = 'light', hasCard = true, autoTopup = true, style = {} }) {
     const dark = tone === 'dark';
     const max = Math.max(balance, min + topUp) * 1.12;
     const pct = Math.max(2, Math.min(100, (balance / max) * 100));
     const minPct = Math.min(100, (min / max) * 100);
     const low = balance <= min;
+    const willTopUp = low && hasCard && autoTopup;
+    const statusLabel = !low ? 'Healthy' : willTopUp ? 'Topping up' : hasCard ? 'Low balance' : 'Add a card';
     const fill = low ? 'var(--ox-warning)' : 'var(--ox-green-500)';
     const surface = dark ? 'var(--ox-ink-800)' : 'var(--ox-surface)';
     const border = dark ? 'rgba(255,255,255,0.09)' : 'var(--ox-border)';
@@ -34,7 +36,7 @@ export function BalanceMeter({ balance = 42.5, min = 10, topUp = 50, currency = 
                     background: low ? 'var(--ox-warning-surface)' : 'var(--ox-success-surface)', color: low ? 'var(--ox-warning)' : 'var(--ox-success)',
                 }}>
                     <span style={{ width: 6, height: 6, borderRadius: '50%', background: low ? 'var(--ox-warning)' : 'var(--ox-success)' }} />
-                    {low ? 'Topping up' : 'Healthy'}
+                    {statusLabel}
                 </span>
             </div>
 
@@ -48,7 +50,11 @@ export function BalanceMeter({ balance = 42.5, min = 10, topUp = 50, currency = 
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 30, paddingTop: 16, borderTop: `1px solid ${border}` }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ox-green-500)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" /></svg>
                 <span style={{ fontFamily: 'var(--ox-font-sans)', fontSize: 13, color: muted }}>
-                    Auto top-up <span style={{ fontFamily: 'var(--ox-font-mono)', color: text, fontWeight: 600 }}>+{currency}{topUp}</span> when balance falls below <span style={{ fontFamily: 'var(--ox-font-mono)', color: text, fontWeight: 600 }}>{currency}{min}</span>
+                    {!hasCard
+                        ? <>Add a card to fund your balance — we take an initial top-up, then keep it above your minimum.</>
+                        : !autoTopup
+                            ? <>Auto top-up is <span style={{ color: text, fontWeight: 600 }}>off</span> — top up manually anytime.</>
+                            : <>Auto top-up <span style={{ fontFamily: 'var(--ox-font-mono)', color: text, fontWeight: 600 }}>+{currency}{topUp}</span> when balance falls below <span style={{ fontFamily: 'var(--ox-font-mono)', color: text, fontWeight: 600 }}>{currency}{min}</span></>}
                 </span>
             </div>
         </div>
