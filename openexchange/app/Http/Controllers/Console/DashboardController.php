@@ -44,7 +44,8 @@ class DashboardController
         return Inertia::render('console/overview', [
             'account' => [
                 'name' => $client->name,
-                'id' => 'OX-'.str_pad((string) $client->id, 5, '0', STR_PAD_LEFT),
+                // Stable, non-sequential account code (derived from the id, not the id itself).
+                'id' => 'OX-'.(10000 + (int) (hexdec(substr(md5('ox:'.$client->id), 0, 6)) % 90000)),
                 'type' => 'Metered · pay-as-you-go',
                 'since' => $client->created_at?->format('M Y') ?? now()->format('M Y'),
             ],

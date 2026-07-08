@@ -4,7 +4,7 @@ import ConsoleLayout from '@/layouts/console-layout';
 import { Card, Button, Icon, Badge, Tag, StatCard } from '@/components/oe';
 
 type Client = { id: number; client: string; balance: string; balance_cents: number; usage: string; markup: string; markup_bps: number; min_cents: number; topup_cents: number; auto_topup: boolean; account_status: string; status: string };
-type Key = { provider: string; frag: string; client: string; usage: string; sync: string };
+type Key = { id: number; provider: string; project: string; label: string; frag: string; client: string; client_id: number | null; billing_status: string; usage: string; records: number; sync: string };
 type RateModel = { model: string; provider: string; cost: number };
 type Proj = { id: string; name: string; status: string; assigned_client_id: number | null; assigned_client: string | null; label: string | null; key_status: string | null; tokens: number; series: number[] };
 type Cat = { id: number; model: string; provider: string; in: number; out: number; active: boolean; markup_bps: number | null };
@@ -24,11 +24,12 @@ type Props = {
     unpricedModels?: string[];
     accessKeys?: Record<string, { id: number; name: string; frag: string; status: string; last_used: string }[]>;
     clientRates?: Record<string, { id: number; provider: string; model: string; markup_bps: number }[]>;
+    lastPull?: { at: string; keys: number; metered: number; billed_cents: number } | null;
 };
 
-const TABS = [['clients', 'Clients'], ['discovery', 'Discovery'], ['keys', 'Provider keys'], ['rates', 'Rate card'], ['backends', 'Backends']] as const;
+const TABS = [['clients', 'Clients'], ['discovery', 'Discovery'], ['keys', 'Metering'], ['rates', 'Rate card'], ['backends', 'Backends']] as const;
 
-export default function Admin({ stats, clients = [], keys = [], rateModels = [], markupBps = 2500, clientOptions = [], backends = [], newAccessKey = null, discovery = [], discoveredAt = null, openaiReady = false, catalog = [], unpricedModels = [], accessKeys = {}, clientRates = {} }: Props) {
+export default function Admin({ stats, clients = [], keys = [], rateModels = [], markupBps = 2500, clientOptions = [], backends = [], newAccessKey = null, discovery = [], discoveredAt = null, openaiReady = false, catalog = [], unpricedModels = [], accessKeys = {}, clientRates = {}, lastPull = null }: Props) {
     const [tab, setTab] = useState<'clients' | 'discovery' | 'keys' | 'rates' | 'backends'>('clients');
     const [markup, setMarkup] = useState(Math.round(markupBps / 100));
     const [modal, setModal] = useState<null | 'client' | 'key' | 'backend' | 'model'>(null);
@@ -78,6 +79,7 @@ export default function Admin({ stats, clients = [], keys = [], rateModels = [],
     const saveModel = (m: Cat) => router.post('/console/admin/model/update', { id: m.id, input: Number(pv(m, 'in')), output: Number(pv(m, 'out')), active: pActive(m) }, { preserveScroll: true, preserveState: true, onSuccess: () => setPriceEdits((e) => { const n = { ...e }; delete n[m.id]; return n; }) });
     const revokeKey = (id: number) => router.post('/console/admin/access-key/revoke', { access_key_id: id }, { preserveScroll: true });
     const syncModels = () => router.post('/console/admin/sync-models', {}, { preserveScroll: true });
+    const rebill = () => router.post('/console/admin/rebill', {}, { preserveScroll: true });
 
     // Per-client, per-model markup override
     const [crForm, setCrForm] = useState<{ model: string; pct: string }>({ model: '', pct: '' });
@@ -86,6 +88,8 @@ export default function Admin({ stats, clients = [], keys = [], rateModels = [],
 
     const persistRate = (pct: number) => router.post('/console/admin/rate', { markup_bps: pct * 100 }, { preserveScroll: true, preserveState: true });
     const sync = () => router.post('/console/admin/sync', {}, { preserveScroll: true });
+    const syncClient = (id: number | null) => router.post('/console/admin/sync', id ? { client_id: id } : {}, { preserveScroll: true });
+    const freshPull = lastPull ? (Date.now() - Date.parse(lastPull.at.replace(' ', 'T'))) < 3 * 3600 * 1000 : false;
     const submit = () => {
         if (modal === 'client') router.post('/console/admin/clients', form, { preserveScroll: true, onSuccess: () => setModal(null) });
         if (modal === 'key') router.post('/console/admin/keys', form, { preserveScroll: true, onSuccess: () => setModal(null) });
@@ -214,28 +218,45 @@ export default function Admin({ stats, clients = [], keys = [], rateModels = [],
                 )}
 
                 {tab === 'keys' && (
-                    <Card padding="none">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid var(--ox-divider)' }}>
-                            <div style={{ fontSize: 14, color: 'var(--ox-text-muted)', maxWidth: 520 }}>Each provider key is assigned to one client. Usage is pulled from the provider per key and attributed to that client.</div>
-                            <Button size="sm" variant="secondary" leadingIcon={<Icon name="plus" size={15} />} onClick={() => { setForm({ provider: 'openai' }); setModal('key'); }}>Assign key</Button>
-                        </div>
-                        <div style={{ overflowX: 'auto' }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 640 }}>
-                                <thead><tr>{['Provider', 'Key', 'Assigned client', 'Usage pulled', 'Last sync'].map((h) => <th key={h} style={th}>{h}</th>)}</tr></thead>
-                                <tbody>
-                                    {keys.map((k, i) => (
-                                        <tr key={i}>
-                                            <td style={{ ...td, fontFamily: 'var(--ox-font-sans)', color: 'var(--ox-text)', fontWeight: 600 }}>{k.provider}</td>
-                                            <td style={td}><Tag mono>{k.frag}</Tag></td>
-                                            <td style={{ ...td, fontFamily: 'var(--ox-font-sans)' }}>{k.client}</td>
-                                            <td style={{ ...td, fontFamily: 'var(--ox-font-mono)' }}>{k.usage}</td>
-                                            <td style={{ ...td, display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--ox-success)' }} />{k.sync}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </Card>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                        <Card padding="lg">
+                            <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 12 }}>Billing health</div>
+                            <div className="oe-grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+                                <Health ok={openaiReady} label="Usage API" okText="OPENAI_ADMIN_KEY is set — usage can be pulled." badText="Set OPENAI_ADMIN_KEY — no usage can be pulled or billed." />
+                                <Health ok={freshPull} label="Metering job" okText={lastPull ? `Ran ${lastPull.at} · ${lastPull.keys} projects` : ''} badText={lastPull ? `Last ran ${lastPull.at} — is the schedule:run cron up?` : 'Never run — click “Sync all now” or set the schedule:run cron.'} />
+                                <Health ok={unpricedModels.length === 0} label="Pricing" okText="Every used model has a price." badText={`${unpricedModels.length} used model(s) unpriced → billing $0. Fix in Rate card.`} />
+                            </div>
+                        </Card>
+
+                        <Card padding="none">
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid var(--ox-divider)', flexWrap: 'wrap', gap: 10 }}>
+                                <div style={{ fontSize: 14, color: 'var(--ox-text-muted)', maxWidth: 520 }}>Each assigned project is pulled hourly and billed to its client at their rates. Status shows whether it's actually billing.</div>
+                                <div style={{ display: 'flex', gap: 8 }}>
+                                    <Button size="sm" variant="secondary" leadingIcon={<Icon name="refresh-cw" size={15} />} onClick={sync}>Sync all now</Button>
+                                    <Button size="sm" variant="ghost" leadingIcon={<Icon name="plus" size={15} />} onClick={() => { setForm({ provider: 'openai' }); setModal('key'); }}>Assign manually</Button>
+                                </div>
+                            </div>
+                            <div style={{ overflowX: 'auto' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 780 }}>
+                                    <thead><tr>{['Project', 'Client', 'Status', 'Records (MTD)', 'Billed (MTD)', 'Last sync', ''].map((h, i) => <th key={i} style={th}>{h}</th>)}</tr></thead>
+                                    <tbody>
+                                        {keys.length === 0 && <tr><td style={{ ...td, color: 'var(--ox-text-subtle)' }} colSpan={7}>No projects assigned — assign one in the Discovery tab.</td></tr>}
+                                        {keys.map((k) => (
+                                            <tr key={k.id}>
+                                                <td style={{ ...td, color: 'var(--ox-text)', fontWeight: 600 }}>{k.provider}<span style={{ marginLeft: 6, fontFamily: 'var(--ox-font-mono)', fontSize: 11, color: 'var(--ox-text-subtle)' }}>{k.project}</span></td>
+                                                <td style={{ ...td, fontFamily: 'var(--ox-font-sans)' }}>{k.client}</td>
+                                                <td style={td}><StatusBadge s={k.billing_status} /></td>
+                                                <td style={{ ...td, fontFamily: 'var(--ox-font-mono)' }}>{k.records}</td>
+                                                <td style={{ ...td, fontFamily: 'var(--ox-font-mono)', color: 'var(--ox-text)', fontWeight: 600 }}>{k.usage}</td>
+                                                <td style={{ ...td, fontFamily: 'var(--ox-font-mono)', color: 'var(--ox-text-subtle)' }}>{k.sync}</td>
+                                                <td style={{ ...td, textAlign: 'right' }}><Button size="sm" variant="ghost" onClick={() => syncClient(k.client_id)}>Sync</Button></td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </Card>
+                    </div>
                 )}
 
                 {tab === 'rates' && (
@@ -257,7 +278,11 @@ export default function Admin({ stats, clients = [], keys = [], rateModels = [],
                         <Card padding="none">
                             {unpricedModels.length > 0 && (
                                 <div style={{ padding: '12px 16px', background: 'var(--ox-warning-surface)', borderBottom: '1px solid var(--ox-divider)' }}>
-                                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ox-warning)', marginBottom: 6 }}>{unpricedModels.length} model{unpricedModels.length > 1 ? 's' : ''} used this month with no price — billing $0</div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
+                                        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ox-warning)' }}>{unpricedModels.length} model{unpricedModels.length > 1 ? 's' : ''} used this month with no price — billing $0</div>
+                                        <Button size="sm" variant="secondary" onClick={rebill}>Re-bill $0 usage</Button>
+                                    </div>
+                                    <div style={{ fontSize: 12, color: 'var(--ox-text-muted)', marginBottom: 8 }}>Price each below (or Sync models), then Re-bill to charge the usage that came in unpriced. Dated snapshots share their base model's price.</div>
                                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                                         {unpricedModels.map((m) => <button key={m} onClick={() => { setForm({ provider: 'openai', model: m }); setModal('model'); }} style={{ ...chip, borderColor: 'var(--ox-warning)', color: 'var(--ox-warning)' }}>+ price {m}</button>)}
                                     </div>
@@ -492,6 +517,28 @@ export default function Admin({ stats, clients = [], keys = [], rateModels = [],
             )}
         </ConsoleLayout>
     );
+}
+
+function Health({ ok, label, okText, badText }: { ok: boolean; label: string; okText: string; badText: string }) {
+    return (
+        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+            <span style={{ marginTop: 5, width: 9, height: 9, borderRadius: '50%', flexShrink: 0, background: ok ? 'var(--ox-success)' : 'var(--ox-warning)', boxShadow: `0 0 8px ${ok ? 'var(--ox-success)' : 'var(--ox-warning)'}` }} />
+            <div>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ox-text)' }}>{label}</div>
+                <div style={{ fontSize: 12, color: ok ? 'var(--ox-text-subtle)' : 'var(--ox-warning)', marginTop: 2, lineHeight: 1.45 }}>{ok ? okText : badText}</div>
+            </div>
+        </div>
+    );
+}
+function StatusBadge({ s }: { s: string }) {
+    const map: Record<string, ['success' | 'warning' | 'neutral', string]> = {
+        billing: ['success', 'Billing'],
+        idle: ['neutral', 'No usage yet'],
+        pending: ['warning', 'Not synced'],
+        disabled: ['neutral', 'Disabled'],
+    };
+    const [tone, text] = map[s] ?? ['neutral', s];
+    return <Badge tone={tone}>{text}</Badge>;
 }
 
 function Sparkline({ data }: { data: number[] }) {

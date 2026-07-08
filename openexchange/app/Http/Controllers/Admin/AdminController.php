@@ -11,6 +11,7 @@ use App\Models\ProviderKey;
 use App\Models\UsageRecord;
 use App\Models\User;
 use App\Services\Billing\BalanceService;
+use App\Services\Metering\MeteringService;
 use App\Services\Metering\RateResolver;
 use App\Services\Providers\OpenAiDiscovery;
 use App\Services\Providers\ProviderModelSync;
@@ -50,13 +51,24 @@ class AdminController
             ]);
 
         $keys = ProviderKey::with('client')->orderByDesc('last_synced_at')->get()->map(function ($k) use ($monthStart) {
-            $usage = (int) UsageRecord::where('provider_key_id', $k->id)->where('period_start', '>=', $monthStart)->sum('billed_cents');
+            $rows = UsageRecord::where('provider_key_id', $k->id)->where('period_start', '>=', $monthStart);
+            $billed = (int) (clone $rows)->sum('billed_cents');
+            $records = (clone $rows)->count();
+            // billing = active + synced + has billed records; idle = synced, no usage yet;
+            // pending = never synced (check OPENAI_ADMIN_KEY / cron); disabled = off.
+            $status = $k->status !== 'active' ? 'disabled'
+                : ($k->last_synced_at === null ? 'pending' : ($records > 0 ? 'billing' : 'idle'));
 
             return [
+                'id' => $k->id,
                 'provider' => ucfirst($k->provider),
-                'frag' => $k->fragment(),
-                'client' => $k->client?->name ?? '—',
-                'usage' => '$'.number_format($usage / 100, 2),
+                'project' => $k->external_project_id ?: '—',
+                'label' => $k->displayLabel(),
+                'client' => $k->client?->name ?? '— unassigned',
+                'client_id' => $k->client_id,
+                'billing_status' => $status,
+                'usage' => '$'.number_format($billed / 100, 2),
+                'records' => $records,
                 'sync' => $k->last_synced_at?->diffForHumans() ?? 'never',
             ];
         });
@@ -110,9 +122,14 @@ class AdminController
         });
 
         // Models seen in usage this month with NO catalogue price → they bill $0.
-        $catalogModels = ModelCatalog::pluck('model')->all();
-        $unpricedModels = UsageRecord::where('period_start', '>=', $monthStart)
-            ->whereNotIn('model', $catalogModels)->distinct()->orderBy('model')->limit(20)->pluck('model');
+        $priced = ModelCatalog::get(['model', 'input_usd_per_million', 'output_usd_per_million'])->keyBy('model');
+        $hasPrice = fn ($e) => $e && ((float) $e->input_usd_per_million > 0 || (float) $e->output_usd_per_million > 0);
+        $unpricedModels = UsageRecord::where('period_start', '>=', $monthStart)->distinct()->orderBy('model')->pluck('model')
+            ->reject(function ($m) use ($priced, $hasPrice) {
+                $base = preg_replace('/-\d{4}-\d{2}-\d{2}$/', '', $m);
+
+                return $hasPrice($priced->get($m)) || $hasPrice($priced->get($base));
+            })->take(20)->values();
 
         // Gateway access keys grouped by client (for the Manage panel: list + revoke).
         $accessKeys = AccessKey::orderByDesc('created_at')->get()->groupBy('client_id')->map(fn ($grp) => $grp->map(fn ($k) => [
@@ -148,6 +165,7 @@ class AdminController
             'unpricedModels' => $unpricedModels,
             'accessKeys' => $accessKeys,
             'clientRates' => $clientRates,
+            'lastPull' => Cache::get('oe.metering.last_run'),
             'newAccessKey' => session('new_access_key'),
         ]);
     }
@@ -500,5 +518,14 @@ class AdminController
         } catch (\Throwable $e) {
             return back()->withErrors(['sync' => mb_substr($e->getMessage(), 0, 200)]);
         }
+    }
+
+    /** Re-bill usage that metered at $0 (model was unpriced then), now that it's priced. */
+    public function rebill(MeteringService $metering, Request $request)
+    {
+        $data = $request->validate(['client_id' => ['nullable', 'exists:clients,id']]);
+        $metering->rebill($data['client_id'] ?? null);
+
+        return back();
     }
 }

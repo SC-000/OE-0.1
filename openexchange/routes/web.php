@@ -80,6 +80,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/console/admin/client-model-rate', [AdminController::class, 'updateClientModelRate'])->name('admin.client-model-rate.update');
         Route::post('/console/admin/client-model-rate/delete', [AdminController::class, 'deleteClientModelRate'])->name('admin.client-model-rate.delete');
         Route::post('/console/admin/sync-models', [AdminController::class, 'syncModels'])->name('admin.sync-models');
+        Route::post('/console/admin/rebill', [AdminController::class, 'rebill'])->name('admin.rebill');
         Route::post('/console/admin/sync', [AdminController::class, 'sync'])->name('admin.sync');
     });
 });

@@ -10,6 +10,7 @@ use App\Services\Providers\GoogleUsagePuller;
 use App\Services\Providers\OpenAiUsagePuller;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Cache;
 use Throwable;
 
 /**
@@ -31,6 +32,8 @@ class PullUsage extends Command
     ): int {
         $lookback = (int) config('openexchange.metering.pull_lookback_hours', 48);
         $until = CarbonImmutable::now();
+        $totalMetered = 0;
+        $totalBilled = 0;
 
         $keys = ProviderKey::query()
             ->where('status', 'active')
@@ -50,6 +53,8 @@ class PullUsage extends Command
                     default => [],
                 };
                 $summary = $metering->ingest($key, $buckets);
+                $totalMetered += $summary['metered'];
+                $totalBilled += $summary['billed_cents'];
                 $this->line(sprintf(
                     '  [%s] key #%d "%s": %d metered, %d skipped, $%.2f billed',
                     $key->provider, $key->id, $key->label,
@@ -59,6 +64,13 @@ class PullUsage extends Command
                 report($e);
                 $this->error("  key #{$key->id} ({$key->provider}) failed: ".$e->getMessage());
             }
+        }
+
+        // Self-heal: re-price any usage that metered at $0 because its model was unpriced.
+        $rebill = $metering->rebill($this->option('client') ? (int) $this->option('client') : null);
+        if ($rebill['rebilled'] > 0) {
+            $totalBilled += $rebill['billed_cents'];
+            $this->line(sprintf('  re-billed %d unpriced record(s): $%.2f', $rebill['rebilled'], $rebill['billed_cents'] / 100));
         }
 
         if (! $this->option('no-topup')) {
@@ -72,6 +84,14 @@ class PullUsage extends Command
                     }
                 });
         }
+
+        // Record the run so the admin can see the metering job is actually firing.
+        Cache::forever('oe.metering.last_run', [
+            'at' => now()->toDateTimeString(),
+            'keys' => $keys->count(),
+            'metered' => $totalMetered,
+            'billed_cents' => $totalBilled,
+        ]);
 
         $this->info('metering:pull complete.');
 

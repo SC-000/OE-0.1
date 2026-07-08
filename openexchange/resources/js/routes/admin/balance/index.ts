@@ -1,7 +1,7 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition } from './../../../wayfinder'
 /**
 * @see \App\Http\Controllers\Admin\AdminController::adjust
-* @see app/Http/Controllers/Admin/AdminController.php:316
+* @see app/Http/Controllers/Admin/AdminController.php:334
 * @route '/console/admin/balance'
 */
 export const adjust = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -16,7 +16,7 @@ adjust.definition = {
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::adjust
-* @see app/Http/Controllers/Admin/AdminController.php:316
+* @see app/Http/Controllers/Admin/AdminController.php:334
 * @route '/console/admin/balance'
 */
 adjust.url = (options?: RouteQueryOptions) => {
@@ -25,7 +25,7 @@ adjust.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::adjust
-* @see app/Http/Controllers/Admin/AdminController.php:316
+* @see app/Http/Controllers/Admin/AdminController.php:334
 * @route '/console/admin/balance'
 */
 adjust.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -35,7 +35,7 @@ adjust.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::adjust
-* @see app/Http/Controllers/Admin/AdminController.php:316
+* @see app/Http/Controllers/Admin/AdminController.php:334
 * @route '/console/admin/balance'
 */
 const adjustForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -45,7 +45,7 @@ const adjustForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> =>
 
 /**
 * @see \App\Http\Controllers\Admin\AdminController::adjust
-* @see app/Http/Controllers/Admin/AdminController.php:316
+* @see app/Http/Controllers/Admin/AdminController.php:334
 * @route '/console/admin/balance'
 */
 adjustForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
