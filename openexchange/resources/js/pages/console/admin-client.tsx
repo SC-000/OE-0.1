@@ -23,7 +23,7 @@ export default function AdminClient({ client, catalog = [], accessKeys = [], rat
     const [adj, setAdj] = useState<{ amount: string; dir: number; reason: string }>({ amount: '', dir: 1, reason: '' });
     const [keyName, setKeyName] = useState('');
     const [usage, setUsage] = useState<{ model: string; in: string; out: string }>({ model: '', in: '', out: '' });
-    const [rate, setRate] = useState<{ model: string; pct: string }>({ model: '', pct: '' });
+    const [rateEdits, setRateEdits] = useState<Record<string, string>>({});
     const [confirmDel, setConfirmDel] = useState(false);
 
     const post = (url: string, data: Record<string, unknown>, opts: Record<string, unknown> = {}) => router.post(url, data, { preserveScroll: true, ...opts });
@@ -32,7 +32,7 @@ export default function AdminClient({ client, catalog = [], accessKeys = [], rat
     const createKey = () => keyName && post('/console/admin/access-key', { client_id: client.id, name: keyName }, { onSuccess: () => setKeyName('') });
     const revokeKey = (id: number) => post('/console/admin/access-key/revoke', { access_key_id: id });
     const addUsage = () => post('/console/admin/usage', { client_id: client.id, model: usage.model, input_tokens: Number(usage.in || 0), output_tokens: Number(usage.out || 0) }, { onSuccess: () => setUsage({ model: '', in: '', out: '' }) });
-    const setModelRate = () => { if (!rate.model) return; const cat = catalog.find((c) => c.model === rate.model); post('/console/admin/client-model-rate', { client_id: client.id, provider: cat?.provider ?? 'openai', model: rate.model, markup_bps: Math.round(Number(rate.pct || 0) * 100) }, { onSuccess: () => setRate({ model: '', pct: '' }) }); };
+    const saveRate = (m: Cat) => post('/console/admin/client-model-rate', { client_id: client.id, provider: m.provider, model: m.model, markup_bps: Math.round(Number(rateEdits[m.model] || 0) * 100) }, { onSuccess: () => setRateEdits((s) => { const n = { ...s }; delete n[m.model]; return n; }) });
     const deleteRate = (id: number) => post('/console/admin/client-model-rate/delete', { id });
     const deleteClient = () => router.post('/console/admin/client/delete', { client_id: client.id }, { onSuccess: () => router.visit('/console/admin') });
 
@@ -138,22 +138,6 @@ export default function AdminClient({ client, catalog = [], accessKeys = [], rat
                         </Card>
 
                         <Card padding="lg">
-                            <Title>Per-model rates<span style={sub}>override the default for specific models</span></Title>
-                            {rates.map((r) => (
-                                <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, fontSize: 13 }}>
-                                    <span className="ox-mono" style={{ color: 'var(--ox-text)' }}>{r.model}</span>
-                                    <span style={{ color: 'var(--ox-green-700)', fontWeight: 700 }}>+{(r.markup_bps / 100).toFixed(0)}%</span>
-                                    <button onClick={() => deleteRate(r.id)} style={{ marginLeft: 'auto', ...linkBtn, color: 'var(--ox-danger)' }}>Remove</button>
-                                </div>
-                            ))}
-                            <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                                <div style={{ flex: 1 }}><ModelPicker catalog={catalog} value={rate.model} onChange={(m) => setRate((r) => ({ ...r, model: m }))} placeholder="Type a model…" /></div>
-                                <input type="number" placeholder="Markup %" value={rate.pct} onChange={(e) => setRate((r) => ({ ...r, pct: e.target.value }))} style={{ ...inp, width: 110, flexShrink: 0 }} />
-                                <Button variant="secondary" onClick={setModelRate} disabled={!rate.model} style={{ flexShrink: 0 }}>Set</Button>
-                            </div>
-                        </Card>
-
-                        <Card padding="lg">
                             <Title>Gateway keys</Title>
                             {accessKeys.map((k) => (
                                 <div key={k.id} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, fontSize: 12.5 }}>
@@ -198,6 +182,46 @@ export default function AdminClient({ client, catalog = [], accessKeys = [], rat
                         </Card>
                     </div>
                 </div>
+
+                <Card padding="none">
+                    <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--ox-divider)' }}>
+                        <div style={{ fontSize: 'var(--ox-text-lg)', fontWeight: 600 }}>Rate card · {client.name}</div>
+                        <div style={{ fontSize: 12.5, color: 'var(--ox-text-subtle)', marginTop: 3 }}>This client's own rates. <b style={{ color: 'var(--ox-green-700)', fontWeight: 700 }}>Client rate = provider cost × (1 + markup)</b>. Rows left blank use the client's {(client.markup_bps / 100).toFixed(0)}% default markup.</div>
+                    </div>
+                    <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 760 }}>
+                            <thead><tr>{['Model', 'Provider cost · in / out', 'Markup', 'Client rate · in / out', 'Profit / 1M out', ''].map((h, i) => <th key={i} style={th}>{h}</th>)}</tr></thead>
+                            <tbody>
+                                {catalog.map((m) => {
+                                    const ov = rates.find((r) => r.model === m.model);
+                                    const cur = rateEdits[m.model] ?? String(ov ? ov.markup_bps / 100 : client.markup_bps / 100);
+                                    const eff = Number(cur || 0);
+                                    const inP = m.in * (1 + eff / 100);
+                                    const outP = m.out * (1 + eff / 100);
+                                    const isDirty = rateEdits[m.model] !== undefined;
+                                    return (
+                                        <tr key={m.provider + m.model}>
+                                            <td style={{ ...td, fontFamily: 'var(--ox-font-mono)', color: 'var(--ox-text)', fontWeight: 600 }}>{m.model}<span style={{ marginLeft: 6, fontSize: 11, color: 'var(--ox-text-subtle)' }}>{m.provider}</span>{ov && <span style={{ marginLeft: 6, fontSize: 9.5, color: 'var(--ox-green-700)', fontWeight: 700, letterSpacing: '0.06em' }}>OWN RATE</span>}</td>
+                                            <td style={{ ...td, fontFamily: 'var(--ox-font-mono)' }}>${m.in.toFixed(2)} · ${m.out.toFixed(2)}</td>
+                                            <td style={td}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                    <span style={{ color: 'var(--ox-text-subtle)' }}>+</span>
+                                                    <input value={cur} onChange={(e) => setRateEdits((s) => ({ ...s, [m.model]: e.target.value }))} style={{ ...inp, height: 32, width: 60 }} />
+                                                    <span style={{ color: 'var(--ox-text-subtle)' }}>%</span>
+                                                </div>
+                                            </td>
+                                            <td style={{ ...td, fontFamily: 'var(--ox-font-mono)', color: 'var(--ox-text)', fontWeight: 700 }}>${inP.toFixed(2)} · ${outP.toFixed(2)}</td>
+                                            <td style={{ ...td, fontFamily: 'var(--ox-font-mono)', color: 'var(--ox-success)', fontWeight: 600 }}>+${(outP - m.out).toFixed(2)}</td>
+                                            <td style={{ ...td, textAlign: 'right', whiteSpace: 'nowrap' }}>
+                                                {isDirty ? <Button size="sm" onClick={() => saveRate(m)}>Save</Button> : ov ? <button onClick={() => deleteRate(ov.id)} style={{ ...linkBtn, color: 'var(--ox-text-subtle)' }}>reset</button> : null}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                </Card>
             </div>
         </ConsoleLayout>
     );
@@ -248,4 +272,5 @@ const lbl: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap
 const sub: React.CSSProperties = { fontSize: 12, fontWeight: 400, color: 'var(--ox-text-subtle)' };
 const cardHead: React.CSSProperties = { padding: '16px 20px', borderBottom: '1px solid var(--ox-divider)', fontSize: 'var(--ox-text-lg)', fontWeight: 600 };
 const td: React.CSSProperties = { padding: '11px 20px', borderBottom: '1px solid var(--ox-divider)', fontSize: 'var(--ox-text-sm)', color: 'var(--ox-text-muted)' };
+const th: React.CSSProperties = { padding: '11px 20px', fontSize: 'var(--ox-text-2xs)', textTransform: 'uppercase', letterSpacing: 'var(--ox-tracking-caps)', color: 'var(--ox-text-subtle)', fontWeight: 600, borderBottom: '1px solid var(--ox-divider)', textAlign: 'left' };
 const linkBtn: React.CSSProperties = { background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'var(--ox-font-sans)', padding: 0 };
