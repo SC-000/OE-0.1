@@ -110,7 +110,8 @@ class MeteringPipelineTest extends TestCase
         Config::set('openexchange.billings.base', 'https://billings.test');
         Http::fake([
             'billings.test/api/v1/customers*' => Http::response(['data' => ['id' => 'cus_1']]),
-            'billings.test/api/v1/invoices/*/process-autopay' => Http::response(['data' => ['transaction' => ['id' => 'txn_1']]]),
+            'billings.test/api/v1/invoices/*/finalize' => Http::response(['data' => ['id' => 'inv_1']]),
+            'billings.test/api/v1/invoices/*/pay-with-default' => Http::response(['data' => ['transaction' => ['id' => 'txn_1']]]),
             'billings.test/api/v1/invoices' => Http::response(['data' => ['id' => 'inv_1']]),
         ]);
 
@@ -133,7 +134,8 @@ class MeteringPipelineTest extends TestCase
         Config::set('openexchange.billings.base', 'https://billings.test');
         Http::fake([
             'billings.test/api/v1/customers*' => Http::response(['data' => ['id' => 'cus_1']]),
-            'billings.test/api/v1/invoices/*/process-autopay' => Http::response(['data' => ['transaction' => ['id' => 'txn_1']]]),
+            'billings.test/api/v1/invoices/*/finalize' => Http::response(['data' => ['id' => 'inv_1']]),
+            'billings.test/api/v1/invoices/*/pay-with-default' => Http::response(['data' => ['transaction' => ['id' => 'txn_1']]]),
             'billings.test/api/v1/invoices' => Http::response(['data' => ['id' => 'inv_1']]),
         ]);
 
