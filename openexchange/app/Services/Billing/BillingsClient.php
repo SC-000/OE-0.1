@@ -130,14 +130,15 @@ class BillingsClient
     public function createInvoice(string $customerId, int $amountCents, string $description, ?string $idempotencyKey = null): array
     {
         // Schema per billings master doc §5.2: items[].unit_amount (cents),
-        // lowercase currency, a required due_date, and auto_bill so the charge
-        // can be triggered immediately after finalize.
+        // lowercase currency, a required due_date. auto_bill is FALSE — we charge
+        // it ourselves (finalize → pay-with-default) right away, so billings' autopay
+        // scheduler must not ALSO charge it (that caused a phantom double-charge).
         return $this->data($this->http($idempotencyKey ?? (string) Str::uuid())->post('/invoices', [
             'customer_id' => $customerId,
             'currency' => strtolower((string) config('openexchange.billings.currency', 'USD')),
             'due_date' => now()->toDateString(),
             'status' => 'draft',
-            'auto_bill' => true,
+            'auto_bill' => false,
             'items' => [[
                 'description' => $description,
                 'quantity' => 1,
@@ -160,6 +161,14 @@ class BillingsClient
     public function processAutopay(string $invoiceId): array
     {
         return $this->data($this->http("autopay_{$invoiceId}")->post("/invoices/{$invoiceId}/process-autopay"), 'process autopay');
+    }
+
+    /** Fetch a single invoice (for reconciliation). Returns [] if not found. */
+    public function getInvoice(string $invoiceId): array
+    {
+        $res = $this->http()->get("/invoices/{$invoiceId}");
+
+        return $res->successful() ? (array) ($res->json('data') ?? $res->json()) : [];
     }
 
     /** @return array<int, array<string, mixed>> */

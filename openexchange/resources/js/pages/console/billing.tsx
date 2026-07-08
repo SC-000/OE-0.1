@@ -9,9 +9,10 @@ type Props = {
     settings?: { auto_topup: boolean; min: number; topup: number };
     card?: { brand: string; last4: string; exp: string } | null;
     transactions?: Tx[];
+    topping?: boolean;
 };
 
-export default function Billing({ balance = 0, settings, card = null, transactions = [] }: Props) {
+export default function Billing({ balance = 0, settings, card = null, transactions = [], topping = false }: Props) {
     const [autoTopup, setAutoTopup] = useState(settings?.auto_topup ?? true);
     const [min, setMin] = useState(settings?.min ?? 10);
     const [amount, setAmount] = useState(settings?.topup ?? 50);
@@ -45,7 +46,7 @@ export default function Billing({ balance = 0, settings, card = null, transactio
             <Head title="Billing — Console" />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                 <div className="oe-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-                    <BalanceMeter balance={balance} min={min} topUp={amount} hasCard={!!card} autoTopup={autoTopup} />
+                    <BalanceMeter balance={balance} min={min} topUp={amount} hasCard={!!card} autoTopup={autoTopup} topping={topping} />
 
                     <Card padding="lg" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

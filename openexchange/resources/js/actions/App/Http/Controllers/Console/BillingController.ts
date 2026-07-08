@@ -82,7 +82,7 @@ index.form = indexForm
 
 /**
 * @see \App\Http\Controllers\Console\BillingController::updateSettings
-* @see app/Http/Controllers/Console/BillingController.php:50
+* @see app/Http/Controllers/Console/BillingController.php:51
 * @route '/console/billing/settings'
 */
 export const updateSettings = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -97,7 +97,7 @@ updateSettings.definition = {
 
 /**
 * @see \App\Http\Controllers\Console\BillingController::updateSettings
-* @see app/Http/Controllers/Console/BillingController.php:50
+* @see app/Http/Controllers/Console/BillingController.php:51
 * @route '/console/billing/settings'
 */
 updateSettings.url = (options?: RouteQueryOptions) => {
@@ -106,7 +106,7 @@ updateSettings.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\Console\BillingController::updateSettings
-* @see app/Http/Controllers/Console/BillingController.php:50
+* @see app/Http/Controllers/Console/BillingController.php:51
 * @route '/console/billing/settings'
 */
 updateSettings.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -116,7 +116,7 @@ updateSettings.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => 
 
 /**
 * @see \App\Http\Controllers\Console\BillingController::updateSettings
-* @see app/Http/Controllers/Console/BillingController.php:50
+* @see app/Http/Controllers/Console/BillingController.php:51
 * @route '/console/billing/settings'
 */
 const updateSettingsForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -126,7 +126,7 @@ const updateSettingsForm = (options?: RouteQueryOptions): RouteFormDefinition<'p
 
 /**
 * @see \App\Http\Controllers\Console\BillingController::updateSettings
-* @see app/Http/Controllers/Console/BillingController.php:50
+* @see app/Http/Controllers/Console/BillingController.php:51
 * @route '/console/billing/settings'
 */
 updateSettingsForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -138,7 +138,7 @@ updateSettings.form = updateSettingsForm
 
 /**
 * @see \App\Http\Controllers\Console\BillingController::topup
-* @see app/Http/Controllers/Console/BillingController.php:67
+* @see app/Http/Controllers/Console/BillingController.php:68
 * @route '/console/billing/topup'
 */
 export const topup = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -153,7 +153,7 @@ topup.definition = {
 
 /**
 * @see \App\Http\Controllers\Console\BillingController::topup
-* @see app/Http/Controllers/Console/BillingController.php:67
+* @see app/Http/Controllers/Console/BillingController.php:68
 * @route '/console/billing/topup'
 */
 topup.url = (options?: RouteQueryOptions) => {
@@ -162,7 +162,7 @@ topup.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\Console\BillingController::topup
-* @see app/Http/Controllers/Console/BillingController.php:67
+* @see app/Http/Controllers/Console/BillingController.php:68
 * @route '/console/billing/topup'
 */
 topup.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -172,7 +172,7 @@ topup.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 
 /**
 * @see \App\Http\Controllers\Console\BillingController::topup
-* @see app/Http/Controllers/Console/BillingController.php:67
+* @see app/Http/Controllers/Console/BillingController.php:68
 * @route '/console/billing/topup'
 */
 const topupForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -182,7 +182,7 @@ const topupForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => 
 
 /**
 * @see \App\Http\Controllers\Console\BillingController::topup
-* @see app/Http/Controllers/Console/BillingController.php:67
+* @see app/Http/Controllers/Console/BillingController.php:68
 * @route '/console/billing/topup'
 */
 topupForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -194,7 +194,7 @@ topup.form = topupForm
 
 /**
 * @see \App\Http\Controllers\Console\BillingController::addCard
-* @see app/Http/Controllers/Console/BillingController.php:112
+* @see app/Http/Controllers/Console/BillingController.php:113
 * @route '/console/billing/add-card'
 */
 export const addCard = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -209,7 +209,7 @@ addCard.definition = {
 
 /**
 * @see \App\Http\Controllers\Console\BillingController::addCard
-* @see app/Http/Controllers/Console/BillingController.php:112
+* @see app/Http/Controllers/Console/BillingController.php:113
 * @route '/console/billing/add-card'
 */
 addCard.url = (options?: RouteQueryOptions) => {
@@ -218,7 +218,7 @@ addCard.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\Console\BillingController::addCard
-* @see app/Http/Controllers/Console/BillingController.php:112
+* @see app/Http/Controllers/Console/BillingController.php:113
 * @route '/console/billing/add-card'
 */
 addCard.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -228,7 +228,7 @@ addCard.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
 
 /**
 * @see \App\Http\Controllers\Console\BillingController::addCard
-* @see app/Http/Controllers/Console/BillingController.php:112
+* @see app/Http/Controllers/Console/BillingController.php:113
 * @route '/console/billing/add-card'
 */
 addCard.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -238,7 +238,7 @@ addCard.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 
 /**
 * @see \App\Http\Controllers\Console\BillingController::addCard
-* @see app/Http/Controllers/Console/BillingController.php:112
+* @see app/Http/Controllers/Console/BillingController.php:113
 * @route '/console/billing/add-card'
 */
 const addCardForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -248,7 +248,7 @@ const addCardForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> =>
 
 /**
 * @see \App\Http\Controllers\Console\BillingController::addCard
-* @see app/Http/Controllers/Console/BillingController.php:112
+* @see app/Http/Controllers/Console/BillingController.php:113
 * @route '/console/billing/add-card'
 */
 addCardForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -258,7 +258,7 @@ addCardForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => (
 
 /**
 * @see \App\Http\Controllers\Console\BillingController::addCard
-* @see app/Http/Controllers/Console/BillingController.php:112
+* @see app/Http/Controllers/Console/BillingController.php:113
 * @route '/console/billing/add-card'
 */
 addCardForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -275,7 +275,7 @@ addCard.form = addCardForm
 
 /**
 * @see \App\Http\Controllers\Console\BillingController::storeCard
-* @see app/Http/Controllers/Console/BillingController.php:75
+* @see app/Http/Controllers/Console/BillingController.php:76
 * @route '/console/billing/card'
 */
 export const storeCard = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -290,7 +290,7 @@ storeCard.definition = {
 
 /**
 * @see \App\Http\Controllers\Console\BillingController::storeCard
-* @see app/Http/Controllers/Console/BillingController.php:75
+* @see app/Http/Controllers/Console/BillingController.php:76
 * @route '/console/billing/card'
 */
 storeCard.url = (options?: RouteQueryOptions) => {
@@ -299,7 +299,7 @@ storeCard.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\Console\BillingController::storeCard
-* @see app/Http/Controllers/Console/BillingController.php:75
+* @see app/Http/Controllers/Console/BillingController.php:76
 * @route '/console/billing/card'
 */
 storeCard.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -309,7 +309,7 @@ storeCard.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 
 /**
 * @see \App\Http\Controllers\Console\BillingController::storeCard
-* @see app/Http/Controllers/Console/BillingController.php:75
+* @see app/Http/Controllers/Console/BillingController.php:76
 * @route '/console/billing/card'
 */
 const storeCardForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -319,7 +319,7 @@ const storeCardForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'>
 
 /**
 * @see \App\Http\Controllers\Console\BillingController::storeCard
-* @see app/Http/Controllers/Console/BillingController.php:75
+* @see app/Http/Controllers/Console/BillingController.php:76
 * @route '/console/billing/card'
 */
 storeCardForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({

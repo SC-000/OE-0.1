@@ -11,9 +11,9 @@ const STAGES = [
     { label: 'Enabling auto top-up', sub: 'Below your minimum → auto top-up' },
 ];
 
-type Props = { publishableKey?: string | null; customerId?: string | null; widgetBase?: string; hasToken?: boolean };
+type Props = { publishableKey?: string | null; customerId?: string | null; widgetBase?: string; hasToken?: boolean; topupAmount?: number };
 
-export default function AddCard({ publishableKey, customerId, widgetBase = 'https://billings.systems', hasToken = false }: Props) {
+export default function AddCard({ publishableKey, customerId, widgetBase = 'https://billings.systems', hasToken = false, topupAmount = 10 }: Props) {
     const configured = !!(publishableKey && customerId);
     const testReason = hasToken && !publishableKey
         ? 'Live capture needs BILLINGS_PUBLISHABLE — a zero-scope publishable token, separate from your server token. Add it and reload.'
@@ -96,6 +96,7 @@ export default function AddCard({ publishableKey, customerId, widgetBase = 'http
                 </Link>
 
                 {step === 'form' && (
+                    <>
                     <div className="oe-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, alignItems: 'start' }}>
                         {/* card preview */}
                         <div style={{ position: 'relative', borderRadius: 18, padding: 24, minHeight: 200, color: '#eef3f2', background: 'linear-gradient(135deg, var(--ox-ink-800), var(--ox-ink-950))', border: '1px solid rgba(255,255,255,0.1)', overflow: 'hidden', boxShadow: 'var(--ox-shadow-lg)' }}>
@@ -140,6 +141,10 @@ export default function AddCard({ publishableKey, customerId, widgetBase = 'http
                             )}
                         </Card>
                     </div>
+                    <p style={{ maxWidth: 620, margin: '16px auto 0', fontSize: 12, lineHeight: 1.55, color: 'var(--ox-text-subtle)', textAlign: 'center' }}>
+                        Adding your card places a one-time <span className="ox-mono" style={{ color: 'var(--ox-text-muted)' }}>${topupAmount}</span> top-up to activate your prepaid balance. After that we only top up automatically when your balance runs low — never a subscription.
+                    </p>
+                    </>
                 )}
 
                 {step === 'connecting' && (

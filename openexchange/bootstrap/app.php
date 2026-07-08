@@ -34,5 +34,6 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withSchedule(function (Schedule $schedule): void {
         $schedule->command('metering:pull')->hourly()->withoutOverlapping();
+        $schedule->command('oe:billings:reconcile')->hourly()->withoutOverlapping();
     })
     ->create();

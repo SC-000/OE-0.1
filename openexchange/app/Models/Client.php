@@ -45,7 +45,9 @@ class Client extends Model
 
     public function isLow(): bool
     {
-        return $this->balance_cents <= $this->min_balance_cents;
+        // Strictly below — a balance exactly at the minimum is fine, so an initial
+        // top-up that lands on the minimum does not immediately trigger another.
+        return $this->balance_cents < $this->min_balance_cents;
     }
 
     public function overDebtLimit(): bool

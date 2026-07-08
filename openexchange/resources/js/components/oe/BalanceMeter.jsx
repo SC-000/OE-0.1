@@ -5,14 +5,17 @@ import React from 'react';
  * minimum-balance threshold and the auto-top-up amount that fires when it's
  * crossed. The core of the advanced billing portal, in one glanceable tile.
  */
-export function BalanceMeter({ balance = 42.5, min = 10, topUp = 50, currency = '$', tone = 'light', hasCard = true, autoTopup = true, style = {} }) {
+export function BalanceMeter({ balance = 42.5, min = 10, topUp = 50, currency = '$', tone = 'light', hasCard = true, autoTopup = true, topping = false, style = {} }) {
     const dark = tone === 'dark';
     const max = Math.max(balance, min + topUp) * 1.12;
     const pct = Math.max(2, Math.min(100, (balance / max) * 100));
     const minPct = Math.min(100, (min / max) * 100);
-    const low = balance <= min;
-    const willTopUp = low && hasCard && autoTopup;
-    const statusLabel = !low ? 'Healthy' : willTopUp ? 'Topping up' : hasCard ? 'Low balance' : 'Add a card';
+    // "low" is strictly below the minimum — a balance sitting exactly at the
+    // minimum is healthy. "Topping up" only shows when a top-up is genuinely
+    // in progress (a pending TopUp), never merely because the balance is low.
+    const low = balance < min;
+    const alert = low || topping;
+    const statusLabel = topping ? 'Topping up' : low ? (hasCard ? 'Low balance' : 'Add a card') : 'Healthy';
     const fill = low ? 'var(--ox-warning)' : 'var(--ox-green-500)';
     const surface = dark ? 'var(--ox-ink-800)' : 'var(--ox-surface)';
     const border = dark ? 'rgba(255,255,255,0.09)' : 'var(--ox-border)';
@@ -33,9 +36,9 @@ export function BalanceMeter({ balance = 42.5, min = 10, topUp = 50, currency = 
                 <span style={{
                     display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 'var(--ox-radius-full)',
                     fontFamily: 'var(--ox-font-sans)', fontSize: 12, fontWeight: 600,
-                    background: low ? 'var(--ox-warning-surface)' : 'var(--ox-success-surface)', color: low ? 'var(--ox-warning)' : 'var(--ox-success)',
+                    background: alert ? 'var(--ox-warning-surface)' : 'var(--ox-success-surface)', color: alert ? 'var(--ox-warning)' : 'var(--ox-success)',
                 }}>
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: low ? 'var(--ox-warning)' : 'var(--ox-success)' }} />
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: alert ? 'var(--ox-warning)' : 'var(--ox-success)' }} />
                     {statusLabel}
                 </span>
             </div>

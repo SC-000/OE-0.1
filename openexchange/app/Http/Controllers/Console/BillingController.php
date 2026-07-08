@@ -43,6 +43,7 @@ class BillingController
                 'exp' => sprintf('%02d / %02d', $card->exp_month, $card->exp_year % 100),
             ] : null,
             'transactions' => $transactions,
+            'topping' => \App\Models\TopUp::where('client_id', $client->id)->where('status', 'pending')->exists(),
             'publishableKey' => config('openexchange.billings.publishable'),
         ]);
     }
@@ -127,6 +128,7 @@ class BillingController
             'customerId' => $customerId,
             'widgetBase' => rtrim((string) config('openexchange.billings.base'), '/'),
             'hasToken' => (bool) config('openexchange.billings.token'),
+            'topupAmount' => (int) round($client->topup_amount_cents / 100),
         ]);
     }
 }
