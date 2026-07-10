@@ -9,6 +9,7 @@ use App\Models\UsageRecord;
 use App\Services\Billing\AutoTopupService;
 use App\Services\Billing\BalanceService;
 use App\Services\Metering\RateResolver;
+use App\Services\Pricing\ModelRegistrar;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Throwable;
@@ -27,6 +28,7 @@ class GatewayService
         private AutoTopupService $topups,
         private OpenAiAdapter $openai,
         private GeminiAdapter $gemini,
+        private ModelRegistrar $registrar,
     ) {}
 
     public function chat(AccessKey $key, array $payload): array
@@ -60,6 +62,11 @@ class GatewayService
 
         $catalog = ModelCatalog::where('model', $model)->where('active', true)->first();
         $provider = $catalog?->provider ?? (str_contains($model, 'gemini') ? 'google' : 'openai');
+
+        // A model we've never seen must never bill $0 *and* stay invisible. Register it
+        // (pricing it from the cached feed if possible) so it either bills correctly now,
+        // or shows up unpriced in the admin catalogue and gets settled by auto-rebill.
+        $catalog ??= $this->registrar->ensure($provider, $model);
 
         $backend = ProviderBackend::pick($provider, $prefer);
         if (! $backend) {

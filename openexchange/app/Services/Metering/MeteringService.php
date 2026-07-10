@@ -6,6 +6,7 @@ use App\Models\ModelCatalog;
 use App\Models\ProviderKey;
 use App\Models\UsageRecord;
 use App\Services\Billing\BalanceService;
+use App\Services\Pricing\ModelRegistrar;
 use App\Services\Providers\UsageBucket;
 use App\Support\DetectsUniqueViolations;
 use Illuminate\Database\QueryException;
@@ -22,6 +23,7 @@ class MeteringService
     public function __construct(
         private RateResolver $rates,
         private BalanceService $balance,
+        private ModelRegistrar $registrar,
     ) {}
 
     /**
@@ -67,13 +69,9 @@ class MeteringService
 
         $catalog = $this->catalogFor($bucket->provider, $bucket->model);
         if (! $catalog && ($bucket->providerCostCents ?? null) === null) {
-            // Register the BASE model name (dated snapshots like …-2026-03-05 share one
-            // price) so the admin prices it once and every snapshot maps to it.
-            $base = preg_replace('/-\d{4}-\d{2}-\d{2}$/', '', $bucket->model) ?: $bucket->model;
-            $catalog = ModelCatalog::firstOrCreate(
-                ['provider' => $bucket->provider, 'model' => $base],
-                ['input_usd_per_million' => 0, 'output_usd_per_million' => 0, 'active' => true],
-            );
+            // Register the BASE model name (dated snapshots share one price) and price it
+            // from the cached feed if we can, so this bucket bills correctly the first time.
+            $catalog = $this->registrar->ensure($bucket->provider, $bucket->model);
         }
         $providerCost = $catalog
             ? $catalog->costCents($bucket->inputTokens, $bucket->outputTokens)
@@ -122,50 +120,102 @@ class MeteringService
     }
 
     /**
-     * Re-price usage that metered at $0 because its model was unpriced at the time.
-     * Idempotent: only touches records still at $0, and only when the model now has a
-     * price. Debits the client the newly-computed amount.
+     * Re-price usage that metered without a cost basis, now that its model has a price.
      *
-     * @return array{rebilled:int, billed_cents:int}
+     * The trigger is `provider_cost_cents = 0`, NOT `billed_cents = 0`: a record can be
+     * unpriced yet still have billed something (a per-request fee, or a fixed-price rate
+     * card that ignores cost). Those records are under-billed AND carry a wrong cost
+     * basis, so margin reporting lies about them. We recompute both and settle only the
+     * DIFFERENCE, which means a re-bill can also credit a client if the new price makes
+     * their line cheaper.
+     *
+     * Idempotent: once a record has a cost basis it is never picked up again, and the
+     * row is re-checked under a lock before being touched.
+     *
+     * @param  string|null  $model  Base model name; its dated snapshots are re-billed too.
+     * @return array{rebilled:int, billed_cents:int, credited:int}
      */
-    public function rebill(?int $clientId = null): array
+    public function rebill(?int $clientId = null, ?string $provider = null, ?string $model = null): array
     {
         $rebilled = 0;
-        $billedTotal = 0;
+        $netCents = 0;
+        $credited = 0;
 
         UsageRecord::query()
             ->where('provider_cost_cents', 0)
-            ->where('billed_cents', 0)
             ->whereRaw('(input_tokens + output_tokens) > 0')
             ->when($clientId, fn ($q, $id) => $q->where('client_id', $id))
+            ->when($provider, fn ($q, $p) => $q->where('provider', $p))
+            // `gpt-4o` must not sweep up `gpt-4o-mini`, so the LIKE is only a prefilter —
+            // baseModel() below is what actually decides membership.
+            ->when($model, fn ($q, $m) => $q->where(fn ($w) => $w->where('model', $m)->orWhere('model', 'like', $m.'-%')))
             ->with('client')
-            ->chunkById(200, function ($records) use (&$rebilled, &$billedTotal) {
+            ->chunkById(200, function ($records) use ($model, &$rebilled, &$netCents, &$credited) {
                 foreach ($records as $rec) {
-                    $catalog = $this->catalogFor($rec->provider, $rec->model);
-                    $cost = $catalog ? $catalog->costCents((int) $rec->input_tokens, (int) $rec->output_tokens) : 0;
-                    $client = $rec->client;
-                    if ($cost <= 0 || ! $client) {
+                    if ($model !== null && ModelRegistrar::baseModel($rec->model) !== $model) {
                         continue;
                     }
-                    $billed = $this->rates->resolve($client, $rec->provider, $rec->model)
-                        ->billedCents($cost, (int) $rec->input_tokens, (int) $rec->output_tokens);
 
-                    DB::transaction(function () use ($rec, $cost, $billed, $client, &$rebilled, &$billedTotal) {
+                    $client = $rec->client;
+                    $catalog = $this->catalogFor($rec->provider, $rec->model);
+                    if (! $client || ! $catalog || ! $catalog->isPriced()) {
+                        continue;
+                    }
+
+                    $in = (int) $rec->input_tokens;
+                    $out = (int) $rec->output_tokens;
+                    $cost = $catalog->costCents($in, $out);
+                    if ($cost <= 0) {
+                        continue; // priced, but this token volume rounds to nothing
+                    }
+
+                    // Gateway rows are one request; pulled buckets aggregate an unknown count.
+                    $requests = $rec->source === 'gateway' ? 1 : 0;
+                    $billed = $this->rates->resolve($client, $rec->provider, $rec->model)
+                        ->billedCents($cost, $in, $out, $requests);
+
+                    DB::transaction(function () use ($rec, $cost, $billed, $client, &$rebilled, &$netCents, &$credited) {
                         $fresh = UsageRecord::whereKey($rec->id)->lockForUpdate()->first();
-                        if (! $fresh || (int) $fresh->billed_cents !== 0) {
-                            return; // already billed by a concurrent run
+                        if (! $fresh || (int) $fresh->provider_cost_cents !== 0) {
+                            return; // a concurrent run already settled this record
                         }
+
+                        $was = (int) $fresh->billed_cents;
                         $fresh->update(['provider_cost_cents' => $cost, 'billed_cents' => $billed]);
-                        if ($billed > 0) {
-                            $this->balance->debit($client, $billed, 'usage_debit', "{$rec->provider}/{$rec->model} usage (re-billed)", "usage:{$rec->id}", ['rebill' => true]);
+
+                        $delta = $billed - $was;
+                        if ($delta !== 0) {
+                            $this->balance->apply(
+                                $client,
+                                -$delta, // owed more => balance down; owed less => refund
+                                'usage_debit',
+                                "{$rec->provider}/{$rec->model} usage (re-billed)",
+                                "usage:{$rec->id}:rebill",
+                                ['rebill' => true, 'was_billed_cents' => $was, 'now_billed_cents' => $billed, 'provider_cost_cents' => $cost],
+                            );
                         }
+
                         $rebilled++;
-                        $billedTotal += $billed;
+                        $netCents += $delta;
+                        if ($delta < 0) {
+                            $credited++;
+                        }
                     });
                 }
             });
 
-        return ['rebilled' => $rebilled, 'billed_cents' => $billedTotal];
+        return ['rebilled' => $rebilled, 'billed_cents' => $netCents, 'credited' => $credited];
+    }
+
+    /** How much usage is sitting unpriced, so the admin can see the exposure before acting. */
+    public function pendingRebillCount(?string $provider = null, ?string $model = null): int
+    {
+        return UsageRecord::query()
+            ->where('provider_cost_cents', 0)
+            ->whereRaw('(input_tokens + output_tokens) > 0')
+            ->when($provider, fn ($q, $p) => $q->where('provider', $p))
+            ->when($model, fn ($q, $m) => $q->where(fn ($w) => $w->where('model', $m)->orWhere('model', 'like', $m.'-%')))
+            ->count();
     }
 
     /** Look up a model's price, mapping dated snapshots (…-YYYY-MM-DD) to the base model. */

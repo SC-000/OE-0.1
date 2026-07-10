@@ -107,6 +107,8 @@ Route::middleware(['auth', 'verified', EnsureAdmin::class])->prefix('admin')->na
     Route::post('/models', [ModelsController::class, 'store'])->name('models.store');
     Route::patch('/models/{model}', [ModelsController::class, 'update'])->name('models.update');
     Route::patch('/models/{model}/presentation', [ModelsController::class, 'presentation'])->name('models.presentation');
+    Route::post('/models/{model}/price-from-feed', [ModelsController::class, 'priceFromFeed'])->name('models.price-from-feed');
+    Route::post('/models/{model}/rebill', [ModelsController::class, 'rebill'])->name('models.rebill');
     Route::post('/models/sync', [ModelsController::class, 'sync'])->name('models.sync');
     Route::post('/models/retier', [ModelsController::class, 'retier'])->name('models.retier');
     Route::post('/proposals/{proposal}/accept', [ModelsController::class, 'acceptProposal'])->name('proposals.accept');

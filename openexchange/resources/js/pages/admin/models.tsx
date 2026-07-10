@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Head, router, useForm } from '@inertiajs/react';
 import AdminLayout from '@/layouts/admin-layout';
 import { Card, Badge, Button, Icon } from '@/components/oe';
-import { money, tokens, usdPerM } from '@/lib/format';
+import { money, num, tokens, usdPerM } from '@/lib/format';
 
 type Cat = {
     id: number; provider: string; provider_label: string; model: string;
@@ -12,20 +12,22 @@ type Cat = {
     priced: boolean; first_seen: string | null; rate: string | null;
     revenue_cents: number; cost_cents: number; margin_cents: number; markup_pct: number | null;
     tokens: number; requests: number;
+    unbilled_records: number; unbilled_tokens: number; recoverable_cents: number; has_feed_price: boolean;
 };
 type Proposal = {
     id: number; provider: string; model: string;
     current_in: number; current_out: number; proposed_in: number; proposed_out: number;
     delta_pct: number; source: string; at: string; impact: 'cost_up' | 'cost_down';
 };
-type Props = { catalog: Cat[]; proposals: Proposal[]; tiers: string[]; providers: string[]; lastSync: string | null; feedSource: string };
+type Exposure = { unpriced_models: number; unbilled_records: number; recoverable_cents: number; ready_to_rebill: number };
+type Props = { catalog: Cat[]; proposals: Proposal[]; tiers: string[]; providers: string[]; lastSync: string | null; feedSource: string; exposure: Exposure };
 
 const th: React.CSSProperties = { textAlign: 'left', padding: '9px 10px', fontSize: 11, fontWeight: 600, color: 'var(--ox-text-subtle)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid var(--ox-border)', whiteSpace: 'nowrap' };
 const td: React.CSSProperties = { padding: '9px 10px', fontSize: 'var(--ox-text-sm)', borderBottom: '1px solid var(--ox-border)' };
 const mono: React.CSSProperties = { fontFamily: 'var(--ox-font-mono)' };
 const input: React.CSSProperties = { width: '100%', height: 32, padding: '0 8px', borderRadius: 'var(--ox-radius-sm)', border: '1px solid var(--ox-border)', background: 'var(--ox-surface)', color: 'var(--ox-text)', fontSize: 12.5, fontFamily: 'var(--ox-font-mono)' };
 
-export default function Models({ catalog, proposals, tiers, lastSync, feedSource }: Props) {
+export default function Models({ catalog, proposals, tiers, lastSync, feedSource, exposure }: Props) {
     const [tab, setTab] = useState<'catalog' | 'presentation'>('catalog');
     const [q, setQ] = useState('');
     const [onlyUnpriced, setOnlyUnpriced] = useState(false);
@@ -54,6 +56,8 @@ export default function Models({ catalog, proposals, tiers, lastSync, feedSource
             preserveScroll: true, preserveState: true,
             onSuccess: () => setEdits((e) => { const n = { ...e }; delete n[m.id]; return n; }),
         });
+    const priceFromFeed = (m: Cat) => router.post(`/admin/models/${m.id}/price-from-feed`, {}, { preserveScroll: true });
+    const rebillModel = (m: Cat) => router.post(`/admin/models/${m.id}/rebill`, {}, { preserveScroll: true });
 
     const rv = (m: Cat, f: 'alias' | 'tier') => pres[m.id]?.[f] ?? (f === 'alias' ? (m.alias ?? '') : (m.tier ?? ''));
     const rVisible = (m: Cat) => pres[m.id]?.visible ?? m.client_visible;
@@ -75,6 +79,45 @@ export default function Models({ catalog, proposals, tiers, lastSync, feedSource
             </>}
         >
             <Head title="Admin — Models & pricing" />
+
+            {/* Money on the floor. Usage that metered without a cost basis bills $0 until
+                its model is priced — pricing it settles it automatically, but anything that
+                slipped through (e.g. priced directly in the DB) is re-billable here. */}
+            {exposure.unbilled_records > 0 && (
+                <Card padding="lg" style={{ marginBottom: 20, borderLeft: '3px solid var(--ox-danger)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                        <Icon name="alert-triangle" size={18} color="var(--ox-danger)" />
+                        <div style={{ flex: 1, minWidth: 260 }}>
+                            <h2 style={{ margin: 0, fontSize: 'var(--ox-text-md)', fontWeight: 700 }}>
+                                {num(exposure.unbilled_records)} usage record{exposure.unbilled_records === 1 ? '' : 's'} billed with no cost basis
+                            </h2>
+                            <p style={{ margin: '3px 0 0', fontSize: 'var(--ox-text-xs)', color: 'var(--ox-text-subtle)' }}>
+                                {exposure.unpriced_models > 0 && (
+                                    <>
+                                        {exposure.unpriced_models} model{exposure.unpriced_models === 1 ? ' is' : 's are'} still unpriced — price {exposure.unpriced_models === 1 ? 'it' : 'them'} and
+                                        the usage re-bills itself.{' '}
+                                    </>
+                                )}
+                                {exposure.ready_to_rebill > 0 && (
+                                    <>
+                                        {exposure.ready_to_rebill} priced model{exposure.ready_to_rebill === 1 ? ' has' : 's have'} usage waiting to be re-billed
+                                        {exposure.recoverable_cents > 0 && <> — at least <strong>{money(exposure.recoverable_cents)}</strong> of provider cost to recover, plus each client's markup</>}.
+                                    </>
+                                )}
+                            </p>
+                        </div>
+                        {exposure.unpriced_models > 0 && (
+                            <Button size="sm" variant="secondary" onClick={() => setOnlyUnpriced(true)}>Show unpriced</Button>
+                        )}
+                        {exposure.ready_to_rebill > 0 && (
+                            <Button size="sm" leadingIcon={<Icon name="refresh-cw" size={15} />}
+                                onClick={() => router.post('/admin/platform/rebill', {}, { preserveScroll: true })}>
+                                Re-bill everything
+                            </Button>
+                        )}
+                    </div>
+                </Card>
+            )}
 
             {/* Review queue — a price change never applies on its own */}
             {proposals.length > 0 && (
@@ -195,6 +238,12 @@ export default function Models({ catalog, proposals, tiers, lastSync, feedSource
                                                     : m.price_source === 'manual' ? <Badge tone="info">Manual</Badge>
                                                     : <Badge tone="neutral">{m.price_source}</Badge>}
                                                 {drift && <div style={{ fontSize: 10.5, color: 'var(--ox-warning)', marginTop: 3 }}>feed: {usdPerM(m.feed_in!)}/{usdPerM(m.feed_out!)}</div>}
+                                                {m.unbilled_records > 0 && (
+                                                    <div style={{ fontSize: 10.5, color: 'var(--ox-danger)', marginTop: 3 }}>
+                                                        {num(m.unbilled_records)} record{m.unbilled_records === 1 ? '' : 's'} unbilled
+                                                        {m.recoverable_cents > 0 && ` · ${money(m.recoverable_cents)} cost`}
+                                                    </div>
+                                                )}
                                             </td>
                                             <td style={{ ...td, textAlign: 'right', ...mono }}>{m.revenue_cents ? money(m.revenue_cents) : '—'}</td>
                                             <td style={{ ...td, textAlign: 'right', ...mono, color: m.margin_cents < 0 ? 'var(--ox-danger)' : m.margin_cents > 0 ? 'var(--ox-success)' : 'var(--ox-text-subtle)' }}>
@@ -205,8 +254,23 @@ export default function Models({ catalog, proposals, tiers, lastSync, feedSource
                                             <td style={td}>
                                                 <input type="checkbox" checked={pActive(m)} onChange={(e) => setP(m.id, 'active', e.target.checked)} />
                                             </td>
-                                            <td style={{ ...td, textAlign: 'right' }}>
-                                                {dirty(m) && <Button size="sm" onClick={() => savePrice(m)}>Save</Button>}
+                                            <td style={{ ...td, textAlign: 'right', whiteSpace: 'nowrap' }}>
+                                                {dirty(m) ? (
+                                                    <Button size="sm" onClick={() => savePrice(m)}>Save</Button>
+                                                ) : (
+                                                    <>
+                                                        {!m.priced && m.has_feed_price && (
+                                                            <Button size="sm" variant="secondary" onClick={() => priceFromFeed(m)} title="Apply the feed price and re-bill this model's $0 usage">
+                                                                Use feed price
+                                                            </Button>
+                                                        )}
+                                                        {m.priced && m.unbilled_records > 0 && (
+                                                            <Button size="sm" onClick={() => rebillModel(m)} title={`Re-bill ${m.unbilled_records} record(s) that metered without a cost basis`}>
+                                                                Re-bill
+                                                            </Button>
+                                                        )}
+                                                    </>
+                                                )}
                                             </td>
                                         </tr>
                                     );
@@ -251,10 +315,14 @@ export default function Models({ catalog, proposals, tiers, lastSync, feedSource
                 </div>
             </Card>
 
-            <p style={{ marginTop: 12, fontSize: 'var(--ox-text-xs)', color: 'var(--ox-text-subtle)', maxWidth: 760 }}>
+            <p style={{ marginTop: 12, fontSize: 'var(--ox-text-xs)', color: 'var(--ox-text-subtle)', maxWidth: 760, lineHeight: 1.6 }}>
                 The catalogue stores your <strong>provider cost basis</strong> — what a model costs you. What you charge lives on
                 the rate card, per client. Editing a price here marks it <em>manual</em>, and the feed will never overwrite it;
                 it will only tell you when it drifts.
+                <br />
+                <strong>Pricing a model always re-bills it.</strong> Any usage that metered before the price existed is settled
+                automatically — the difference is charged (or refunded) to each client, once. That happens whether you type the
+                price, accept a feed change, or let the nightly sync price it.
             </p>
         </AdminLayout>
     );

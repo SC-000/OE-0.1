@@ -5,6 +5,7 @@ export { Badge } from './Badge.jsx';
 export { Tag } from './Tag.jsx';
 export { Icon, ICON_NAMES } from './Icon.jsx';
 export { DotField } from './DotField.jsx';
+export { PaymentCard } from './PaymentCard.jsx';
 export { FlowRouting } from './FlowRouting.jsx';
 export { Logo, LogoMark } from './Logo.jsx';
 export { Spinner } from './Spinner.jsx';

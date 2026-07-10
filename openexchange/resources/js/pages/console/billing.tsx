@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import ConsoleLayout from '@/layouts/console-layout';
-import { Card, Button, Icon, Badge, BalanceMeter } from '@/components/oe';
+import { Card, Button, Icon, Badge, BalanceMeter, PaymentCard } from '@/components/oe';
 
 type Tx = { date: string; description: string; detail: string; amount: string; type: string };
 type Props = {
@@ -83,19 +83,7 @@ export default function Billing({ balance = 0, settings, card = null, transactio
                         <div style={{ fontWeight: 700, fontSize: 16 }}>Payment method</div>
                         {card ? (
                             <>
-                                <div style={{ position: 'relative', borderRadius: 14, padding: 18, color: '#eef3f2', background: 'linear-gradient(135deg, var(--ox-ink-800), var(--ox-ink-950))', border: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden' }}>
-                                    <div className="ox-dot-grid" style={{ position: 'absolute', inset: 0, opacity: 0.4 }} />
-                                    <div style={{ position: 'relative' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <Icon name="credit-card" size={22} color="var(--ox-green-400)" />
-                                            <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.06em' }}>{card.brand}</span>
-                                        </div>
-                                        <div style={{ fontFamily: 'var(--ox-font-mono)', fontSize: 17, letterSpacing: '0.14em', marginTop: 20 }}>•••• •••• •••• {card.last4}</div>
-                                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 14, fontSize: 12, color: 'rgba(238,243,242,0.7)' }}>
-                                            <span className="ox-mono">{card.exp}</span>
-                                        </div>
-                                    </div>
-                                </div>
+                                <PaymentCard brand={card.brand} last4={card.last4} exp={card.exp} compact showHolder={false} />
                                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                                     <Badge tone="success">Connected</Badge>
                                     <Button as={Link} href="/console/billing/add-card" variant="ghost" size="sm">Replace</Button>

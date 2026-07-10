@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import ConsoleLayout from '@/layouts/console-layout';
-import { Card, Button, Icon, Spinner, DotField, Badge } from '@/components/oe';
+import { Card, Button, Icon, Spinner, DotField, Badge, PaymentCard } from '@/components/oe';
 
 const STAGES = [
     { label: 'Tokenising card securely', sub: 'Stripe Elements · PCI SAQ-A' },
@@ -98,21 +98,8 @@ export default function AddCard({ publishableKey, customerId, widgetBase = 'http
                 {step === 'form' && (
                     <>
                     <div className="oe-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, alignItems: 'start' }}>
-                        {/* card preview */}
-                        <div style={{ position: 'relative', borderRadius: 18, padding: 24, minHeight: 200, color: '#eef3f2', background: 'linear-gradient(135deg, var(--ox-ink-800), var(--ox-ink-950))', border: '1px solid rgba(255,255,255,0.1)', overflow: 'hidden', boxShadow: 'var(--ox-shadow-lg)' }}>
-                            <DotField style={{ left: 'auto', right: '-30%', top: '-20%', width: '80%', height: '140%', opacity: 0.4 }} />
-                            <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'space-between', minHeight: 152 }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <Icon name="credit-card" size={26} color="var(--ox-green-400)" />
-                                    <span style={{ fontWeight: 700, fontSize: 14, letterSpacing: '0.06em' }}>OPEN&nbsp;EXCHANGE</span>
-                                </div>
-                                <div style={{ fontFamily: 'var(--ox-font-mono)', fontSize: 20, letterSpacing: '0.12em' }}>{card.number ? fmtNum(card.number) : '•••• •••• •••• ••••'}</div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: 'rgba(238,243,242,0.72)' }}>
-                                    <span style={{ textTransform: 'uppercase' }}>{card.name || 'Cardholder name'}</span>
-                                    <span className="ox-mono">{card.exp || 'MM / YY'}</span>
-                                </div>
-                            </div>
-                        </div>
+                        {/* card preview — same face the billing page shows once it's saved */}
+                        <PaymentCard number={card.number ? fmtNum(card.number) : ''} exp={card.exp} holder={card.name} />
 
                         {/* form: real widget when configured, else visual demo */}
                         <Card padding="lg" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>

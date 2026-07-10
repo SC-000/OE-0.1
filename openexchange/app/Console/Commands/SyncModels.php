@@ -24,6 +24,13 @@ class SyncModels extends Command
             $stats['discovered'], $stats['added'], $stats['priced'], $stats['proposed'], $stats['unchanged'],
         ));
 
+        if ($stats['rebilled'] > 0) {
+            $this->info(sprintf(
+                'settled %d usage record(s) that had metered at $0 — net $%s',
+                $stats['rebilled'], number_format($stats['rebilled_cents'] / 100, 2),
+            ));
+        }
+
         if ($stats['proposed'] > 0) {
             $this->comment("{$stats['proposed']} price change(s) awaiting review at /admin/models.");
         }

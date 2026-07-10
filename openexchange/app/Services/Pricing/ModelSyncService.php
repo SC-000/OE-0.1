@@ -16,25 +16,30 @@ use Illuminate\Support\Facades\Http;
  *                shows up mid-month can never silently bill at $0.
  *  4. Propose  — a price CHANGE on an already-priced model does NOT apply. It lands in
  *                the review queue, because a moving cost basis moves your margin.
+ *  5. Settle   — pricing a model immediately re-bills the usage that already metered
+ *                against it at $0 (see ModelPricingService), so nothing stays unbilled.
  */
 class ModelSyncService
 {
     /** Ignore sub-cent noise and float dust. */
     private const EPSILON = 0.000001;
 
-    public function __construct(private PricingResolver $pricing) {}
+    public function __construct(
+        private PricingResolver $resolver,
+        private ModelPricingService $pricing,
+    ) {}
 
     /**
      * @param  bool  $importFeed  Also import feed models for providers we gateway, even
      *                            when the provider API isn't configured (useful pre-launch).
-     * @return array{discovered:int,added:int,priced:int,proposed:int,unchanged:int,errors:list<string>}
+     * @return array{discovered:int,added:int,priced:int,proposed:int,unchanged:int,rebilled:int,rebilled_cents:int,errors:list<string>}
      */
     public function sync(bool $importFeed = false, bool $freshQuotes = true): array
     {
-        $stats = ['discovered' => 0, 'added' => 0, 'priced' => 0, 'proposed' => 0, 'unchanged' => 0, 'errors' => []];
+        $stats = ['discovered' => 0, 'added' => 0, 'priced' => 0, 'proposed' => 0, 'unchanged' => 0, 'rebilled' => 0, 'rebilled_cents' => 0, 'errors' => []];
 
         try {
-            $quotes = $this->pricing->quotes(fresh: $freshQuotes);
+            $quotes = $this->resolver->quotes(fresh: $freshQuotes);
         } catch (\Throwable $e) {
             $quotes = [];
             $stats['errors'][] = 'pricing feed: '.$e->getMessage();
@@ -78,7 +83,7 @@ class ModelSyncService
         // 3 + 4 — reconcile every catalogue row against the feed, including rows that
         // metering auto-created when it saw an unknown model in usage.
         foreach (ModelCatalog::cursor() as $model) {
-            $quote = $this->pricing->quoteFor($quotes, $model->provider, $model->model);
+            $quote = $this->resolver->quoteFor($quotes, $model->provider, $model->model);
             if (! $quote || ! $quote->isPriced()) {
                 $stats['unchanged']++;
 
@@ -96,15 +101,11 @@ class ModelSyncService
             ]);
 
             if (! $model->isPriced()) {
-                $model->forceFill([
-                    'input_usd_per_million' => $quote->inputUsdPerMillion,
-                    'output_usd_per_million' => $quote->outputUsdPerMillion,
-                    'cached_input_usd_per_million' => $quote->cachedInputUsdPerMillion,
-                    'price_source' => $quote->source,
-                ]);
-                $model->tier ??= ModelCatalog::tierFor($quote->inputUsdPerMillion + $quote->outputUsdPerMillion);
-                $model->save();
+                // Pricing it also settles any usage that already metered at $0 against it.
+                $settled = $this->pricing->applyQuote($model, $quote);
                 $stats['priced']++;
+                $stats['rebilled'] += $settled['rebilled'];
+                $stats['rebilled_cents'] += $settled['billed_cents'];
 
                 continue;
             }
@@ -126,20 +127,23 @@ class ModelSyncService
         return $stats;
     }
 
-    /** Accept a proposal: move the cost basis, close the row. */
-    public function acceptProposal(ModelPriceProposal $proposal, ?int $userId = null): void
+    /**
+     * Accept a proposal: move the cost basis, settle any $0 usage, close the row.
+     *
+     * @return array{rebilled:int, billed_cents:int, credited:int}
+     */
+    public function acceptProposal(ModelPriceProposal $proposal, ?int $userId = null): array
     {
-        $model = $proposal->model;
-        $model->forceFill([
-            'input_usd_per_million' => $proposal->proposed_input_usd_per_million,
-            'output_usd_per_million' => $proposal->proposed_output_usd_per_million,
-            'price_source' => $proposal->source,
-            'tier' => ModelCatalog::tierFor(
-                (float) $proposal->proposed_input_usd_per_million + (float) $proposal->proposed_output_usd_per_million
-            ),
-        ])->save();
+        $settled = $this->pricing->applyPrice(
+            $proposal->model,
+            (float) $proposal->proposed_input_usd_per_million,
+            (float) $proposal->proposed_output_usd_per_million,
+            $proposal->source,
+        );
 
         $proposal->forceFill(['status' => 'accepted', 'resolved_by' => $userId, 'resolved_at' => now()])->save();
+
+        return $settled;
     }
 
     public function rejectProposal(ModelPriceProposal $proposal, ?int $userId = null): void

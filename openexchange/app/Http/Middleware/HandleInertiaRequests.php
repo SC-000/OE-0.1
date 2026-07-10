@@ -51,6 +51,8 @@ class HandleInertiaRequests extends Middleware
                 'client' => ['id' => $viewingAs->id, 'name' => $viewingAs->name],
                 'admin' => $request->user()?->name,
             ] : null,
+            // One-shot toast payload: ['type' => success|info|error, 'message' => '…'].
+            'flash' => fn () => $request->session()->get('flash'),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }

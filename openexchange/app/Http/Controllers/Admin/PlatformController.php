@@ -214,16 +214,29 @@ class PlatformController
         return back();
     }
 
-    /** Re-price usage that metered at $0 because its model was unpriced at the time. */
+    /** Re-price every usage record still missing a cost basis, across all models. */
     public function rebill(Request $request, MeteringService $metering): RedirectResponse
     {
         $data = $request->validate(['client_id' => ['nullable', 'exists:clients,id']]);
         $stats = $metering->rebill($data['client_id'] ?? null);
 
         $this->audit->log('metering.rebill', Client::find($data['client_id'] ?? 0), sprintf(
-            'Re-billed %d record(s) for $%s', $stats['rebilled'], number_format($stats['billed_cents'] / 100, 2),
+            'Re-billed %d record(s) — net $%s', $stats['rebilled'], number_format($stats['billed_cents'] / 100, 2),
         ), $stats);
 
-        return back()->with('rebill', $stats);
+        if ($stats['rebilled'] === 0) {
+            $outstanding = $metering->pendingRebillCount();
+
+            return back()->with('flash', ['type' => 'info', 'message' => $outstanding > 0
+                ? "{$outstanding} usage record(s) still have no cost basis, but their models are unpriced. Price them under Models & pricing first."
+                : 'Nothing to re-bill — every usage record already has a cost basis.']);
+        }
+
+        $net = $stats['billed_cents'];
+
+        return back()->with('flash', ['type' => 'success', 'message' => sprintf(
+            'Re-billed %d usage record(s) — %s $%s.',
+            $stats['rebilled'], $net >= 0 ? 'billed' : 'credited back', number_format(abs($net) / 100, 2),
+        )]);
     }
 }

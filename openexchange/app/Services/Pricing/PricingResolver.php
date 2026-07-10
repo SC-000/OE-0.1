@@ -38,6 +38,32 @@ class PricingResolver
             return $merged;
         });
 
+        return $this->hydrate($raw);
+    }
+
+    /**
+     * Quotes we already have, without ever hitting the network.
+     *
+     * Metering and the gateway call this on the hot path: a brand-new model can be
+     * priced the moment it is first seen, but an HTTP round-trip must never sit in
+     * front of a client's inference request. Returns [] on a cold cache; the daily
+     * `models:sync` keeps it warm.
+     *
+     * @return array<string, PriceQuote>
+     */
+    public function cachedQuotes(): array
+    {
+        $raw = Cache::get('oe.pricing.quotes');
+
+        return is_array($raw) ? $this->hydrate($raw) : [];
+    }
+
+    /**
+     * @param  array<string, array>  $raw
+     * @return array<string, PriceQuote>
+     */
+    private function hydrate(array $raw): array
+    {
         return array_map(fn ($r) => new PriceQuote($r[0], $r[1], $r[2], $r[3], $r[4], $r[5], $r[6]), $raw);
     }
 
