@@ -27,10 +27,21 @@ class PlatformController
     {
         $monthStart = now()->startOfMonth();
 
-        $keys = ProviderKey::with('client')->orderByDesc('last_synced_at')->get()->map(function ($k) use ($monthStart) {
+        // Project ids Discover actually found upstream. A key pointing at anything else
+        // will pull an EMPTY result forever — the provider returns no error for an
+        // unknown project, which is why usage can be visible in Discover and never billed.
+        $knownProjects = collect(Cache::get('oe.discovery.openai.projects', []))->pluck('id')->all();
+        $discoveryRan = Cache::get('oe.discovery.openai.at') !== null;
+
+        $keys = ProviderKey::with('client')->orderByDesc('last_synced_at')->get()->map(function ($k) use ($monthStart, $knownProjects, $discoveryRan) {
             $rows = UsageRecord::where('provider_key_id', $k->id)->where('period_start', '>=', $monthStart);
             $billed = (int) (clone $rows)->sum('billed_cents');
             $records = (clone $rows)->count();
+
+            $unknownProject = $discoveryRan
+                && $k->provider === 'openai'
+                && $k->external_project_id
+                && ! in_array($k->external_project_id, $knownProjects, true);
 
             return [
                 'id' => $k->id,
@@ -39,11 +50,21 @@ class PlatformController
                 'label' => $k->displayLabel(),
                 'client' => $k->client?->name ?? '— unassigned',
                 'client_id' => $k->client_id,
-                'status' => $k->status !== 'active' ? 'disabled'
-                    : ($k->last_synced_at === null ? 'pending' : ($records > 0 ? 'billing' : 'idle')),
+                'status' => match (true) {
+                    $k->status !== 'active' => 'disabled',
+                    $k->last_error !== null => 'error',
+                    $unknownProject => 'unknown_project',
+                    $k->last_synced_at === null => 'pending',
+                    $records > 0 => 'billing',
+                    ($k->last_pull_records ?? null) === 0 => 'no_data',
+                    default => 'idle',
+                },
                 'revenue_cents' => $billed,
                 'records' => $records,
                 'synced' => $k->last_synced_at?->diffForHumans() ?? 'never',
+                'last_error' => $k->last_error,
+                'last_pull_records' => $k->last_pull_records,
+                'unknown_project' => $unknownProject,
             ];
         });
 
@@ -75,6 +96,11 @@ class PlatformController
             'discovery' => $discovery,
             'discoveredAt' => Cache::get('oe.discovery.openai.at'),
             'openaiReady' => (bool) config('openexchange.openai.admin_key'),
+            // Without these the pull cannot authenticate and will never bill anything.
+            'credentials' => [
+                'openai_admin_key' => (bool) config('openexchange.openai.admin_key'),
+                'google_credentials' => (bool) config('openexchange.google.credentials'),
+            ],
             'clientOptions' => Client::orderBy('name')->get(['id', 'name']),
             'accessKeys' => AccessKey::with('client:id,name')->orderByDesc('created_at')->get()->map(fn ($k) => [
                 'id' => $k->id, 'name' => $k->name, 'frag' => $k->fragment(), 'status' => $k->status,
@@ -204,14 +230,61 @@ class PlatformController
         return back();
     }
 
-    public function sync(Request $request): RedirectResponse
+    /**
+     * Run the usage pull now, and SAY what happened. This used to `return back()` with
+     * no flash, so a pull that failed on missing credentials — or one that succeeded
+     * while matching nothing upstream — was indistinguishable from a pull that worked.
+     */
+    public function sync(Request $request, MeteringService $metering): RedirectResponse
     {
         $data = $request->validate(['client_id' => ['nullable', 'exists:clients,id']]);
         Artisan::call('metering:pull', array_filter(['--client' => $data['client_id'] ?? null]));
 
-        $this->audit->log('metering.pull', Client::find($data['client_id'] ?? 0), 'Ran usage pull');
+        $run = Cache::get('oe.metering.last_run', []);
+        $this->audit->log('metering.pull', Client::find($data['client_id'] ?? 0), sprintf(
+            'Ran usage pull: %d key(s), %d metered, %d failed',
+            $run['keys'] ?? 0, $run['metered'] ?? 0, $run['failed'] ?? 0,
+        ), $run);
 
-        return back();
+        return back()->with('flash', $this->pullMessage($run, $metering));
+    }
+
+    /** @param  array<string, mixed>  $run */
+    private function pullMessage(array $run, MeteringService $metering): array
+    {
+        $keys = (int) ($run['keys'] ?? 0);
+        $metered = (int) ($run['metered'] ?? 0);
+        $failed = (int) ($run['failed'] ?? 0);
+        $empty = (int) ($run['empty'] ?? 0);
+        $billed = (int) ($run['billed_cents'] ?? 0);
+
+        if ($keys === 0) {
+            return ['type' => 'info', 'message' => 'No active provider keys to pull from. Attach one under Attribution, or assign a discovered project.'];
+        }
+
+        if ($failed > 0) {
+            $first = $run['errors'][0] ?? 'unknown error';
+
+            return ['type' => 'error', 'message' => "{$failed} of {$keys} key(s) failed. {$first}"];
+        }
+
+        if ($metered === 0) {
+            // The pull worked; upstream just had nothing for these project ids. That is
+            // almost always a project id that doesn't exist in the provider account.
+            $hint = $empty > 0
+                ? " {$empty} key(s) returned no data — check their project id exists upstream (run Discover)."
+                : '';
+
+            return ['type' => 'info', 'message' => "Pull completed. Nothing new to meter.{$hint}"];
+        }
+
+        $outstanding = $metering->pendingRebillCount();
+        $note = $outstanding > 0 ? " {$outstanding} record(s) are still unpriced — see Models & pricing." : '';
+
+        return ['type' => 'success', 'message' => sprintf(
+            'Pulled %d key(s): %d record(s) metered, $%s billed.%s',
+            $keys, $metered, number_format($billed / 100, 2), $note,
+        )];
     }
 
     /** Re-price every usage record still missing a cost basis, across all models. */

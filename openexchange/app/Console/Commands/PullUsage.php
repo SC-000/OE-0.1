@@ -17,6 +17,11 @@ use Throwable;
  * Pull provider usage → meter (idempotently) → debit balances → auto top-up
  * any client that fell below its minimum. Safe to run on a schedule; one key
  * failing never blocks the others.
+ *
+ * The run writes a structured summary to `oe.metering.last_run` and stamps each key
+ * with its own outcome, because a pull that quietly returns nothing looks exactly like
+ * a pull that had nothing to return — and only one of those is fine. A key whose
+ * `external_project_id` doesn't exist upstream returns an EMPTY result, not an error.
  */
 class PullUsage extends Command
 {
@@ -34,6 +39,9 @@ class PullUsage extends Command
         $until = CarbonImmutable::now();
         $totalMetered = 0;
         $totalBilled = 0;
+        $failed = 0;
+        $empty = 0;
+        $errors = [];
 
         $keys = ProviderKey::query()
             ->where('status', 'active')
@@ -55,14 +63,31 @@ class PullUsage extends Command
                 $summary = $metering->ingest($key, $buckets);
                 $totalMetered += $summary['metered'];
                 $totalBilled += $summary['billed_cents'];
+
+                $key->forceFill([
+                    'last_error' => null,
+                    'last_error_at' => null,
+                    'last_pull_records' => count($buckets),
+                ])->save();
+
+                if ($buckets === []) {
+                    $empty++;
+                }
+
                 $this->line(sprintf(
-                    '  [%s] key #%d "%s": %d metered, %d skipped, $%.2f billed',
+                    '  [%s] key #%d "%s": %d returned, %d metered, %d skipped, $%.2f billed%s',
                     $key->provider, $key->id, $key->label,
-                    $summary['metered'], $summary['skipped'], $summary['billed_cents'] / 100,
+                    count($buckets), $summary['metered'], $summary['skipped'], $summary['billed_cents'] / 100,
+                    $buckets === [] ? '  <- nothing upstream for project '.($key->external_project_id ?: '(none)') : '',
                 ));
             } catch (Throwable $e) {
                 report($e);
-                $this->error("  key #{$key->id} ({$key->provider}) failed: ".$e->getMessage());
+                $failed++;
+                $message = mb_substr($e->getMessage(), 0, 300);
+                $errors[] = "key #{$key->id} ({$key->provider}/{$key->label}): {$message}";
+
+                $key->forceFill(['last_error' => $message, 'last_error_at' => now()])->save();
+                $this->error("  key #{$key->id} ({$key->provider}) failed: {$message}");
             }
         }
 
@@ -85,16 +110,25 @@ class PullUsage extends Command
                 });
         }
 
-        // Record the run so the admin can see the metering job is actually firing.
+        // Record the run so the admin can see what the metering job actually did —
+        // including doing nothing, and why.
         Cache::forever('oe.metering.last_run', [
             'at' => now()->toDateTimeString(),
             'keys' => $keys->count(),
             'metered' => $totalMetered,
             'billed_cents' => $totalBilled,
+            'rebilled' => $rebill['rebilled'],
+            'failed' => $failed,
+            'empty' => $empty,
+            'errors' => array_slice($errors, 0, 5),
         ]);
 
+        if ($failed > 0) {
+            $this->warn("{$failed} of {$keys->count()} key(s) failed. See /admin/platform.");
+        }
         $this->info('metering:pull complete.');
 
+        // Never fail the schedule for an upstream outage — the run is recorded either way.
         return self::SUCCESS;
     }
 }

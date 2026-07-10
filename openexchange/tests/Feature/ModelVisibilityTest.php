@@ -84,8 +84,8 @@ class ModelVisibilityTest extends TestCase
 
             // One row, not two — the row count must not reveal how many models sit behind the tier.
             $this->assertCount(1, $table);
-            $this->assertSame('OpenAI Premium', $table[0][0]);
-            $this->assertSame('$30.00', $table[0][3]); // 1000c + 2000c merged
+            $this->assertSame('OpenAI Premium', $table[0]['label']);
+            $this->assertSame(3000, $table[0]['spend_cents']); // 1000c + 2000c merged
         });
     }
 

@@ -231,6 +231,100 @@ export default function Platform({
         >
             <Head title="Admin — Platform" />
 
+            {(!credentials.openai_admin_key ||
+                !credentials.google_credentials) && (
+                <Card
+                    padding="md"
+                    style={{
+                        marginBottom: 16,
+                        borderLeft: '3px solid var(--ox-danger)',
+                    }}
+                >
+                    <div
+                        style={{
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: 10,
+                        }}
+                    >
+                        <Icon
+                            name="alert-triangle"
+                            size={17}
+                            color="var(--ox-danger)"
+                        />
+                        <div>
+                            <strong style={{ fontSize: 'var(--ox-text-sm)' }}>
+                                The usage pull cannot authenticate.
+                            </strong>
+                            <p
+                                style={{
+                                    margin: '3px 0 0',
+                                    fontSize: 'var(--ox-text-xs)',
+                                    color: 'var(--ox-text-subtle)',
+                                    lineHeight: 1.6,
+                                }}
+                            >
+                                {!credentials.openai_admin_key && (
+                                    <>
+                                        <code style={mono}>
+                                            OPENAI_ADMIN_KEY
+                                        </code>{' '}
+                                        is not set.{' '}
+                                    </>
+                                )}
+                                {!credentials.google_credentials && (
+                                    <>
+                                        <code style={mono}>
+                                            GOOGLE_CREDENTIALS_JSON
+                                        </code>{' '}
+                                        is not set.{' '}
+                                    </>
+                                )}
+                                Until it is, every pull fails and no pulled
+                                usage is billed to anyone. Gateway traffic is
+                                unaffected — it meters in real time. Run{' '}
+                                <code style={mono}>php artisan oe:doctor</code>{' '}
+                                to check.
+                            </p>
+                        </div>
+                    </div>
+                </Card>
+            )}
+
+            {lastPull && (lastPull.failed > 0 || lastPull.empty > 0) && (
+                <Card
+                    padding="md"
+                    style={{
+                        marginBottom: 16,
+                        borderLeft: '3px solid var(--ox-warning)',
+                    }}
+                >
+                    <strong style={{ fontSize: 'var(--ox-text-sm)' }}>
+                        Last pull ({lastPull.at}): {lastPull.metered} metered
+                        {lastPull.failed > 0 &&
+                            `, ${lastPull.failed} key(s) failed`}
+                        {lastPull.empty > 0 &&
+                            `, ${lastPull.empty} key(s) returned nothing`}
+                    </strong>
+                    {lastPull.errors?.length > 0 && (
+                        <ul
+                            style={{
+                                margin: '6px 0 0',
+                                paddingLeft: 18,
+                                fontSize: 'var(--ox-text-xs)',
+                                color: 'var(--ox-danger)',
+                            }}
+                        >
+                            {lastPull.errors.map((e) => (
+                                <li key={e} style={mono}>
+                                    {e}
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </Card>
+            )}
+
             {newAccessKey && (
                 <Card
                     padding="md"
@@ -967,7 +1061,7 @@ function AttributionTab({
     return (
         <Section
             title="Metered provider keys"
-            hint="Usage pulled from these keys bills to the owning client. “pending” means it has never synced — check the credential and the hourly job."
+            hint="Usage pulled from these keys bills to the owning client. A key whose project id does not exist upstream pulls an empty result forever — the provider returns no error for it, so it looks like there is simply no usage."
             right={
                 <Button
                     size="sm"

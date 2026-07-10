@@ -1,170 +1,736 @@
 import { Head, Link } from '@inertiajs/react';
+import { Badge, Button, Card, Icon, LineArea, StatCard } from '@/components/oe';
 import ConsoleLayout from '@/layouts/console-layout';
-import { Card, StatCard, Badge, Button, Icon } from '@/components/oe';
+import { money, num, tokens as fmtTokens } from '@/lib/format';
 
-type Source = { label: string; provider: string; usage: string };
-type Recent = { model: string; provider: string; tokens: string; billed: string; date: string };
+type Alert = {
+    tone: 'danger' | 'warning' | 'info';
+    title: string;
+    body: string;
+};
 type Props = {
-    account?: { name: string; id: string; type: string; since: string };
-    balance?: string;
-    lowThreshold?: string;
-    autoTopup?: boolean;
-    value?: { spendMtd: string; projected: string; requests: string; tokens: string; blendedRate: string; modelsAvailable: number; providers: number; uptime: string };
-    range?: { status: 'normal' | 'high' | 'low' | 'baseline'; note: string; projected: string; typical: string };
-    sources?: Source[];
-    recent?: Recent[];
+    account: { name: string; id: string; type: string; since: string };
+    balance: {
+        cents: number;
+        low_threshold_cents: number;
+        topup_cents: number;
+        auto_topup: boolean;
+        has_card: boolean;
+        runway_days: number | null;
+        daily_burn_cents: number;
+    };
+    spend: {
+        mtd_cents: number;
+        projected_cents: number;
+        last_month_cents: number;
+        delta_pct: number | null;
+        days_elapsed: number;
+        days_in_month: number;
+        requests: number;
+        tokens: number;
+    };
+    efficiency: {
+        per_1k_cents: number | null;
+        per_1k_last_month_cents: number | null;
+        delta_pct: number | null;
+        per_request_cents: number | null;
+        models_available: number;
+        providers: number;
+    };
+    daily: { date: string; cents: number }[];
+    range: {
+        status: string;
+        note: string;
+        projected_cents: number;
+        typical_cents: number;
+    };
+    alerts: Alert[];
+    sources: { label: string; spend_cents: number; share_pct: number }[];
+    recent: {
+        model: string;
+        provider: string;
+        tokens: number;
+        billed_cents: number;
+        at: string;
+    }[];
 };
 
-const RANGE_TONE = { normal: 'success', high: 'warning', low: 'info', baseline: 'neutral' } as const;
-const RANGE_LABEL = { normal: 'Normal range', high: 'Above average', low: 'Below average', baseline: 'Baseline' } as const;
+const TONE: Record<Alert['tone'], { bg: string; fg: string; icon: string }> = {
+    danger: {
+        bg: 'var(--ox-danger-surface)',
+        fg: 'var(--ox-danger)',
+        icon: 'alert-triangle',
+    },
+    warning: {
+        bg: 'var(--ox-warning-surface)',
+        fg: 'var(--ox-warning)',
+        icon: 'alert-triangle',
+    },
+    info: {
+        bg: 'var(--ox-info-surface)',
+        fg: 'var(--ox-info)',
+        icon: 'activity',
+    },
+};
 
-export default function Overview({ account, balance = '$0.00', lowThreshold, autoTopup, value, range, sources = [], recent = [] }: Props) {
-    const included = [
-        { icon: 'cpu', k: `${value?.modelsAvailable ?? 0} models`, v: 'One API, best-model routing' },
-        { icon: 'globe', k: `${value?.providers ?? 0} providers`, v: 'Connected & metered' },
-        { icon: 'activity', k: value?.uptime ?? '99.9%', v: 'Gateway uptime, with fallbacks' },
-        { icon: 'credit-card', k: 'One bill', v: 'No provider accounts to manage' },
-    ];
-    const rangeStatus = range?.status ?? 'baseline';
-    const th = { padding: '10px 18px', fontSize: 'var(--ox-text-2xs)', textTransform: 'uppercase' as const, letterSpacing: 'var(--ox-tracking-caps)', color: 'var(--ox-text-subtle)', fontWeight: 600, borderBottom: '1px solid var(--ox-divider)', textAlign: 'left' as const };
-    const td = { padding: '11px 18px', borderBottom: '1px solid var(--ox-divider)', fontFamily: 'var(--ox-font-mono)', fontSize: 'var(--ox-text-sm)', color: 'var(--ox-text-muted)' };
+/** Cents per 1k tokens, shown as money to 4dp — these figures are genuinely tiny. */
+const per1k = (c: number | null) =>
+    c === null ? '—' : `$${(c / 100).toFixed(4)}`;
+
+const th: React.CSSProperties = {
+    padding: '9px 18px',
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+    color: 'var(--ox-text-subtle)',
+    fontWeight: 600,
+    borderBottom: '1px solid var(--ox-divider)',
+    textAlign: 'left',
+};
+const td: React.CSSProperties = {
+    padding: '11px 18px',
+    borderBottom: '1px solid var(--ox-divider)',
+    fontSize: 'var(--ox-text-sm)',
+};
+const mono: React.CSSProperties = { fontFamily: 'var(--ox-font-mono)' };
+
+export default function Overview({
+    account,
+    balance,
+    spend,
+    efficiency,
+    daily,
+    range,
+    alerts,
+    sources,
+    recent,
+}: Props) {
+    const runway = balance.runway_days;
+    const cheaper = efficiency.delta_pct !== null && efficiency.delta_pct < 0;
+    const dearer = efficiency.delta_pct !== null && efficiency.delta_pct > 0;
 
     return (
-        <ConsoleLayout active="overview" title="Overview" subtitle={account ? `${account.name} · ${account.type}` : undefined}
-            actions={<Button as={Link} href="/console/billing" size="sm" variant="secondary" leadingIcon={<Icon name="credit-card" size={15} />}>Billing account</Button>}>
+        <ConsoleLayout
+            active="overview"
+            title="Overview"
+            subtitle={`${account.name} · ${account.type}`}
+        >
             <Head title="Overview — Account" />
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                {/* account + balance banner */}
-                <Card padding="lg" style={{ display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                        <span style={{ display: 'grid', placeItems: 'center', width: 48, height: 48, borderRadius: 12, background: 'var(--ox-primary-subtle)' }}>
-                            <Icon name="user" size={24} color="var(--ox-green-700)" />
-                        </span>
-                        <div>
-                            <div style={{ fontWeight: 800, fontSize: 19, letterSpacing: '-0.01em' }}>{account?.name ?? 'Your account'}</div>
-                            <div style={{ display: 'flex', gap: 10, marginTop: 3, flexWrap: 'wrap', fontFamily: 'var(--ox-font-mono)', fontSize: 12, color: 'var(--ox-text-subtle)' }}>
-                                <span>{account?.id}</span><span>·</span><span>member since {account?.since}</span>
-                            </div>
+                {/* Balance leads. It is the number the customer came here for. */}
+                <Card
+                    padding="lg"
+                    style={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: 28,
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                    }}
+                >
+                    <div>
+                        <div
+                            style={{
+                                fontSize: 12,
+                                color: 'var(--ox-text-subtle)',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.06em',
+                                fontWeight: 600,
+                            }}
+                        >
+                            Balance
+                        </div>
+                        <div
+                            style={{
+                                ...mono,
+                                fontSize: 40,
+                                fontWeight: 500,
+                                letterSpacing: '-0.02em',
+                                marginTop: 4,
+                                color:
+                                    balance.cents < 0
+                                        ? 'var(--ox-danger)'
+                                        : 'var(--ox-text)',
+                            }}
+                        >
+                            {money(balance.cents)}
+                        </div>
+                        <div
+                            style={{
+                                fontSize: 13,
+                                color: 'var(--ox-text-muted)',
+                                marginTop: 6,
+                            }}
+                        >
+                            {balance.daily_burn_cents > 0 ? (
+                                <>
+                                    You’re using about{' '}
+                                    <strong style={mono}>
+                                        {money(balance.daily_burn_cents)}
+                                    </strong>{' '}
+                                    a day
+                                    {runway !== null && (
+                                        <>
+                                            {' '}
+                                            — roughly{' '}
+                                            <strong>
+                                                {runway === 0
+                                                    ? 'less than a day'
+                                                    : `${num(runway)} day${runway === 1 ? '' : 's'}`}
+                                            </strong>{' '}
+                                            of balance left.
+                                        </>
+                                    )}
+                                </>
+                            ) : (
+                                <>No usage in the last two weeks.</>
+                            )}
                         </div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 22, flexWrap: 'wrap' }}>
-                        <div style={{ textAlign: 'right' }}>
-                            <div style={{ fontSize: 11, color: 'var(--ox-text-subtle)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>Prepaid balance</div>
-                            <div style={{ fontFamily: 'var(--ox-font-mono)', fontSize: 26, fontWeight: 600, letterSpacing: '-0.02em' }}>{balance}</div>
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
-                            <Badge tone={autoTopup ? 'success' : 'warning'}>{autoTopup ? 'Auto top-up on' : 'Auto top-up off'}</Badge>
-                            <Button as={Link} href="/console/billing" size="sm">Manage</Button>
+
+                    <div
+                        style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 10,
+                            alignItems: 'flex-end',
+                        }}
+                    >
+                        {balance.auto_topup && balance.has_card ? (
+                            <Badge tone="success">
+                                Auto top-up on · adds{' '}
+                                {money(balance.topup_cents)} below{' '}
+                                {money(balance.low_threshold_cents)}
+                            </Badge>
+                        ) : (
+                            <Badge tone="warning">
+                                Auto top-up{' '}
+                                {balance.has_card ? 'off' : 'needs a card'}
+                            </Badge>
+                        )}
+                        <div style={{ display: 'flex', gap: 8 }}>
+                            <Button
+                                as={Link}
+                                href="/console/billing"
+                                size="sm"
+                                variant="secondary"
+                            >
+                                Manage billing
+                            </Button>
+                            <Button as={Link} href="/console/billing" size="sm">
+                                Add funds
+                            </Button>
                         </div>
                     </div>
                 </Card>
 
-                {/* value stats */}
-                <div className="oe-grid-4" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
-                    <StatCard label="Spend this month" value={value?.spendMtd ?? '$0'} hint="metered to date" />
-                    <StatCard label="Projected month-end" value={value?.projected ?? '$0'} hint="at current run-rate" />
-                    <StatCard label="Requests" value={value?.requests ?? '0'} hint="this month" />
-                    <StatCard label="Effective rate" value={value?.blendedRate ?? '—'} hint="blended / 1k tokens" />
+                {alerts.length > 0 && (
+                    <div
+                        style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 10,
+                        }}
+                    >
+                        {alerts.map((a) => (
+                            <div
+                                key={a.title}
+                                style={{
+                                    display: 'flex',
+                                    gap: 10,
+                                    alignItems: 'flex-start',
+                                    padding: '12px 14px',
+                                    background: TONE[a.tone].bg,
+                                    border: `1px solid ${TONE[a.tone].fg}`,
+                                    borderRadius: 'var(--ox-radius-md)',
+                                }}
+                            >
+                                <Icon
+                                    name={TONE[a.tone].icon}
+                                    size={16}
+                                    color={TONE[a.tone].fg}
+                                    style={{ flexShrink: 0, marginTop: 1 }}
+                                />
+                                <div>
+                                    <div
+                                        style={{
+                                            fontWeight: 600,
+                                            fontSize: 'var(--ox-text-sm)',
+                                            color: TONE[a.tone].fg,
+                                        }}
+                                    >
+                                        {a.title}
+                                    </div>
+                                    <div
+                                        style={{
+                                            fontSize: 12.5,
+                                            color: 'var(--ox-text-muted)',
+                                            marginTop: 2,
+                                        }}
+                                    >
+                                        {a.body}
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                <div
+                    className="oe-grid-4"
+                    style={{
+                        display: 'grid',
+                        gridTemplateColumns:
+                            'repeat(auto-fit, minmax(190px, 1fr))',
+                        gap: 16,
+                    }}
+                >
+                    <StatCard
+                        label="Spend this month"
+                        value={money(spend.mtd_cents)}
+                        unit=""
+                        delta={undefined}
+                        deltaDirection={undefined}
+                        hint={`day ${spend.days_elapsed} of ${spend.days_in_month}`}
+                    />
+                    <StatCard
+                        label="Projected month-end"
+                        value={money(spend.projected_cents)}
+                        unit=""
+                        delta={
+                            spend.delta_pct !== null
+                                ? `${spend.delta_pct > 0 ? '+' : ''}${spend.delta_pct}%`
+                                : undefined
+                        }
+                        deltaDirection={
+                            (spend.delta_pct ?? 0) <= 0 ? 'up' : 'down'
+                        }
+                        hint={
+                            spend.last_month_cents > 0
+                                ? `vs ${money(spend.last_month_cents)} last month`
+                                : 'estimate at current rate'
+                        }
+                    />
+                    <StatCard
+                        label="Requests"
+                        value={num(spend.requests)}
+                        unit=""
+                        delta={undefined}
+                        deltaDirection={undefined}
+                        hint={`${fmtTokens(spend.tokens)} tokens`}
+                    />
+                    <StatCard
+                        label="Cost per 1k tokens"
+                        value={per1k(efficiency.per_1k_cents)}
+                        unit=""
+                        delta={
+                            efficiency.delta_pct !== null
+                                ? `${efficiency.delta_pct > 0 ? '+' : ''}${efficiency.delta_pct}%`
+                                : undefined
+                        }
+                        deltaDirection={cheaper ? 'up' : 'down'}
+                        hint={
+                            efficiency.per_1k_last_month_cents !== null
+                                ? `was ${per1k(efficiency.per_1k_last_month_cents)}`
+                                : 'blended across models'
+                        }
+                    />
                 </div>
 
-                <div className="oe-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-                    {/* normal-range reassurance */}
-                    <Card padding="lg" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <Icon name="activity" size={18} color="var(--ox-green-600)" />
-                            <span style={{ fontWeight: 700, fontSize: 15 }}>Usage health</span>
-                            <span style={{ marginLeft: 'auto' }}><Badge tone={RANGE_TONE[rangeStatus]}>{RANGE_LABEL[rangeStatus]}</Badge></span>
+                <div
+                    className="oe-2col"
+                    style={{
+                        display: 'grid',
+                        gridTemplateColumns: '2fr 1fr',
+                        gap: 20,
+                    }}
+                >
+                    <Card padding="lg">
+                        <div style={{ marginBottom: 12 }}>
+                            <h2
+                                style={{
+                                    margin: 0,
+                                    fontSize: 16,
+                                    fontWeight: 700,
+                                }}
+                            >
+                                Daily spend
+                            </h2>
+                            <p
+                                style={{
+                                    margin: '2px 0 0',
+                                    fontSize: 12.5,
+                                    color: 'var(--ox-text-subtle)',
+                                }}
+                            >
+                                Last 30 days. Usage is metered continuously and
+                                accrues as it happens.
+                            </p>
                         </div>
-                        <p style={{ margin: 0, color: 'var(--ox-text-muted)', fontSize: 14, lineHeight: 1.6 }}>{range?.note}</p>
-                        {rangeStatus !== 'baseline' && (
-                            <div style={{ display: 'flex', gap: 24, marginTop: 4, paddingTop: 14, borderTop: '1px solid var(--ox-divider)' }}>
-                                <div><div style={cap}>Projected</div><div style={fig}>{range?.projected}</div></div>
-                                <div><div style={cap}>Recent average</div><div style={fig}>{range?.typical}</div></div>
+                        <LineArea
+                            height={200}
+                            xLabels={daily.map((d, i) =>
+                                i % 6 === 0 ? d.date.slice(5) : '',
+                            )}
+                            series={[
+                                {
+                                    name: 'Spend',
+                                    values: daily.map((d) => d.cents / 100),
+                                    color: '#33c13e',
+                                },
+                            ]}
+                            valueFmt={(v: number) => `$${v.toFixed(2)}`}
+                        />
+                    </Card>
+
+                    <Card
+                        padding="lg"
+                        style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 14,
+                        }}
+                    >
+                        <div>
+                            <h2
+                                style={{
+                                    margin: 0,
+                                    fontSize: 16,
+                                    fontWeight: 700,
+                                }}
+                            >
+                                Is it getting cheaper?
+                            </h2>
+                            <p
+                                style={{
+                                    margin: '2px 0 0',
+                                    fontSize: 12.5,
+                                    color: 'var(--ox-text-subtle)',
+                                }}
+                            >
+                                Blended cost of a thousand tokens, this month
+                                against last.
+                            </p>
+                        </div>
+
+                        {efficiency.per_1k_last_month_cents === null ? (
+                            <p
+                                style={{
+                                    fontSize: 13,
+                                    color: 'var(--ox-text-muted)',
+                                    margin: 0,
+                                }}
+                            >
+                                We’ll compare once you have a full month of
+                                usage behind you.
+                            </p>
+                        ) : (
+                            <div
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'baseline',
+                                    gap: 10,
+                                }}
+                            >
+                                <span
+                                    style={{
+                                        ...mono,
+                                        fontSize: 28,
+                                        fontWeight: 500,
+                                    }}
+                                >
+                                    {per1k(efficiency.per_1k_cents)}
+                                </span>
+                                <Badge
+                                    tone={
+                                        cheaper
+                                            ? 'success'
+                                            : dearer
+                                              ? 'warning'
+                                              : 'neutral'
+                                    }
+                                >
+                                    {cheaper
+                                        ? `${Math.abs(efficiency.delta_pct!)}% cheaper`
+                                        : dearer
+                                          ? `${efficiency.delta_pct}% dearer`
+                                          : 'unchanged'}
+                                </Badge>
                             </div>
                         )}
-                    </Card>
 
-                    {/* what's included */}
-                    <Card padding="lg">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-                            <Icon name="check" size={18} color="var(--ox-green-600)" />
-                            <span style={{ fontWeight: 700, fontSize: 15 }}>What your account includes</span>
+                        <div
+                            style={{
+                                height: 1,
+                                background: 'var(--ox-divider)',
+                            }}
+                        />
+
+                        <div
+                            style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: 8,
+                                fontSize: 13,
+                                color: 'var(--ox-text-muted)',
+                            }}
+                        >
+                            <Row
+                                label="Cost per request"
+                                value={
+                                    efficiency.per_request_cents !== null
+                                        ? `$${(efficiency.per_request_cents / 100).toFixed(4)}`
+                                        : '—'
+                                }
+                            />
+                            <Row
+                                label="Models available"
+                                value={num(efficiency.models_available)}
+                            />
+                            <Row
+                                label="Providers, one bill"
+                                value={num(efficiency.providers)}
+                            />
                         </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                            {included.map((x) => (
-                                <div key={x.k} style={{ display: 'flex', gap: 10 }}>
-                                    <Icon name={x.icon} size={17} color="var(--ox-green-600)" style={{ marginTop: 2, flexShrink: 0 }} />
-                                    <div>
-                                        <div style={{ fontWeight: 700, fontSize: 14 }}>{x.k}</div>
-                                        <div style={{ color: 'var(--ox-text-subtle)', fontSize: 12.5, lineHeight: 1.4 }}>{x.v}</div>
-                                    </div>
-                                </div>
-                            ))}
+
+                        <div
+                            style={{
+                                fontSize: 12,
+                                color: 'var(--ox-text-subtle)',
+                                lineHeight: 1.6,
+                                background: 'var(--ox-bg-subtle)',
+                                padding: 10,
+                                borderRadius: 'var(--ox-radius-sm)',
+                            }}
+                        >
+                            <Icon
+                                name="activity"
+                                size={12}
+                                color="var(--ox-text-subtle)"
+                                style={{ verticalAlign: -1, marginRight: 5 }}
+                            />
+                            {range.note}
                         </div>
                     </Card>
                 </div>
 
-                {/* sources + recent */}
-                <div className="oe-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: 20 }}>
+                <div
+                    className="oe-2col"
+                    style={{
+                        display: 'grid',
+                        gridTemplateColumns: '1fr 1fr',
+                        gap: 20,
+                    }}
+                >
                     <Card padding="none">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 18px', borderBottom: '1px solid var(--ox-divider)' }}>
-                            <span style={{ fontWeight: 600, fontSize: 15 }}>Top sources</span>
-                            <Button as={Link} href="/console/sources" variant="ghost" size="sm" trailingIcon={<Icon name="arrow-right" size={14} />}>All sources</Button>
+                        <div style={{ padding: '16px 18px 10px' }}>
+                            <h2
+                                style={{
+                                    margin: 0,
+                                    fontSize: 16,
+                                    fontWeight: 700,
+                                }}
+                            >
+                                Where it’s going
+                            </h2>
+                            <p
+                                style={{
+                                    margin: '2px 0 0',
+                                    fontSize: 12.5,
+                                    color: 'var(--ox-text-subtle)',
+                                }}
+                            >
+                                Spend by source, this month.
+                            </p>
                         </div>
-                        <div>
-                            {sources.length === 0 && <div style={{ padding: 18, fontSize: 13, color: 'var(--ox-text-subtle)' }}>No sources connected yet.</div>}
-                            {sources.map((s, i) => (
-                                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '13px 18px', borderTop: i ? '1px solid var(--ox-divider)' : 'none' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                                        <span style={{ width: 8, height: 8, borderRadius: 3, background: 'var(--ox-green-500)', flexShrink: 0 }} />
-                                        <div style={{ minWidth: 0 }}>
-                                            <div style={{ fontWeight: 600, fontSize: 14, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.label}</div>
-                                            <div style={{ fontSize: 11.5, color: 'var(--ox-text-subtle)' }}>{s.provider}</div>
-                                        </div>
-                                    </div>
-                                    <span style={{ fontFamily: 'var(--ox-font-mono)', fontSize: 13, fontWeight: 600 }}>{s.usage}</span>
-                                </div>
-                            ))}
-                        </div>
-                    </Card>
-
-                    <Card padding="none">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 18px', borderBottom: '1px solid var(--ox-divider)' }}>
-                            <span style={{ fontWeight: 600, fontSize: 15 }}>Recent usage</span>
-                            <Button as={Link} href="/console/usage" variant="ghost" size="sm" trailingIcon={<Icon name="arrow-right" size={14} />}>View usage</Button>
-                        </div>
-                        <div style={{ overflowX: 'auto' }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 460 }}>
-                                <thead><tr>{['Model', 'Provider', 'Tokens', 'Billed', 'Date'].map((h) => <th key={h} style={th}>{h}</th>)}</tr></thead>
+                        {sources.length === 0 ? (
+                            <p
+                                style={{
+                                    padding: '0 18px 18px',
+                                    fontSize: 13,
+                                    color: 'var(--ox-text-muted)',
+                                }}
+                            >
+                                No usage yet.{' '}
+                                <Link
+                                    href="/console/sources"
+                                    style={{ color: 'var(--ox-primary)' }}
+                                >
+                                    Create a source
+                                </Link>{' '}
+                                to start.
+                            </p>
+                        ) : (
+                            <table
+                                style={{
+                                    width: '100%',
+                                    borderCollapse: 'collapse',
+                                }}
+                            >
+                                <thead>
+                                    <tr>
+                                        <th style={th}>Source</th>
+                                        <th
+                                            style={{
+                                                ...th,
+                                                textAlign: 'right',
+                                            }}
+                                        >
+                                            Share
+                                        </th>
+                                        <th
+                                            style={{
+                                                ...th,
+                                                textAlign: 'right',
+                                            }}
+                                        >
+                                            Spend
+                                        </th>
+                                    </tr>
+                                </thead>
                                 <tbody>
-                                    {recent.length === 0 && <tr><td style={{ ...td, color: 'var(--ox-text-subtle)' }} colSpan={5}>No usage metered yet.</td></tr>}
-                                    {recent.map((r, i) => (
-                                        <tr key={i}>
-                                            <td style={{ ...td, color: 'var(--ox-text)', fontWeight: 600 }}>{r.model}</td>
-                                            <td style={{ ...td, fontFamily: 'var(--ox-font-sans)' }}>{r.provider}</td>
-                                            <td style={td}>{r.tokens}</td>
-                                            <td style={{ ...td, color: 'var(--ox-text)', fontWeight: 600 }}>{r.billed}</td>
-                                            <td style={{ ...td, color: 'var(--ox-text-subtle)' }}>{r.date}</td>
+                                    {sources.map((s) => (
+                                        <tr key={s.label}>
+                                            <td
+                                                style={{
+                                                    ...td,
+                                                    fontWeight: 600,
+                                                }}
+                                            >
+                                                {s.label}
+                                            </td>
+                                            <td
+                                                style={{
+                                                    ...td,
+                                                    textAlign: 'right',
+                                                    color: 'var(--ox-text-subtle)',
+                                                    ...mono,
+                                                }}
+                                            >
+                                                {s.share_pct}%
+                                            </td>
+                                            <td
+                                                style={{
+                                                    ...td,
+                                                    textAlign: 'right',
+                                                    ...mono,
+                                                }}
+                                            >
+                                                {money(s.spend_cents)}
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>
                             </table>
-                        </div>
+                        )}
                     </Card>
-                </div>
 
-                {/* trust strip */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 24px', justifyContent: 'center', padding: '4px 0' }}>
-                    {[['lock', 'Secrets encrypted at rest'], ['shield', 'Workspace isolation'], ['credit-card', 'PCI-compliant billing (SAQ-A)'], ['refresh-cw', 'Itemised, transparent invoicing']].map(([ic, t]) => (
-                        <span key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12.5, color: 'var(--ox-text-subtle)' }}>
-                            <Icon name={ic} size={14} color="var(--ox-text-subtle)" />{t}
-                        </span>
-                    ))}
+                    <Card padding="none">
+                        <div
+                            style={{
+                                padding: '16px 18px 10px',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'baseline',
+                            }}
+                        >
+                            <div>
+                                <h2
+                                    style={{
+                                        margin: 0,
+                                        fontSize: 16,
+                                        fontWeight: 700,
+                                    }}
+                                >
+                                    Recent activity
+                                </h2>
+                                <p
+                                    style={{
+                                        margin: '2px 0 0',
+                                        fontSize: 12.5,
+                                        color: 'var(--ox-text-subtle)',
+                                    }}
+                                >
+                                    Each amount as it was metered.
+                                </p>
+                            </div>
+                            <Link
+                                href="/console/usage"
+                                style={{
+                                    fontSize: 12.5,
+                                    color: 'var(--ox-primary)',
+                                    textDecoration: 'none',
+                                    fontWeight: 600,
+                                }}
+                            >
+                                All usage →
+                            </Link>
+                        </div>
+                        {recent.length === 0 ? (
+                            <p
+                                style={{
+                                    padding: '0 18px 18px',
+                                    fontSize: 13,
+                                    color: 'var(--ox-text-muted)',
+                                }}
+                            >
+                                Nothing metered yet.
+                            </p>
+                        ) : (
+                            <table
+                                style={{
+                                    width: '100%',
+                                    borderCollapse: 'collapse',
+                                }}
+                            >
+                                <tbody>
+                                    {recent.map((r, i) => (
+                                        <tr key={i}>
+                                            <td style={td}>
+                                                <div
+                                                    style={{
+                                                        fontWeight: 600,
+                                                        fontSize: 13,
+                                                    }}
+                                                >
+                                                    {r.model}
+                                                </div>
+                                                <div
+                                                    style={{
+                                                        fontSize: 11.5,
+                                                        color: 'var(--ox-text-subtle)',
+                                                    }}
+                                                >
+                                                    {fmtTokens(r.tokens)} tokens
+                                                    · {r.at}
+                                                </div>
+                                            </td>
+                                            <td
+                                                style={{
+                                                    ...td,
+                                                    textAlign: 'right',
+                                                    ...mono,
+                                                    whiteSpace: 'nowrap',
+                                                }}
+                                            >
+                                                {money(r.billed_cents)}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
+                    </Card>
                 </div>
             </div>
         </ConsoleLayout>
     );
 }
 
-const cap: React.CSSProperties = { fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--ox-text-subtle)', fontWeight: 600 };
-const fig: React.CSSProperties = { fontFamily: 'var(--ox-font-mono)', fontSize: 18, fontWeight: 600, marginTop: 2 };
+const Row = ({ label, value }: { label: string; value: string }) => (
+    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        <span>{label}</span>
+        <span style={{ ...mono, color: 'var(--ox-text)' }}>{value}</span>
+    </div>
+);

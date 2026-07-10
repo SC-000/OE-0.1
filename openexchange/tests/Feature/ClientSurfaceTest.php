@@ -173,7 +173,7 @@ class ClientSurfaceTest extends TestCase
         }
 
         $this->actingAs($this->user)->get('/console/usage')->assertInertia(fn ($page) => $page
-            ->where('table.0.0', 'OpenAI Premium'));
+            ->where('table.0.label', 'OpenAI Premium'));
     }
 
     /* -------------------------------------- gating ---------------------------------- */
