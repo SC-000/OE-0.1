@@ -47,7 +47,7 @@ class ClientsController
         $clients = Client::with('paymentMethods')->orderBy('name')->get()->map(function ($c) use ($usage, $staff) {
             $u = $usage->get($c->id);
             $rev = (int) ($u->rev ?? 0);
-            $cost = (int) ($u->cost ?? 0);
+            $cost = (int) round((float) ($u->cost ?? 0));
 
             return [
                 'id' => $c->id,
@@ -85,7 +85,7 @@ class ClientsController
             ->orderByDesc('rev')->get()
             ->map(function ($r) use ($client, $presenter, $rates) {
                 $rev = (int) $r->rev;
-                $cost = (int) $r->cost;
+                $cost = (int) round((float) $r->cost);
                 $rate = $rates->resolve($client, $r->provider, $r->model);
 
                 return [
@@ -363,9 +363,11 @@ class ClientsController
             ->groupBy('provider', 'model')->get();
         foreach ($rows as $r) {
             $key = $r->provider.'|'.ModelRegistrar::baseModel($r->model);
-            foreach (['n', 'toks', 'rev', 'cost'] as $f) {
+            foreach (['n', 'toks', 'rev'] as $f) {
                 $usage[$key][$f] = ($usage[$key][$f] ?? 0) + (int) $r->{$f};
             }
+            // Cost is fractional cents — fold it as a float or sub-cent costs vanish.
+            $usage[$key]['cost'] = ($usage[$key]['cost'] ?? 0.0) + (float) $r->cost;
         }
 
         $overrides = collect($rates)->filter(fn ($r) => $r['model'] !== null)->keyBy(fn ($r) => $r['provider'].'|'.$r['model']);
@@ -378,12 +380,13 @@ class ClientsController
                 $rate = $resolver->resolve($client, $m->provider, $m->model);
 
                 $rev = (int) ($u['rev'] ?? 0);
-                $cost = (int) ($u['cost'] ?? 0);
+                $cost = (int) round((float) ($u['cost'] ?? 0));
 
                 // What one million in + one million out would bill this client today.
                 $costPerM = $m->costCents(1_000_000, 1_000_000);
-                $basisPerM = $m->chargeBasisCents(1_000_000, 1_000_000);
-                $sellPerM = $rate->billedCents($basisPerM, 1_000_000, 1_000_000, 0, $costPerM);
+                $sellPerM = $rate->billedCents(
+                    $m->chargeBasisCentsExact(1_000_000, 1_000_000), 1_000_000, 1_000_000, 0, $m->costCentsExact(1_000_000, 1_000_000),
+                );
 
                 return [
                     'id' => $m->id,

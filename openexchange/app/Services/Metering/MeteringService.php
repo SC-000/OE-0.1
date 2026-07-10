@@ -73,19 +73,20 @@ class MeteringService
             // from the cached feed if we can, so this bucket bills correctly the first time.
             $catalog = $this->registrar->ensure($bucket->provider, $bucket->model);
         }
-        $providerCost = $catalog
-            ? $catalog->costCents($bucket->inputTokens, $bucket->outputTokens)
-            : (int) ($bucket->providerCostCents ?? 0);
+        // Exact fractional cents feed the pricing; the rounded value is what we record.
+        $costExact = $catalog
+            ? $catalog->costCentsExact($bucket->inputTokens, $bucket->outputTokens)
+            : (float) ($bucket->providerCostCents ?? 0);
         // Markup sits on the charge-on price, not on what the provider charged us.
-        $chargeBasis = $catalog
-            ? $catalog->chargeBasisCents($bucket->inputTokens, $bucket->outputTokens)
-            : $providerCost;
+        $basisExact = $catalog
+            ? $catalog->chargeBasisCentsExact($bucket->inputTokens, $bucket->outputTokens)
+            : $costExact;
 
         // Pulled buckets aggregate an unknown number of requests, so no per-request fee.
         $billed = $this->rates->resolve($client, $bucket->provider, $bucket->model)
-            ->billedCents($chargeBasis, $bucket->inputTokens, $bucket->outputTokens, 0, $providerCost);
+            ->billedCents($basisExact, $bucket->inputTokens, $bucket->outputTokens, 0, $costExact);
 
-        return DB::transaction(function () use ($key, $client, $bucket, $providerCost, $billed) {
+        return DB::transaction(function () use ($key, $client, $bucket, $costExact, $billed) {
             $idem = $bucket->idempotencyParts();
             try {
                 $record = UsageRecord::create([
@@ -97,7 +98,7 @@ class MeteringService
                     'period_end' => $idem['period_end'],
                     'input_tokens' => $bucket->inputTokens,
                     'output_tokens' => $bucket->outputTokens,
-                    'provider_cost_cents' => $providerCost,
+                    'provider_cost_cents' => $costExact,
                     'billed_cents' => $billed,
                     'source' => 'pull',
                 ]);
@@ -115,7 +116,7 @@ class MeteringService
                     'usage_debit',
                     "{$bucket->provider}/{$bucket->model} usage",
                     "usage:{$record->id}",
-                    ['tokens_in' => $bucket->inputTokens, 'tokens_out' => $bucket->outputTokens, 'provider_cost_cents' => $providerCost],
+                    ['tokens_in' => $bucket->inputTokens, 'tokens_out' => $bucket->outputTokens, 'provider_cost_cents' => $costExact],
                 );
             }
 
@@ -168,19 +169,19 @@ class MeteringService
 
                     $in = (int) $rec->input_tokens;
                     $out = (int) $rec->output_tokens;
-                    $cost = $catalog->costCents($in, $out);
-                    if ($cost <= 0) {
-                        continue; // priced, but this token volume rounds to nothing
+                    $cost = $catalog->costCentsExact($in, $out);
+                    if ($cost <= 0.0) {
+                        continue; // priced, but this token volume genuinely costs nothing
                     }
 
                     // Gateway rows are one request; pulled buckets aggregate an unknown count.
                     $requests = $rec->source === 'gateway' ? 1 : 0;
                     $billed = $this->rates->resolve($client, $rec->provider, $rec->model)
-                        ->billedCents($catalog->chargeBasisCents($in, $out), $in, $out, $requests, $cost);
+                        ->billedCents($catalog->chargeBasisCentsExact($in, $out), $in, $out, $requests, $cost);
 
                     DB::transaction(function () use ($rec, $cost, $billed, $client, &$rebilled, &$netCents, &$credited) {
                         $fresh = UsageRecord::whereKey($rec->id)->lockForUpdate()->first();
-                        if (! $fresh || (int) $fresh->provider_cost_cents !== 0) {
+                        if (! $fresh || (float) $fresh->provider_cost_cents > 0.0) {
                             return; // a concurrent run already settled this record
                         }
 
@@ -252,10 +253,10 @@ class MeteringService
 
                     $in = (int) $rec->input_tokens;
                     $out = (int) $rec->output_tokens;
-                    $cost = $catalog->costCents($in, $out);
+                    $cost = $catalog->costCentsExact($in, $out);
                     $requests = $rec->source === 'gateway' ? 1 : 0;
                     $billed = $this->rates->resolve($client, $rec->provider, $rec->model)
-                        ->billedCents($catalog->chargeBasisCents($in, $out), $in, $out, $requests, $cost);
+                        ->billedCents($catalog->chargeBasisCentsExact($in, $out), $in, $out, $requests, $cost);
 
                     $delta = $billed - (int) $rec->billed_cents;
                     $records++;
@@ -264,7 +265,7 @@ class MeteringService
                     if ($delta < 0) {
                         $credited++;
                     }
-                    if ($dryRun || ($delta === 0 && (int) $rec->provider_cost_cents === $cost)) {
+                    if ($dryRun || ($delta === 0 && abs((float) $rec->provider_cost_cents - $cost) < 1e-6)) {
                         continue;
                     }
 

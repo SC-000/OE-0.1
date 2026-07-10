@@ -83,14 +83,15 @@ class GatewayService
         $latencyMs = (int) round((microtime(true) - $started) * 1000);
 
         // Meter — exact tokens, the client's rate card, one atomic record + debit.
-        $providerCost = $catalog ? $catalog->costCents($result->inputTokens, $result->outputTokens) : 0;
-        $chargeBasis = $catalog ? $catalog->chargeBasisCents($result->inputTokens, $result->outputTokens) : $providerCost;
+        $costExact = $catalog ? $catalog->costCentsExact($result->inputTokens, $result->outputTokens) : 0.0;
+        $basisExact = $catalog ? $catalog->chargeBasisCentsExact($result->inputTokens, $result->outputTokens) : $costExact;
         // The gateway is the one place a true request count exists — so the per-request fee applies here.
+        // Exact cents in, rounded UP once: a 0.45c request bills 1c, never $0.
         $billed = $this->rates->resolve($client, $provider, $model)
-            ->billedCents($chargeBasis, $result->inputTokens, $result->outputTokens, 1, $providerCost);
+            ->billedCents($basisExact, $result->inputTokens, $result->outputTokens, 1, $costExact);
         $requestId = (string) Str::uuid();
 
-        DB::transaction(function () use ($client, $key, $backend, $result, $model, $provider, $providerCost, $billed, $requestId) {
+        DB::transaction(function () use ($client, $key, $backend, $result, $model, $provider, $costExact, $billed, $requestId) {
             UsageRecord::create([
                 'client_id' => $client->id,
                 'provider_key_id' => null,
@@ -101,7 +102,7 @@ class GatewayService
                 'period_end' => now(),
                 'input_tokens' => $result->inputTokens,
                 'output_tokens' => $result->outputTokens,
-                'provider_cost_cents' => $providerCost,
+                'provider_cost_cents' => $costExact,
                 'billed_cents' => $billed,
                 'source' => 'gateway',
                 'request_id' => $requestId,

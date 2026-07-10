@@ -151,12 +151,12 @@ class ChargeService
         $out = (int) $charge->output_tokens;
 
         $catalog = ModelCatalog::where('provider', $provider)->where('model', $model)->first();
-        $providerCost = $catalog ? $catalog->costCents($in, $out) : 0;
-        $chargeBasis = $catalog ? $catalog->chargeBasisCents($in, $out) : $providerCost;
+        $costExact = $catalog ? $catalog->costCentsExact($in, $out) : 0.0;
+        $basisExact = $catalog ? $catalog->chargeBasisCentsExact($in, $out) : $costExact;
 
         $billed = $charge->amount_cents > 0
             ? (int) $charge->amount_cents
-            : $this->rates->resolve($client, $provider, $model)->billedCents($chargeBasis, $in, $out, 0, $providerCost);
+            : $this->rates->resolve($client, $provider, $model)->billedCents($basisExact, $in, $out, 0, $costExact);
 
         $record = UsageRecord::create([
             'client_id' => $client->id,
@@ -168,7 +168,7 @@ class ChargeService
             'period_end' => $at,
             'input_tokens' => $in,
             'output_tokens' => $out,
-            'provider_cost_cents' => $providerCost,
+            'provider_cost_cents' => $costExact,
             'billed_cents' => $billed,
             'source' => 'manual',
             'request_id' => "charge:{$charge->id}:{$run->period_key}",
@@ -183,7 +183,7 @@ class ChargeService
                 'usage_debit',
                 $charge->name,
                 "charge:{$charge->id}:{$run->period_key}",
-                ['charge_id' => $charge->id, 'kind' => 'usage', 'tokens_in' => $in, 'tokens_out' => $out, 'provider_cost_cents' => $providerCost],
+                ['charge_id' => $charge->id, 'kind' => 'usage', 'tokens_in' => $in, 'tokens_out' => $out, 'provider_cost_cents' => $costExact],
             );
         }
 

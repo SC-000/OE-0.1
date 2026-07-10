@@ -57,7 +57,7 @@ class ModelsController
             $u = $usage->get($m->provider.'|'.$m->model);
             $ov = $overrides->get($m->provider.'|'.$m->model);
             $rev = (int) ($u->rev ?? 0);
-            $cost = (int) ($u->cost ?? 0);
+            $cost = (int) round((float) ($u->cost ?? 0));
             $pending = $outstanding[$m->provider.'|'.$m->model] ?? null;
 
             // What this model's unbilled usage would cost us at the current price — the

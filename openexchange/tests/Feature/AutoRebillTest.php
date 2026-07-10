@@ -132,7 +132,7 @@ class AutoRebillTest extends TestCase
         $this->assertSame(1, $stats['rebilled']);
         $this->assertSame(200, $stats['billed_cents']);
         $rec->refresh();
-        $this->assertSame(200, $rec->provider_cost_cents);
+        $this->assertEqualsWithDelta(200, (float) $rec->provider_cost_cents, 1e-6);
         $this->assertSame(205, $rec->billed_cents);
         $this->assertSame(100_000 - 200, $client->fresh()->balance_cents);
     }
@@ -180,8 +180,8 @@ class AutoRebillTest extends TestCase
 
         // Only the dated snapshot of gpt-4o. gpt-4o-mini is its own model.
         $this->assertSame(1, $stats['rebilled']);
-        $this->assertSame(0, $mini->fresh()->provider_cost_cents);
-        $this->assertSame(1250, $dated->fresh()->provider_cost_cents);
+        $this->assertEqualsWithDelta(0, (float) $mini->fresh()->provider_cost_cents, 1e-6, 'gpt-4o-mini is untouched');
+        $this->assertEqualsWithDelta(1250, (float) $dated->fresh()->provider_cost_cents, 1e-6);
     }
 
     public function test_rebill_skips_records_whose_model_is_still_unpriced(): void

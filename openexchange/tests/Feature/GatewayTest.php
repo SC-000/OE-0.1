@@ -46,10 +46,11 @@ class GatewayTest extends TestCase
         $res->assertOk()
             ->assertJsonPath('backend', 'aistudio')
             ->assertJsonPath('usage.input_tokens', 2_000_000)
-            ->assertJsonPath('usage.billed_cents', 56); // cost 45c * 1.25
+            // cost 45c x 1.25 = 56.25c, rounded UP to the penny we actually charge.
+            ->assertJsonPath('usage.billed_cents', 57);
         $res->assertHeader('X-OX-Backend', 'aistudio');
-        $this->assertSame(10000 - 56, $client->fresh()->balance_cents);
-        $this->assertDatabaseHas('usage_records', ['source' => 'gateway', 'model' => 'gemini-2.5-flash', 'billed_cents' => 56]);
+        $this->assertSame(10000 - 57, $client->fresh()->balance_cents);
+        $this->assertDatabaseHas('usage_records', ['source' => 'gateway', 'model' => 'gemini-2.5-flash', 'billed_cents' => 57]);
     }
 
     public function test_gemini_via_vertex_meters_and_debits(): void
@@ -67,7 +68,7 @@ class GatewayTest extends TestCase
         $res = $this->withToken($plain)->postJson('/v1/chat', ['model' => 'gemini-2.5-flash', 'messages' => [['role' => 'user', 'content' => 'hi']]]);
 
         $res->assertOk()->assertJsonPath('backend', 'vertex')->assertJsonPath('usage.input_tokens', 2_000_000);
-        $this->assertSame(10000 - 56, $client->fresh()->balance_cents);
+        $this->assertSame(10000 - 57, $client->fresh()->balance_cents); // 56.25c rounds up
     }
 
     public function test_openai_via_gateway_meters_and_debits(): void

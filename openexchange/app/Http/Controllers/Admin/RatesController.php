@@ -116,10 +116,14 @@ class RatesController
 
         $client = Client::query()->whereKey($data['client_id'])->firstOrFail();
         $catalog = ModelCatalog::where('provider', $data['provider'])->where('model', $data['model'])->first();
-        $cost = $catalog?->costCents((int) $data['input_tokens'], (int) $data['output_tokens']) ?? 0;
+        $in = (int) $data['input_tokens'];
+        $out = (int) $data['output_tokens'];
+        $cost = $catalog?->costCents($in, $out) ?? 0;
+        $costExact = $catalog?->costCentsExact($in, $out) ?? 0.0;
+        $basisExact = $catalog?->chargeBasisCentsExact($in, $out) ?? $costExact;
 
         $rate = $rates->resolve($client, $data['provider'], $data['model']);
-        $billed = $rate->billedCents($cost, (int) $data['input_tokens'], (int) $data['output_tokens'], requests: 1);
+        $billed = $rate->billedCents($basisExact, $in, $out, 1, $costExact);
 
         return response()->json([
             'provider_cost_cents' => $cost,

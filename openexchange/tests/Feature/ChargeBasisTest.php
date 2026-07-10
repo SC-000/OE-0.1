@@ -80,7 +80,7 @@ class ChargeBasisTest extends TestCase
 
         // True margin is 300c (60% of revenue), NOT the 25% the markup column implies.
         $rec = UsageRecord::firstOrFail();
-        $this->assertSame(300, $rec->billed_cents - $rec->provider_cost_cents);
+        $this->assertEqualsWithDelta(300, $rec->billed_cents - (float) $rec->provider_cost_cents, 1e-6);
         $this->assertSame(100_000 - 500, $client->fresh()->balance_cents);
     }
 

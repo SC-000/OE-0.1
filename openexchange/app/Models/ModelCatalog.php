@@ -32,22 +32,39 @@ class ModelCatalog extends Model
     }
 
     /**
-     * REAL COST: what the provider charges us for this usage, in integer cents.
-     * Recorded as `usage_records.provider_cost_cents`. Margin is measured against it.
+     * REAL COST, exact, in fractional cents. Feed this into pricing — never a rounded
+     * value, or a 0.45¢ request rounds to 0¢ and then any markup of it is also 0¢.
      */
-    public function costCents(int $inputTokens, int $outputTokens): int
+    public function costCentsExact(int $inputTokens, int $outputTokens): float
     {
         return self::money($inputTokens, $outputTokens, (float) $this->input_usd_per_million, (float) $this->output_usd_per_million);
     }
 
     /**
-     * CHARGE-ON PRICE: the basis that markup % and rate-card overrides sit on top of.
-     * Defaults to the real cost, so a model with no charge-on price behaves exactly as
-     * it always did. Setting it above cost earns margin before any markup is applied.
+     * REAL COST rounded to a whole cent, for DISPLAY only.
+     *
+     * Never store this: `usage_records.provider_cost_cents` holds the exact fractional
+     * value (see costCentsExact), because rounding what we PAY destroys margin.
      */
-    public function chargeBasisCents(int $inputTokens, int $outputTokens): int
+    public function costCents(int $inputTokens, int $outputTokens): int
+    {
+        return (int) round($this->costCentsExact($inputTokens, $outputTokens));
+    }
+
+    /**
+     * CHARGE-ON PRICE, exact, in fractional cents — the basis that markup % and
+     * rate-card overrides sit on top of. Defaults to the real cost, so a model with no
+     * charge-on price behaves exactly as it always did.
+     */
+    public function chargeBasisCentsExact(int $inputTokens, int $outputTokens): float
     {
         return self::money($inputTokens, $outputTokens, $this->baseInput(), $this->baseOutput());
+    }
+
+    /** Charge-on price rounded for display. Do NOT bill from this — use the exact form. */
+    public function chargeBasisCents(int $inputTokens, int $outputTokens): int
+    {
+        return (int) round($this->chargeBasisCentsExact($inputTokens, $outputTokens));
     }
 
     public function baseInput(): float
@@ -81,11 +98,12 @@ class ModelCatalog extends Model
         return (int) round((($this->baseInput() + $this->baseOutput() - $cost) / $cost) * 10000);
     }
 
-    private static function money(int $inputTokens, int $outputTokens, float $inPerM, float $outPerM): int
+    /** Fractional cents. Never rounded here — rounding happens once, at the point of charging. */
+    private static function money(int $inputTokens, int $outputTokens, float $inPerM, float $outPerM): float
     {
         $usd = ($inputTokens / 1_000_000) * $inPerM + ($outputTokens / 1_000_000) * $outPerM;
 
-        return (int) round($usd * 100);
+        return $usd * 100;
     }
 
     public function isPriced(): bool

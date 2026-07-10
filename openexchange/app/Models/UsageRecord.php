@@ -14,7 +14,8 @@ class UsageRecord extends Model
         'period_end' => 'datetime',
         'input_tokens' => 'integer',
         'output_tokens' => 'integer',
-        'provider_cost_cents' => 'integer',
+        // Exact fractional cents — a gateway request often costs less than a penny.
+        'provider_cost_cents' => 'decimal:6',
         'billed_cents' => 'integer',
     ];
 

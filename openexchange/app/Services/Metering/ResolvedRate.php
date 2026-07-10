@@ -61,42 +61,73 @@ final class ResolvedRate
     }
 
     /**
+     * Money is settled to the micro-cent before rounding up. Below that is float dust,
+     * not revenue: one micro-cent is a hundred-millionth of a dollar.
+     */
+    private const PRECISION = 6;
+
+    /**
      * What we charge the client, in integer cents.
      *
      * Two distinct inputs, and mixing them up is how margin disappears:
      *
-     *   $chargeBasisCents — the model's charge-on price. Markup % is applied to THIS.
-     *   $realCostCents    — what the provider actually charges us. The margin floor
-     *                       protects THIS, because that's the only number that can
-     *                       make a request unprofitable. Defaults to the charge basis
-     *                       when a model has no separate charge-on price.
+     *   $chargeBasisCents — the model's charge-on price, EXACT fractional cents.
+     *                       Markup % is applied to THIS.
+     *   $realCostCents    — what the provider actually charges us, EXACT. The margin
+     *                       floor protects THIS, because that's the only number that
+     *                       can make a request unprofitable. Defaults to the charge
+     *                       basis when a model has no separate charge-on price.
+     *
+     * ROUNDING. Everything is computed in exact fractional cents and rounded UP exactly
+     * once, here, at the point of charging. Rounding earlier is what made a 0.45¢
+     * gpt-4o request bill $0: the cost rounded to 0¢, and 0¢ × any markup is still 0¢.
+     *
+     * Consequences, deliberately:
+     *   - any billable usage costs the client at least 1¢, so no request is ever free;
+     *   - the fraction of a penny we round up is real revenue we actually collect;
+     *   - `provider_cost_cents` keeps its exact sub-cent value, so margin stays honest
+     *     even on a workload of requests that each cost less than a penny.
      *
      * @param  int  $requests  Only the gateway knows a true request count; pulled usage
      *                         buckets aggregate many requests, so they pass 0 and skip the fee.
      */
     public function billedCents(
-        int $chargeBasisCents,
+        float $chargeBasisCents,
         int $inputTokens,
         int $outputTokens,
         int $requests = 0,
-        ?int $realCostCents = null,
+        ?float $realCostCents = null,
     ): int {
         $realCostCents ??= $chargeBasisCents;
 
         $billed = $this->mode === 'fixed'
-            ? (int) round(
-                (($inputTokens / 1_000_000) * (float) ($this->inputUsdPerMillion ?? 0)
+            ? (($inputTokens / 1_000_000) * (float) ($this->inputUsdPerMillion ?? 0)
                 + ($outputTokens / 1_000_000) * (float) ($this->outputUsdPerMillion ?? 0)) * 100
-            )
-            : (int) round($chargeBasisCents * (1 + (($this->markupBps ?? 0) / 10000)));
+            : $chargeBasisCents * (1 + (($this->markupBps ?? 0) / 10000));
 
         $billed += $this->perRequestFeeCents * max(0, $requests);
 
         if ($this->minMarginBps !== null && $realCostCents > 0) {
-            $billed = max($billed, (int) round($realCostCents * (1 + $this->minMarginBps / 10000)));
+            $billed = max($billed, $realCostCents * (1 + $this->minMarginBps / 10000));
         }
 
-        return max(0, $billed);
+        return self::ceilCents($billed);
+    }
+
+    /**
+     * Round up to the next whole cent — but only for money that is actually there.
+     *
+     * `ceil()` alone would turn a float artefact like 1250.0000000000002 into 1251,
+     * over-charging a penny for free. Settling to the micro-cent first erases the dust
+     * while keeping every real fraction: one genuine micro-cent still costs a penny.
+     */
+    public static function ceilCents(float $cents): int
+    {
+        if ($cents <= 0.0) {
+            return 0;
+        }
+
+        return (int) ceil(round($cents, self::PRECISION));
     }
 
     /** Realised markup in bps for a booked line — the number margin reports care about. */

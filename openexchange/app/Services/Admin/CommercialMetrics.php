@@ -71,7 +71,7 @@ class CommercialMetrics
             $r = $rows->get($day);
             $labels[] = $day;
             $revenue[] = round((int) ($r->rev ?? 0) / 100, 2);
-            $margin[] = round(((int) ($r->rev ?? 0) - (int) ($r->cost ?? 0)) / 100, 2);
+            $margin[] = round(((int) ($r->rev ?? 0) - self::cents($r->cost ?? 0)) / 100, 2);
         }
 
         return ['labels' => $labels, 'revenue' => $revenue, 'margin' => $margin];
@@ -97,7 +97,7 @@ class CommercialMetrics
         $leaks = [];
         foreach ($rows as $r) {
             $rev = (int) $r->rev;
-            $cost = (int) $r->cost;
+            $cost = self::cents($r->cost);
             $markup = $cost > 0 ? (($rev - $cost) / $cost) * 100 : null;
 
             $kind = match (true) {
@@ -144,9 +144,9 @@ class CommercialMetrics
                 'provider' => $r->provider,
                 'model' => $r->model,
                 'revenue_cents' => (int) $r->rev,
-                'cost_cents' => (int) $r->cost,
-                'margin_cents' => (int) $r->rev - (int) $r->cost,
-                'margin_pct' => $this->pct((int) $r->rev - (int) $r->cost, (int) $r->rev),
+                'cost_cents' => self::cents($r->cost),
+                'margin_cents' => (int) $r->rev - self::cents($r->cost),
+                'margin_pct' => $this->pct((int) $r->rev - self::cents($r->cost), (int) $r->rev),
                 'tokens' => (int) $r->toks,
                 'requests' => (int) $r->n,
             ])->all();
@@ -165,7 +165,7 @@ class CommercialMetrics
         return Client::orderBy('name')->get()->map(function ($c) use ($rows, $total) {
             $r = $rows->get($c->id);
             $rev = (int) ($r->rev ?? 0);
-            $cost = (int) ($r->cost ?? 0);
+            $cost = self::cents($r->cost ?? 0);
 
             return [
                 'id' => $c->id,
@@ -284,8 +284,8 @@ class CommercialMetrics
 
         return [
             'revenue' => (int) $row->rev,
-            'cost' => (int) $row->cost,
-            'margin' => (int) $row->rev - (int) $row->cost,
+            'cost' => self::cents($row->cost),
+            'margin' => (int) $row->rev - self::cents($row->cost),
             'tokens' => (int) $row->toks,
             'requests' => (int) $row->n,
         ];
@@ -301,6 +301,15 @@ class CommercialMetrics
 
         // Blended midpoint — we don't have the in/out split at this aggregation level.
         return (int) round(($tokens / 1_000_000) * ($catalog->blendedUsdPerMillion() / 2) * 100);
+    }
+
+    /**
+     * `usage_records.provider_cost_cents` is DECIMAL(18,6), so SUM() comes back
+     * fractional. Casting straight to int truncates 0.9c to 0c — round it.
+     */
+    private static function cents(mixed $value): int
+    {
+        return (int) round((float) $value);
     }
 
     private function pct(int $part, int $whole): ?float
