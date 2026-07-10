@@ -8,6 +8,7 @@ use App\Models\ModelPriceProposal;
 use App\Models\TopUp;
 use App\Models\UsageRecord;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\DB;
 
 /**
  * The numbers that tell you whether this business is working.
@@ -17,6 +18,13 @@ use Carbon\CarbonImmutable;
  */
 class CommercialMetrics
 {
+    private const SERIES_RANGES = [
+        '24h' => ['label' => '24h', 'hours' => 24, 'bucket' => 'hour'],
+        '7d' => ['label' => '7d', 'hours' => 168, 'bucket' => 'hour'],
+        '30d' => ['label' => '30d', 'days' => 30, 'bucket' => 'day'],
+        '90d' => ['label' => '90d', 'days' => 90, 'bucket' => 'day'],
+    ];
+
     private CarbonImmutable $monthStart;
 
     public function __construct()
@@ -53,28 +61,66 @@ class CommercialMetrics
         ];
     }
 
-    /** Daily revenue / cost / margin for a sparkline. */
-    public function series(int $days = 30): array
+    /** Available time windows for the P&L chart. */
+    public function seriesOptions(): array
     {
-        $from = CarbonImmutable::now()->subDays($days - 1)->startOfDay();
+        $options = [];
+        foreach (self::SERIES_RANGES as $value => $config) {
+            $options[] = [
+                'value' => $value,
+                'label' => $config['label'],
+                'granularity' => $config['bucket'] === 'hour' ? 'Hourly' : 'Daily',
+            ];
+        }
+
+        return $options;
+    }
+
+    /** Revenue / cost / margin over a selectable time window. */
+    public function series(string|int $range = '30d'): array
+    {
+        $range = $this->normalizeSeriesRange($range);
+        $config = self::SERIES_RANGES[$range];
+        $bucket = $config['bucket'];
+        $buckets = $bucket === 'hour' ? $config['hours'] : $config['days'];
+        $from = $bucket === 'hour'
+            ? CarbonImmutable::now()->subHours($buckets - 1)->startOfHour()
+            : CarbonImmutable::now()->subDays($buckets - 1)->startOfDay();
 
         $rows = UsageRecord::query()
             ->where('period_start', '>=', $from)
-            ->selectRaw('date(period_start) d, SUM(billed_cents) rev, SUM(provider_cost_cents) cost')
-            ->groupBy('d')->orderBy('d')->get()->keyBy('d');
+            ->selectRaw($this->seriesBucketExpression($bucket).' bucket, SUM(billed_cents) rev, SUM(provider_cost_cents) cost')
+            ->groupBy('bucket')
+            ->orderBy('bucket')
+            ->get()
+            ->keyBy('bucket');
 
         $revenue = [];
+        $cost = [];
         $margin = [];
         $labels = [];
-        for ($i = 0; $i < $days; $i++) {
-            $day = $from->addDays($i)->format('Y-m-d');
-            $r = $rows->get($day);
-            $labels[] = $day;
-            $revenue[] = round((int) ($r->rev ?? 0) / 100, 2);
-            $margin[] = round(((int) ($r->rev ?? 0) - self::cents($r->cost ?? 0)) / 100, 2);
+        for ($i = 0; $i < $buckets; $i++) {
+            $at = $bucket === 'hour' ? $from->addHours($i) : $from->addDays($i);
+            $label = $at->format($bucket === 'hour' ? 'Y-m-d H:00' : 'Y-m-d');
+            $r = $rows->get($label);
+            $rev = (int) ($r->rev ?? 0);
+            $costCents = self::cents($r->cost ?? 0);
+
+            $labels[] = $label;
+            $revenue[] = round($rev / 100, 2);
+            $cost[] = round($costCents / 100, 2);
+            $margin[] = round(($rev - $costCents) / 100, 2);
         }
 
-        return ['labels' => $labels, 'revenue' => $revenue, 'margin' => $margin];
+        return [
+            'range' => $range,
+            'bucket' => $bucket,
+            'granularity' => $bucket === 'hour' ? 'hourly' : 'daily',
+            'labels' => $labels,
+            'revenue' => $revenue,
+            'cost' => $cost,
+            'margin' => $margin,
+        ];
     }
 
     /**
@@ -310,6 +356,32 @@ class CommercialMetrics
     private static function cents(mixed $value): int
     {
         return (int) round((float) $value);
+    }
+
+    private function normalizeSeriesRange(string|int $range): string
+    {
+        if (is_int($range)) {
+            $range = $range.'d';
+        }
+
+        return array_key_exists($range, self::SERIES_RANGES) ? $range : '30d';
+    }
+
+    private function seriesBucketExpression(string $bucket): string
+    {
+        $driver = DB::connection()->getDriverName();
+
+        return match ($driver) {
+            'sqlite' => $bucket === 'hour'
+                ? "strftime('%Y-%m-%d %H:00', period_start)"
+                : 'date(period_start)',
+            'pgsql' => $bucket === 'hour'
+                ? "to_char(date_trunc('hour', period_start), 'YYYY-MM-DD HH24:00')"
+                : "to_char(period_start::date, 'YYYY-MM-DD')",
+            default => $bucket === 'hour'
+                ? "DATE_FORMAT(period_start, '%Y-%m-%d %H:00')"
+                : 'DATE(period_start)',
+        };
     }
 
     private function pct(int $part, int $whole): ?float

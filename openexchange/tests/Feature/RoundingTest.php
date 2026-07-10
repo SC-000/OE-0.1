@@ -7,11 +7,13 @@ use App\Models\Client;
 use App\Models\ClientModelRate;
 use App\Models\ModelCatalog;
 use App\Models\ProviderBackend;
+use App\Models\ProviderKey;
 use App\Models\UsageRecord;
 use App\Services\Admin\CommercialMetrics;
 use App\Services\Metering\MeteringService;
 use App\Services\Metering\RateResolver;
 use App\Services\Metering\ResolvedRate;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -155,6 +157,57 @@ class RoundingTest extends TestCase
         $this->assertSame(1_000, $overview['revenue_cents']);
         $this->assertSame(450, $overview['cost_cents']);
         $this->assertSame(550, $overview['margin_cents']);
+    }
+
+    public function test_admin_pnl_series_includes_cost_and_hourly_ranges(): void
+    {
+        CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-07-10 15:30:00'));
+
+        try {
+            $client = $this->client();
+            $key = ProviderKey::create([
+                'client_id' => $client->id,
+                'provider' => 'openai',
+                'label' => 'prod',
+                'external_project_id' => 'proj',
+                'external_key_id' => 'key',
+            ]);
+
+            foreach ([
+                ['at' => '2026-07-10 14:10:00', 'cost' => 40.4, 'billed' => 100],
+                ['at' => '2026-07-10 15:05:00', 'cost' => 25.2, 'billed' => 60],
+            ] as $row) {
+                $at = CarbonImmutable::parse($row['at']);
+                UsageRecord::create([
+                    'client_id' => $client->id,
+                    'provider_key_id' => $key->id,
+                    'provider' => 'openai',
+                    'model' => 'gpt-4o',
+                    'period_start' => $at,
+                    'period_end' => $at->addMinutes(5),
+                    'provider_cost_cents' => $row['cost'],
+                    'billed_cents' => $row['billed'],
+                    'source' => 'pull',
+                ]);
+            }
+
+            $series = app(CommercialMetrics::class)->series('24h');
+            $hour = array_search('2026-07-10 14:00', $series['labels'], true);
+
+            $this->assertSame('24h', $series['range']);
+            $this->assertSame('hour', $series['bucket']);
+            $this->assertCount(24, $series['labels']);
+            $this->assertNotFalse($hour);
+            $this->assertSame(1.0, $series['revenue'][$hour]);
+            $this->assertSame(0.4, $series['cost'][$hour]);
+            $this->assertSame(0.6, $series['margin'][$hour]);
+
+            $daily = app(CommercialMetrics::class)->series(30);
+            $this->assertSame('30d', $daily['range']);
+            $this->assertArrayHasKey('cost', $daily);
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
     }
 
     public function test_zero_tokens_are_never_charged(): void

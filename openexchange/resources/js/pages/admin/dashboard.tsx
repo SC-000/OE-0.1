@@ -63,10 +63,25 @@ type Churn = {
     recent_cents: number;
     drop_pct: number;
 };
+type ProfitSeries = {
+    range: string;
+    bucket: 'hour' | 'day';
+    granularity: string;
+    labels: string[];
+    revenue: number[];
+    cost: number[];
+    margin: number[];
+};
+type SeriesOption = {
+    value: string;
+    label: string;
+    granularity: string;
+};
 
 type Props = {
     overview: Overview;
-    series: { labels: string[]; revenue: number[]; margin: number[] };
+    series: ProfitSeries;
+    seriesOptions: SeriesOption[];
     leaks: Leak[];
     topModels: TopModel[];
     clients: ClientPerf[];
@@ -150,9 +165,29 @@ const td: React.CSSProperties = {
 };
 const mono: React.CSSProperties = { fontFamily: 'var(--ox-font-mono)' };
 
+const chartTickLabels = (series: ProfitSeries) => {
+    const step = Math.max(1, Math.ceil(series.labels.length / 6));
+
+    return series.labels.map((label, i) => {
+        const show = i === 0 || i === series.labels.length - 1 || i % step === 0;
+        if (!show) {
+            return '';
+        }
+
+        if (series.bucket === 'hour') {
+            const [date, time = ''] = label.split(' ');
+
+            return `${date.slice(5)} ${time.slice(0, 2)}h`;
+        }
+
+        return label.slice(5);
+    });
+};
+
 export default function AdminDashboard({
     overview,
     series,
+    seriesOptions,
     leaks,
     topModels,
     clients,
@@ -165,6 +200,7 @@ export default function AdminDashboard({
 }: Props) {
     const totalLeak = leaks.reduce((s, l) => s + l.impact_cents, 0);
     const topClient = clients[0];
+    const activeSeriesOption = seriesOptions.find((o) => o.value === series.range);
 
     const actions = [
         attention.pending_proposals && {
@@ -319,20 +355,84 @@ export default function AdminDashboard({
             </div>
 
             <Card padding="lg" style={{ marginBottom: 22 }}>
-                {sectionTitle(
-                    'Revenue vs margin',
-                    'Last 30 days. The gap between the lines is what you pay the providers.',
-                )}
+                <div
+                    style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'flex-start',
+                        gap: 16,
+                        flexWrap: 'wrap',
+                        marginBottom: 4,
+                    }}
+                >
+                    {sectionTitle(
+                        'Revenue, cost & margin',
+                        `${activeSeriesOption?.label ?? series.range} · ${activeSeriesOption?.granularity ?? series.granularity} buckets`,
+                    )}
+                    <div
+                        role="tablist"
+                        aria-label="Revenue chart range"
+                        style={{
+                            display: 'inline-flex',
+                            gap: 3,
+                            padding: 3,
+                            border: '1px solid var(--ox-border)',
+                            borderRadius: 'var(--ox-radius-md)',
+                            background: 'var(--ox-bg)',
+                        }}
+                    >
+                        {seriesOptions.map((option) => {
+                            const active = option.value === series.range;
+
+                            return (
+                                <Link
+                                    key={option.value}
+                                    href={
+                                        option.value === '30d'
+                                            ? '/admin'
+                                            : `/admin?range=${option.value}`
+                                    }
+                                    preserveScroll
+                                    role="tab"
+                                    aria-selected={active}
+                                    style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        minWidth: 44,
+                                        height: 28,
+                                        padding: '0 10px',
+                                        borderRadius: 'var(--ox-radius-sm)',
+                                        textDecoration: 'none',
+                                        fontSize: 'var(--ox-text-xs)',
+                                        fontWeight: 700,
+                                        color: active
+                                            ? '#fff'
+                                            : 'var(--ox-text-subtle)',
+                                        background: active
+                                            ? 'var(--ox-ink-900)'
+                                            : 'transparent',
+                                    }}
+                                >
+                                    {option.label}
+                                </Link>
+                            );
+                        })}
+                    </div>
+                </div>
                 <LineArea
                     height={230}
-                    xLabels={series.labels.map((d, i) =>
-                        i % 5 === 0 ? d.slice(5) : '',
-                    )}
+                    xLabels={chartTickLabels(series)}
                     series={[
                         {
                             name: 'Revenue',
                             values: series.revenue,
                             color: '#33c13e',
+                        },
+                        {
+                            name: 'Cost',
+                            values: series.cost,
+                            color: '#c9992e',
                         },
                         {
                             name: 'Margin',
