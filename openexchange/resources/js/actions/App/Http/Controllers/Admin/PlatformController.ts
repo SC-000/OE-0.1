@@ -1,4 +1,4 @@
-import { queryParams, type RouteQueryOptions, type RouteDefinition, applyUrlDefaults } from './../../../../../wayfinder'
+import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition, applyUrlDefaults } from './../../../../../wayfinder'
 /**
 * @see \App\Http\Controllers\Admin\PlatformController::index
 * @see app/Http/Controllers/Admin/PlatformController.php:26
@@ -44,8 +44,45 @@ index.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 })
 
 /**
+* @see \App\Http\Controllers\Admin\PlatformController::index
+* @see app/Http/Controllers/Admin/PlatformController.php:26
+* @route '/admin/platform'
+*/
+const indexForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: index.url(options),
+    method: 'get',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\PlatformController::index
+* @see app/Http/Controllers/Admin/PlatformController.php:26
+* @route '/admin/platform'
+*/
+indexForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: index.url(options),
+    method: 'get',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\PlatformController::index
+* @see app/Http/Controllers/Admin/PlatformController.php:26
+* @route '/admin/platform'
+*/
+indexForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: index.url({
+        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+            _method: 'HEAD',
+            ...(options?.query ?? options?.mergeQuery ?? {}),
+        }
+    }),
+    method: 'get',
+})
+
+index.form = indexForm
+
+/**
 * @see \App\Http\Controllers\Admin\PlatformController::storeBackend
-* @see app/Http/Controllers/Admin/PlatformController.php:90
+* @see app/Http/Controllers/Admin/PlatformController.php:116
 * @route '/admin/platform/backends'
 */
 export const storeBackend = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -60,7 +97,7 @@ storeBackend.definition = {
 
 /**
 * @see \App\Http\Controllers\Admin\PlatformController::storeBackend
-* @see app/Http/Controllers/Admin/PlatformController.php:90
+* @see app/Http/Controllers/Admin/PlatformController.php:116
 * @route '/admin/platform/backends'
 */
 storeBackend.url = (options?: RouteQueryOptions) => {
@@ -69,7 +106,7 @@ storeBackend.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\Admin\PlatformController::storeBackend
-* @see app/Http/Controllers/Admin/PlatformController.php:90
+* @see app/Http/Controllers/Admin/PlatformController.php:116
 * @route '/admin/platform/backends'
 */
 storeBackend.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -78,8 +115,30 @@ storeBackend.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 })
 
 /**
+* @see \App\Http\Controllers\Admin\PlatformController::storeBackend
+* @see app/Http/Controllers/Admin/PlatformController.php:116
+* @route '/admin/platform/backends'
+*/
+const storeBackendForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: storeBackend.url(options),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\PlatformController::storeBackend
+* @see app/Http/Controllers/Admin/PlatformController.php:116
+* @route '/admin/platform/backends'
+*/
+storeBackendForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: storeBackend.url(options),
+    method: 'post',
+})
+
+storeBackend.form = storeBackendForm
+
+/**
 * @see \App\Http\Controllers\Admin\PlatformController::destroyBackend
-* @see app/Http/Controllers/Admin/PlatformController.php:107
+* @see app/Http/Controllers/Admin/PlatformController.php:133
 * @route '/admin/platform/backends/{backend}'
 */
 export const destroyBackend = (args: { backend: number | { id: number } } | [backend: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'delete'> => ({
@@ -94,7 +153,7 @@ destroyBackend.definition = {
 
 /**
 * @see \App\Http\Controllers\Admin\PlatformController::destroyBackend
-* @see app/Http/Controllers/Admin/PlatformController.php:107
+* @see app/Http/Controllers/Admin/PlatformController.php:133
 * @route '/admin/platform/backends/{backend}'
 */
 destroyBackend.url = (args: { backend: number | { id: number } } | [backend: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
@@ -127,7 +186,7 @@ destroyBackend.url = (args: { backend: number | { id: number } } | [backend: num
 
 /**
 * @see \App\Http\Controllers\Admin\PlatformController::destroyBackend
-* @see app/Http/Controllers/Admin/PlatformController.php:107
+* @see app/Http/Controllers/Admin/PlatformController.php:133
 * @route '/admin/platform/backends/{backend}'
 */
 destroyBackend.delete = (args: { backend: number | { id: number } } | [backend: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'delete'> => ({
@@ -136,8 +195,40 @@ destroyBackend.delete = (args: { backend: number | { id: number } } | [backend: 
 })
 
 /**
+* @see \App\Http\Controllers\Admin\PlatformController::destroyBackend
+* @see app/Http/Controllers/Admin/PlatformController.php:133
+* @route '/admin/platform/backends/{backend}'
+*/
+const destroyBackendForm = (args: { backend: number | { id: number } } | [backend: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: destroyBackend.url(args, {
+        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+            _method: 'DELETE',
+            ...(options?.query ?? options?.mergeQuery ?? {}),
+        }
+    }),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\PlatformController::destroyBackend
+* @see app/Http/Controllers/Admin/PlatformController.php:133
+* @route '/admin/platform/backends/{backend}'
+*/
+destroyBackendForm.delete = (args: { backend: number | { id: number } } | [backend: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: destroyBackend.url(args, {
+        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+            _method: 'DELETE',
+            ...(options?.query ?? options?.mergeQuery ?? {}),
+        }
+    }),
+    method: 'post',
+})
+
+destroyBackend.form = destroyBackendForm
+
+/**
 * @see \App\Http\Controllers\Admin\PlatformController::storeKey
-* @see app/Http/Controllers/Admin/PlatformController.php:116
+* @see app/Http/Controllers/Admin/PlatformController.php:142
 * @route '/admin/platform/keys'
 */
 export const storeKey = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -152,7 +243,7 @@ storeKey.definition = {
 
 /**
 * @see \App\Http\Controllers\Admin\PlatformController::storeKey
-* @see app/Http/Controllers/Admin/PlatformController.php:116
+* @see app/Http/Controllers/Admin/PlatformController.php:142
 * @route '/admin/platform/keys'
 */
 storeKey.url = (options?: RouteQueryOptions) => {
@@ -161,7 +252,7 @@ storeKey.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\Admin\PlatformController::storeKey
-* @see app/Http/Controllers/Admin/PlatformController.php:116
+* @see app/Http/Controllers/Admin/PlatformController.php:142
 * @route '/admin/platform/keys'
 */
 storeKey.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -170,8 +261,30 @@ storeKey.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 })
 
 /**
+* @see \App\Http\Controllers\Admin\PlatformController::storeKey
+* @see app/Http/Controllers/Admin/PlatformController.php:142
+* @route '/admin/platform/keys'
+*/
+const storeKeyForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: storeKey.url(options),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\PlatformController::storeKey
+* @see app/Http/Controllers/Admin/PlatformController.php:142
+* @route '/admin/platform/keys'
+*/
+storeKeyForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: storeKey.url(options),
+    method: 'post',
+})
+
+storeKey.form = storeKeyForm
+
+/**
 * @see \App\Http\Controllers\Admin\PlatformController::discover
-* @see app/Http/Controllers/Admin/PlatformController.php:133
+* @see app/Http/Controllers/Admin/PlatformController.php:159
 * @route '/admin/platform/discover'
 */
 export const discover = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -186,7 +299,7 @@ discover.definition = {
 
 /**
 * @see \App\Http\Controllers\Admin\PlatformController::discover
-* @see app/Http/Controllers/Admin/PlatformController.php:133
+* @see app/Http/Controllers/Admin/PlatformController.php:159
 * @route '/admin/platform/discover'
 */
 discover.url = (options?: RouteQueryOptions) => {
@@ -195,7 +308,7 @@ discover.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\Admin\PlatformController::discover
-* @see app/Http/Controllers/Admin/PlatformController.php:133
+* @see app/Http/Controllers/Admin/PlatformController.php:159
 * @route '/admin/platform/discover'
 */
 discover.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -204,8 +317,30 @@ discover.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 })
 
 /**
+* @see \App\Http\Controllers\Admin\PlatformController::discover
+* @see app/Http/Controllers/Admin/PlatformController.php:159
+* @route '/admin/platform/discover'
+*/
+const discoverForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: discover.url(options),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\PlatformController::discover
+* @see app/Http/Controllers/Admin/PlatformController.php:159
+* @route '/admin/platform/discover'
+*/
+discoverForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: discover.url(options),
+    method: 'post',
+})
+
+discover.form = discoverForm
+
+/**
 * @see \App\Http\Controllers\Admin\PlatformController::assignProject
-* @see app/Http/Controllers/Admin/PlatformController.php:146
+* @see app/Http/Controllers/Admin/PlatformController.php:172
 * @route '/admin/platform/assign-project'
 */
 export const assignProject = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -220,7 +355,7 @@ assignProject.definition = {
 
 /**
 * @see \App\Http\Controllers\Admin\PlatformController::assignProject
-* @see app/Http/Controllers/Admin/PlatformController.php:146
+* @see app/Http/Controllers/Admin/PlatformController.php:172
 * @route '/admin/platform/assign-project'
 */
 assignProject.url = (options?: RouteQueryOptions) => {
@@ -229,7 +364,7 @@ assignProject.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\Admin\PlatformController::assignProject
-* @see app/Http/Controllers/Admin/PlatformController.php:146
+* @see app/Http/Controllers/Admin/PlatformController.php:172
 * @route '/admin/platform/assign-project'
 */
 assignProject.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -238,8 +373,30 @@ assignProject.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => (
 })
 
 /**
+* @see \App\Http\Controllers\Admin\PlatformController::assignProject
+* @see app/Http/Controllers/Admin/PlatformController.php:172
+* @route '/admin/platform/assign-project'
+*/
+const assignProjectForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: assignProject.url(options),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\PlatformController::assignProject
+* @see app/Http/Controllers/Admin/PlatformController.php:172
+* @route '/admin/platform/assign-project'
+*/
+assignProjectForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: assignProject.url(options),
+    method: 'post',
+})
+
+assignProject.form = assignProjectForm
+
+/**
 * @see \App\Http\Controllers\Admin\PlatformController::toggleProject
-* @see app/Http/Controllers/Admin/PlatformController.php:166
+* @see app/Http/Controllers/Admin/PlatformController.php:192
 * @route '/admin/platform/toggle-project'
 */
 export const toggleProject = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -254,7 +411,7 @@ toggleProject.definition = {
 
 /**
 * @see \App\Http\Controllers\Admin\PlatformController::toggleProject
-* @see app/Http/Controllers/Admin/PlatformController.php:166
+* @see app/Http/Controllers/Admin/PlatformController.php:192
 * @route '/admin/platform/toggle-project'
 */
 toggleProject.url = (options?: RouteQueryOptions) => {
@@ -263,7 +420,7 @@ toggleProject.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\Admin\PlatformController::toggleProject
-* @see app/Http/Controllers/Admin/PlatformController.php:166
+* @see app/Http/Controllers/Admin/PlatformController.php:192
 * @route '/admin/platform/toggle-project'
 */
 toggleProject.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -272,8 +429,30 @@ toggleProject.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => (
 })
 
 /**
+* @see \App\Http\Controllers\Admin\PlatformController::toggleProject
+* @see app/Http/Controllers/Admin/PlatformController.php:192
+* @route '/admin/platform/toggle-project'
+*/
+const toggleProjectForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: toggleProject.url(options),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\PlatformController::toggleProject
+* @see app/Http/Controllers/Admin/PlatformController.php:192
+* @route '/admin/platform/toggle-project'
+*/
+toggleProjectForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: toggleProject.url(options),
+    method: 'post',
+})
+
+toggleProject.form = toggleProjectForm
+
+/**
 * @see \App\Http\Controllers\Admin\PlatformController::createAccessKey
-* @see app/Http/Controllers/Admin/PlatformController.php:184
+* @see app/Http/Controllers/Admin/PlatformController.php:210
 * @route '/admin/platform/access-keys'
 */
 export const createAccessKey = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -288,7 +467,7 @@ createAccessKey.definition = {
 
 /**
 * @see \App\Http\Controllers\Admin\PlatformController::createAccessKey
-* @see app/Http/Controllers/Admin/PlatformController.php:184
+* @see app/Http/Controllers/Admin/PlatformController.php:210
 * @route '/admin/platform/access-keys'
 */
 createAccessKey.url = (options?: RouteQueryOptions) => {
@@ -297,7 +476,7 @@ createAccessKey.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\Admin\PlatformController::createAccessKey
-* @see app/Http/Controllers/Admin/PlatformController.php:184
+* @see app/Http/Controllers/Admin/PlatformController.php:210
 * @route '/admin/platform/access-keys'
 */
 createAccessKey.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -306,8 +485,30 @@ createAccessKey.post = (options?: RouteQueryOptions): RouteDefinition<'post'> =>
 })
 
 /**
+* @see \App\Http\Controllers\Admin\PlatformController::createAccessKey
+* @see app/Http/Controllers/Admin/PlatformController.php:210
+* @route '/admin/platform/access-keys'
+*/
+const createAccessKeyForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: createAccessKey.url(options),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\PlatformController::createAccessKey
+* @see app/Http/Controllers/Admin/PlatformController.php:210
+* @route '/admin/platform/access-keys'
+*/
+createAccessKeyForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: createAccessKey.url(options),
+    method: 'post',
+})
+
+createAccessKey.form = createAccessKeyForm
+
+/**
 * @see \App\Http\Controllers\Admin\PlatformController::revokeAccessKey
-* @see app/Http/Controllers/Admin/PlatformController.php:199
+* @see app/Http/Controllers/Admin/PlatformController.php:225
 * @route '/admin/platform/access-keys/{accessKey}'
 */
 export const revokeAccessKey = (args: { accessKey: number | { id: number } } | [accessKey: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'delete'> => ({
@@ -322,7 +523,7 @@ revokeAccessKey.definition = {
 
 /**
 * @see \App\Http\Controllers\Admin\PlatformController::revokeAccessKey
-* @see app/Http/Controllers/Admin/PlatformController.php:199
+* @see app/Http/Controllers/Admin/PlatformController.php:225
 * @route '/admin/platform/access-keys/{accessKey}'
 */
 revokeAccessKey.url = (args: { accessKey: number | { id: number } } | [accessKey: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
@@ -355,7 +556,7 @@ revokeAccessKey.url = (args: { accessKey: number | { id: number } } | [accessKey
 
 /**
 * @see \App\Http\Controllers\Admin\PlatformController::revokeAccessKey
-* @see app/Http/Controllers/Admin/PlatformController.php:199
+* @see app/Http/Controllers/Admin/PlatformController.php:225
 * @route '/admin/platform/access-keys/{accessKey}'
 */
 revokeAccessKey.delete = (args: { accessKey: number | { id: number } } | [accessKey: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'delete'> => ({
@@ -364,8 +565,40 @@ revokeAccessKey.delete = (args: { accessKey: number | { id: number } } | [access
 })
 
 /**
+* @see \App\Http\Controllers\Admin\PlatformController::revokeAccessKey
+* @see app/Http/Controllers/Admin/PlatformController.php:225
+* @route '/admin/platform/access-keys/{accessKey}'
+*/
+const revokeAccessKeyForm = (args: { accessKey: number | { id: number } } | [accessKey: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: revokeAccessKey.url(args, {
+        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+            _method: 'DELETE',
+            ...(options?.query ?? options?.mergeQuery ?? {}),
+        }
+    }),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\PlatformController::revokeAccessKey
+* @see app/Http/Controllers/Admin/PlatformController.php:225
+* @route '/admin/platform/access-keys/{accessKey}'
+*/
+revokeAccessKeyForm.delete = (args: { accessKey: number | { id: number } } | [accessKey: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: revokeAccessKey.url(args, {
+        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+            _method: 'DELETE',
+            ...(options?.query ?? options?.mergeQuery ?? {}),
+        }
+    }),
+    method: 'post',
+})
+
+revokeAccessKey.form = revokeAccessKeyForm
+
+/**
 * @see \App\Http\Controllers\Admin\PlatformController::sync
-* @see app/Http/Controllers/Admin/PlatformController.php:207
+* @see app/Http/Controllers/Admin/PlatformController.php:238
 * @route '/admin/platform/sync'
 */
 export const sync = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -380,7 +613,7 @@ sync.definition = {
 
 /**
 * @see \App\Http\Controllers\Admin\PlatformController::sync
-* @see app/Http/Controllers/Admin/PlatformController.php:207
+* @see app/Http/Controllers/Admin/PlatformController.php:238
 * @route '/admin/platform/sync'
 */
 sync.url = (options?: RouteQueryOptions) => {
@@ -389,7 +622,7 @@ sync.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\Admin\PlatformController::sync
-* @see app/Http/Controllers/Admin/PlatformController.php:207
+* @see app/Http/Controllers/Admin/PlatformController.php:238
 * @route '/admin/platform/sync'
 */
 sync.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -398,8 +631,30 @@ sync.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 })
 
 /**
+* @see \App\Http\Controllers\Admin\PlatformController::sync
+* @see app/Http/Controllers/Admin/PlatformController.php:238
+* @route '/admin/platform/sync'
+*/
+const syncForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: sync.url(options),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\PlatformController::sync
+* @see app/Http/Controllers/Admin/PlatformController.php:238
+* @route '/admin/platform/sync'
+*/
+syncForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: sync.url(options),
+    method: 'post',
+})
+
+sync.form = syncForm
+
+/**
 * @see \App\Http\Controllers\Admin\PlatformController::rebill
-* @see app/Http/Controllers/Admin/PlatformController.php:218
+* @see app/Http/Controllers/Admin/PlatformController.php:291
 * @route '/admin/platform/rebill'
 */
 export const rebill = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -414,7 +669,7 @@ rebill.definition = {
 
 /**
 * @see \App\Http\Controllers\Admin\PlatformController::rebill
-* @see app/Http/Controllers/Admin/PlatformController.php:218
+* @see app/Http/Controllers/Admin/PlatformController.php:291
 * @route '/admin/platform/rebill'
 */
 rebill.url = (options?: RouteQueryOptions) => {
@@ -423,13 +678,35 @@ rebill.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\Admin\PlatformController::rebill
-* @see app/Http/Controllers/Admin/PlatformController.php:218
+* @see app/Http/Controllers/Admin/PlatformController.php:291
 * @route '/admin/platform/rebill'
 */
 rebill.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
     url: rebill.url(options),
     method: 'post',
 })
+
+/**
+* @see \App\Http\Controllers\Admin\PlatformController::rebill
+* @see app/Http/Controllers/Admin/PlatformController.php:291
+* @route '/admin/platform/rebill'
+*/
+const rebillForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: rebill.url(options),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\PlatformController::rebill
+* @see app/Http/Controllers/Admin/PlatformController.php:291
+* @route '/admin/platform/rebill'
+*/
+rebillForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: rebill.url(options),
+    method: 'post',
+})
+
+rebill.form = rebillForm
 
 const PlatformController = { index, storeBackend, destroyBackend, storeKey, discover, assignProject, toggleProject, createAccessKey, revokeAccessKey, sync, rebill }
 

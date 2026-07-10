@@ -1,4 +1,4 @@
-import { queryParams, type RouteQueryOptions, type RouteDefinition, applyUrlDefaults } from './../../../../../wayfinder'
+import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition, applyUrlDefaults } from './../../../../../wayfinder'
 /**
 * @see \App\Http\Controllers\Console\SourcesController::index
 * @see app/Http/Controllers/Console/SourcesController.php:14
@@ -44,6 +44,43 @@ index.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 })
 
 /**
+* @see \App\Http\Controllers\Console\SourcesController::index
+* @see app/Http/Controllers/Console/SourcesController.php:14
+* @route '/console/sources'
+*/
+const indexForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: index.url(options),
+    method: 'get',
+})
+
+/**
+* @see \App\Http\Controllers\Console\SourcesController::index
+* @see app/Http/Controllers/Console/SourcesController.php:14
+* @route '/console/sources'
+*/
+indexForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: index.url(options),
+    method: 'get',
+})
+
+/**
+* @see \App\Http\Controllers\Console\SourcesController::index
+* @see app/Http/Controllers/Console/SourcesController.php:14
+* @route '/console/sources'
+*/
+indexForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: index.url({
+        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+            _method: 'HEAD',
+            ...(options?.query ?? options?.mergeQuery ?? {}),
+        }
+    }),
+    method: 'get',
+})
+
+index.form = indexForm
+
+/**
 * @see \App\Http\Controllers\Console\SourcesController::store
 * @see app/Http/Controllers/Console/SourcesController.php:40
 * @route '/console/sources'
@@ -76,6 +113,28 @@ store.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
     url: store.url(options),
     method: 'post',
 })
+
+/**
+* @see \App\Http\Controllers\Console\SourcesController::store
+* @see app/Http/Controllers/Console/SourcesController.php:40
+* @route '/console/sources'
+*/
+const storeForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: store.url(options),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\Console\SourcesController::store
+* @see app/Http/Controllers/Console/SourcesController.php:40
+* @route '/console/sources'
+*/
+storeForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: store.url(options),
+    method: 'post',
+})
+
+store.form = storeForm
 
 /**
 * @see \App\Http\Controllers\Console\SourcesController::updateLabel
@@ -136,6 +195,28 @@ updateLabel.post = (args: { source: number | { id: number } } | [source: number 
 })
 
 /**
+* @see \App\Http\Controllers\Console\SourcesController::updateLabel
+* @see app/Http/Controllers/Console/SourcesController.php:49
+* @route '/console/sources/{source}/label'
+*/
+const updateLabelForm = (args: { source: number | { id: number } } | [source: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: updateLabel.url(args, options),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\Console\SourcesController::updateLabel
+* @see app/Http/Controllers/Console/SourcesController.php:49
+* @route '/console/sources/{source}/label'
+*/
+updateLabelForm.post = (args: { source: number | { id: number } } | [source: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: updateLabel.url(args, options),
+    method: 'post',
+})
+
+updateLabel.form = updateLabelForm
+
+/**
 * @see \App\Http\Controllers\Console\SourcesController::revoke
 * @see app/Http/Controllers/Console/SourcesController.php:58
 * @route '/console/sources/{source}/revoke'
@@ -192,6 +273,28 @@ revoke.post = (args: { source: number | { id: number } } | [source: number | { i
     url: revoke.url(args, options),
     method: 'post',
 })
+
+/**
+* @see \App\Http\Controllers\Console\SourcesController::revoke
+* @see app/Http/Controllers/Console/SourcesController.php:58
+* @route '/console/sources/{source}/revoke'
+*/
+const revokeForm = (args: { source: number | { id: number } } | [source: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: revoke.url(args, options),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\Console\SourcesController::revoke
+* @see app/Http/Controllers/Console/SourcesController.php:58
+* @route '/console/sources/{source}/revoke'
+*/
+revokeForm.post = (args: { source: number | { id: number } } | [source: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: revoke.url(args, options),
+    method: 'post',
+})
+
+revoke.form = revokeForm
 
 const SourcesController = { index, store, updateLabel, revoke }
 

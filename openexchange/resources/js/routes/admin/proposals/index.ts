@@ -1,7 +1,7 @@
-import { queryParams, type RouteQueryOptions, type RouteDefinition, applyUrlDefaults } from './../../../wayfinder'
+import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition, applyUrlDefaults } from './../../../wayfinder'
 /**
 * @see \App\Http\Controllers\Admin\ModelsController::accept
-* @see app/Http/Controllers/Admin/ModelsController.php:198
+* @see app/Http/Controllers/Admin/ModelsController.php:324
 * @route '/admin/proposals/{proposal}/accept'
 */
 export const accept = (args: { proposal: number | { id: number } } | [proposal: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -16,7 +16,7 @@ accept.definition = {
 
 /**
 * @see \App\Http\Controllers\Admin\ModelsController::accept
-* @see app/Http/Controllers/Admin/ModelsController.php:198
+* @see app/Http/Controllers/Admin/ModelsController.php:324
 * @route '/admin/proposals/{proposal}/accept'
 */
 accept.url = (args: { proposal: number | { id: number } } | [proposal: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
@@ -49,7 +49,7 @@ accept.url = (args: { proposal: number | { id: number } } | [proposal: number | 
 
 /**
 * @see \App\Http\Controllers\Admin\ModelsController::accept
-* @see app/Http/Controllers/Admin/ModelsController.php:198
+* @see app/Http/Controllers/Admin/ModelsController.php:324
 * @route '/admin/proposals/{proposal}/accept'
 */
 accept.post = (args: { proposal: number | { id: number } } | [proposal: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -58,8 +58,30 @@ accept.post = (args: { proposal: number | { id: number } } | [proposal: number |
 })
 
 /**
+* @see \App\Http\Controllers\Admin\ModelsController::accept
+* @see app/Http/Controllers/Admin/ModelsController.php:324
+* @route '/admin/proposals/{proposal}/accept'
+*/
+const acceptForm = (args: { proposal: number | { id: number } } | [proposal: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: accept.url(args, options),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\ModelsController::accept
+* @see app/Http/Controllers/Admin/ModelsController.php:324
+* @route '/admin/proposals/{proposal}/accept'
+*/
+acceptForm.post = (args: { proposal: number | { id: number } } | [proposal: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: accept.url(args, options),
+    method: 'post',
+})
+
+accept.form = acceptForm
+
+/**
 * @see \App\Http\Controllers\Admin\ModelsController::reject
-* @see app/Http/Controllers/Admin/ModelsController.php:207
+* @see app/Http/Controllers/Admin/ModelsController.php:338
 * @route '/admin/proposals/{proposal}/reject'
 */
 export const reject = (args: { proposal: number | { id: number } } | [proposal: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -74,7 +96,7 @@ reject.definition = {
 
 /**
 * @see \App\Http\Controllers\Admin\ModelsController::reject
-* @see app/Http/Controllers/Admin/ModelsController.php:207
+* @see app/Http/Controllers/Admin/ModelsController.php:338
 * @route '/admin/proposals/{proposal}/reject'
 */
 reject.url = (args: { proposal: number | { id: number } } | [proposal: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
@@ -107,13 +129,35 @@ reject.url = (args: { proposal: number | { id: number } } | [proposal: number | 
 
 /**
 * @see \App\Http\Controllers\Admin\ModelsController::reject
-* @see app/Http/Controllers/Admin/ModelsController.php:207
+* @see app/Http/Controllers/Admin/ModelsController.php:338
 * @route '/admin/proposals/{proposal}/reject'
 */
 reject.post = (args: { proposal: number | { id: number } } | [proposal: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
     url: reject.url(args, options),
     method: 'post',
 })
+
+/**
+* @see \App\Http\Controllers\Admin\ModelsController::reject
+* @see app/Http/Controllers/Admin/ModelsController.php:338
+* @route '/admin/proposals/{proposal}/reject'
+*/
+const rejectForm = (args: { proposal: number | { id: number } } | [proposal: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: reject.url(args, options),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\ModelsController::reject
+* @see app/Http/Controllers/Admin/ModelsController.php:338
+* @route '/admin/proposals/{proposal}/reject'
+*/
+rejectForm.post = (args: { proposal: number | { id: number } } | [proposal: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: reject.url(args, options),
+    method: 'post',
+})
+
+reject.form = rejectForm
 
 const proposals = {
     accept: Object.assign(accept, accept),

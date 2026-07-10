@@ -46,7 +46,10 @@ class OpenRouterPricingSource implements PricingSource
             throw new \RuntimeException("OpenRouter pricing feed returned HTTP {$res->status()}.");
         }
 
-        $out = [];
+        // Parse first, then index in two passes: EXACT ids for every model before any
+        // fuzzy alias. Otherwise an alias of `gpt-5.4` could claim the key `gpt-5-4`
+        // before a genuinely different `gpt-5-4` model gets to register its own id.
+        $quotes = [];
         foreach ($res->json('data', []) as $m) {
             $id = (string) ($m['id'] ?? '');
             if (! str_contains($id, '/')) {
@@ -64,7 +67,7 @@ class OpenRouterPricingSource implements PricingSource
                 continue;
             }
 
-            $quote = new PriceQuote(
+            $quotes[] = [$provider, $slug, new PriceQuote(
                 provider: $provider,
                 model: $slug,
                 inputUsdPerMillion: $in,
@@ -72,10 +75,17 @@ class OpenRouterPricingSource implements PricingSource
                 cachedInputUsdPerMillion: $this->perMillion($m['pricing']['input_cache_read'] ?? null) ?? 0.0,
                 source: $this->name(),
                 ref: $id,
-            );
+            )];
+        }
 
-            // Index under every alias a catalogue row might legitimately carry, so
-            // `gemini-2.5-flash` still matches the feed's `gemini-2.5-flash-preview-09-2025`.
+        $out = [];
+        foreach ($quotes as [$provider, $slug, $quote]) {
+            $out[$provider.'|'.$slug] ??= $quote;
+        }
+        // Then the aliases a catalogue row might legitimately carry, so `gemini-2.5-flash`
+        // matches the feed's `gemini-2.5-flash-preview-09-2025`, and Anthropic's dashed
+        // API id `claude-opus-4-8` matches the feed's dotted `claude-opus-4.8`.
+        foreach ($quotes as [$provider, $slug, $quote]) {
             foreach ($this->aliases($provider, $slug) as $key) {
                 $out[$key] ??= $quote;
             }
@@ -115,6 +125,15 @@ class OpenRouterPricingSource implements PricingSource
 
         // trailing -preview / -exp / -latest
         $keys[] = preg_replace('/-(preview|exp|latest)$/', '', $undated) ?: $undated;
+
+        // Version separators differ between the feed and the providers' own API ids:
+        // OpenRouter says `claude-opus-4.8`, Anthropic's API calls it `claude-opus-4-8`.
+        // Index both spellings so the catalogue (which holds real API ids) matches.
+        foreach ($keys as $k) {
+            if (str_contains($k, '.')) {
+                $keys[] = str_replace('.', '-', $k);
+            }
+        }
 
         return array_values(array_unique(array_map(fn ($k) => $provider.'|'.$k, array_filter($keys))));
     }

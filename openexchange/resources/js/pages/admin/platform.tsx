@@ -207,6 +207,7 @@ export default function Platform({
     accessKeys,
     lastPull,
     lastCharges,
+    credentials,
     newAccessKey,
 }: Props) {
     const [tab, setTab] = useState<Tab>('backends');

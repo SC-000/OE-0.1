@@ -68,6 +68,10 @@ class DatabaseSeeder extends Seeder
         try {
             $stats = app(ModelSyncService::class)->sync();
             $this->command?->info("  Priced {$stats['priced']} model(s) from the pricing feed.");
+            // sync() swallows a feed outage into `errors` rather than throwing, so surface it.
+            foreach ($stats['errors'] as $error) {
+                $this->command?->warn('  '.$error);
+            }
         } catch (\Throwable $e) {
             $this->command?->warn('  Pricing feed unavailable ('.$e->getMessage().').');
         }

@@ -1,4 +1,4 @@
-import { queryParams, type RouteQueryOptions, type RouteDefinition } from './../../../../../wayfinder'
+import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition } from './../../../../../wayfinder'
 /**
 * @see \App\Http\Controllers\Console\BillingController::index
 * @see app/Http/Controllers/Console/BillingController.php:17
@@ -44,6 +44,43 @@ index.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 })
 
 /**
+* @see \App\Http\Controllers\Console\BillingController::index
+* @see app/Http/Controllers/Console/BillingController.php:17
+* @route '/console/billing'
+*/
+const indexForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: index.url(options),
+    method: 'get',
+})
+
+/**
+* @see \App\Http\Controllers\Console\BillingController::index
+* @see app/Http/Controllers/Console/BillingController.php:17
+* @route '/console/billing'
+*/
+indexForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: index.url(options),
+    method: 'get',
+})
+
+/**
+* @see \App\Http\Controllers\Console\BillingController::index
+* @see app/Http/Controllers/Console/BillingController.php:17
+* @route '/console/billing'
+*/
+indexForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: index.url({
+        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+            _method: 'HEAD',
+            ...(options?.query ?? options?.mergeQuery ?? {}),
+        }
+    }),
+    method: 'get',
+})
+
+index.form = indexForm
+
+/**
 * @see \App\Http\Controllers\Console\BillingController::updateSettings
 * @see app/Http/Controllers/Console/BillingController.php:59
 * @route '/console/billing/settings'
@@ -78,6 +115,28 @@ updateSettings.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => 
 })
 
 /**
+* @see \App\Http\Controllers\Console\BillingController::updateSettings
+* @see app/Http/Controllers/Console/BillingController.php:59
+* @route '/console/billing/settings'
+*/
+const updateSettingsForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: updateSettings.url(options),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\Console\BillingController::updateSettings
+* @see app/Http/Controllers/Console/BillingController.php:59
+* @route '/console/billing/settings'
+*/
+updateSettingsForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: updateSettings.url(options),
+    method: 'post',
+})
+
+updateSettings.form = updateSettingsForm
+
+/**
 * @see \App\Http\Controllers\Console\BillingController::topup
 * @see app/Http/Controllers/Console/BillingController.php:76
 * @route '/console/billing/topup'
@@ -110,6 +169,28 @@ topup.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
     url: topup.url(options),
     method: 'post',
 })
+
+/**
+* @see \App\Http\Controllers\Console\BillingController::topup
+* @see app/Http/Controllers/Console/BillingController.php:76
+* @route '/console/billing/topup'
+*/
+const topupForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: topup.url(options),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\Console\BillingController::topup
+* @see app/Http/Controllers/Console/BillingController.php:76
+* @route '/console/billing/topup'
+*/
+topupForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: topup.url(options),
+    method: 'post',
+})
+
+topup.form = topupForm
 
 /**
 * @see \App\Http\Controllers\Console\BillingController::addCard
@@ -156,6 +237,43 @@ addCard.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 })
 
 /**
+* @see \App\Http\Controllers\Console\BillingController::addCard
+* @see app/Http/Controllers/Console/BillingController.php:121
+* @route '/console/billing/add-card'
+*/
+const addCardForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: addCard.url(options),
+    method: 'get',
+})
+
+/**
+* @see \App\Http\Controllers\Console\BillingController::addCard
+* @see app/Http/Controllers/Console/BillingController.php:121
+* @route '/console/billing/add-card'
+*/
+addCardForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: addCard.url(options),
+    method: 'get',
+})
+
+/**
+* @see \App\Http\Controllers\Console\BillingController::addCard
+* @see app/Http/Controllers/Console/BillingController.php:121
+* @route '/console/billing/add-card'
+*/
+addCardForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: addCard.url({
+        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+            _method: 'HEAD',
+            ...(options?.query ?? options?.mergeQuery ?? {}),
+        }
+    }),
+    method: 'get',
+})
+
+addCard.form = addCardForm
+
+/**
 * @see \App\Http\Controllers\Console\BillingController::storeCard
 * @see app/Http/Controllers/Console/BillingController.php:84
 * @route '/console/billing/card'
@@ -188,6 +306,28 @@ storeCard.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
     url: storeCard.url(options),
     method: 'post',
 })
+
+/**
+* @see \App\Http\Controllers\Console\BillingController::storeCard
+* @see app/Http/Controllers/Console/BillingController.php:84
+* @route '/console/billing/card'
+*/
+const storeCardForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: storeCard.url(options),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\Console\BillingController::storeCard
+* @see app/Http/Controllers/Console/BillingController.php:84
+* @route '/console/billing/card'
+*/
+storeCardForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: storeCard.url(options),
+    method: 'post',
+})
+
+storeCard.form = storeCardForm
 
 const BillingController = { index, updateSettings, topup, addCard, storeCard }
 

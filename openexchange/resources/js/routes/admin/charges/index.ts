@@ -1,4 +1,4 @@
-import { queryParams, type RouteQueryOptions, type RouteDefinition, applyUrlDefaults } from './../../../wayfinder'
+import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition, applyUrlDefaults } from './../../../wayfinder'
 /**
 * @see \App\Http\Controllers\Admin\ChargesController::store
 * @see app/Http/Controllers/Admin/ChargesController.php:20
@@ -32,6 +32,28 @@ store.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
     url: store.url(options),
     method: 'post',
 })
+
+/**
+* @see \App\Http\Controllers\Admin\ChargesController::store
+* @see app/Http/Controllers/Admin/ChargesController.php:20
+* @route '/admin/charges'
+*/
+const storeForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: store.url(options),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\ChargesController::store
+* @see app/Http/Controllers/Admin/ChargesController.php:20
+* @route '/admin/charges'
+*/
+storeForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: store.url(options),
+    method: 'post',
+})
+
+store.form = storeForm
 
 /**
 * @see \App\Http\Controllers\Admin\ChargesController::update
@@ -92,6 +114,38 @@ update.patch = (args: { charge: number | { id: number } } | [charge: number | { 
 })
 
 /**
+* @see \App\Http\Controllers\Admin\ChargesController::update
+* @see app/Http/Controllers/Admin/ChargesController.php:39
+* @route '/admin/charges/{charge}'
+*/
+const updateForm = (args: { charge: number | { id: number } } | [charge: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: update.url(args, {
+        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+            _method: 'PATCH',
+            ...(options?.query ?? options?.mergeQuery ?? {}),
+        }
+    }),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\ChargesController::update
+* @see app/Http/Controllers/Admin/ChargesController.php:39
+* @route '/admin/charges/{charge}'
+*/
+updateForm.patch = (args: { charge: number | { id: number } } | [charge: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: update.url(args, {
+        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+            _method: 'PATCH',
+            ...(options?.query ?? options?.mergeQuery ?? {}),
+        }
+    }),
+    method: 'post',
+})
+
+update.form = updateForm
+
+/**
 * @see \App\Http\Controllers\Admin\ChargesController::destroy
 * @see app/Http/Controllers/Admin/ChargesController.php:55
 * @route '/admin/charges/{charge}'
@@ -150,6 +204,38 @@ destroy.delete = (args: { charge: number | { id: number } } | [charge: number | 
 })
 
 /**
+* @see \App\Http\Controllers\Admin\ChargesController::destroy
+* @see app/Http/Controllers/Admin/ChargesController.php:55
+* @route '/admin/charges/{charge}'
+*/
+const destroyForm = (args: { charge: number | { id: number } } | [charge: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: destroy.url(args, {
+        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+            _method: 'DELETE',
+            ...(options?.query ?? options?.mergeQuery ?? {}),
+        }
+    }),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\ChargesController::destroy
+* @see app/Http/Controllers/Admin/ChargesController.php:55
+* @route '/admin/charges/{charge}'
+*/
+destroyForm.delete = (args: { charge: number | { id: number } } | [charge: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: destroy.url(args, {
+        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+            _method: 'DELETE',
+            ...(options?.query ?? options?.mergeQuery ?? {}),
+        }
+    }),
+    method: 'post',
+})
+
+destroy.form = destroyForm
+
+/**
 * @see \App\Http\Controllers\Admin\ChargesController::run
 * @see app/Http/Controllers/Admin/ChargesController.php:67
 * @route '/admin/charges/{charge}/run'
@@ -206,6 +292,28 @@ run.post = (args: { charge: number | { id: number } } | [charge: number | { id: 
     url: run.url(args, options),
     method: 'post',
 })
+
+/**
+* @see \App\Http\Controllers\Admin\ChargesController::run
+* @see app/Http/Controllers/Admin/ChargesController.php:67
+* @route '/admin/charges/{charge}/run'
+*/
+const runForm = (args: { charge: number | { id: number } } | [charge: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: run.url(args, options),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\ChargesController::run
+* @see app/Http/Controllers/Admin/ChargesController.php:67
+* @route '/admin/charges/{charge}/run'
+*/
+runForm.post = (args: { charge: number | { id: number } } | [charge: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: run.url(args, options),
+    method: 'post',
+})
+
+run.form = runForm
 
 const charges = {
     store: Object.assign(store, store),

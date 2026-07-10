@@ -1,7 +1,7 @@
-import { ReactNode } from 'react';
 import { Link, usePage } from '@inertiajs/react';
-import { Icon, Logo } from '@/components/oe';
+import type { ReactNode } from 'react';
 import FlashToast from '@/components/flash-toast';
+import { Icon, Logo } from '@/components/oe';
 
 /**
  * The platform-operator shell. Deliberately shares nothing with console-layout:
@@ -107,6 +107,7 @@ export default function AdminLayout({
                 >
                     {NAV.map((n) => {
                         const on = n.id === active;
+
                         return (
                             <Link
                                 key={n.id}

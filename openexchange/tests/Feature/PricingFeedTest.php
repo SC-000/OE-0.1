@@ -122,6 +122,46 @@ class PricingFeedTest extends TestCase
         $this->assertNotNull($model->feed_synced_at);
     }
 
+    /**
+     * The feed spells versions with dots (`claude-opus-4.8`); the providers' own API ids
+     * use dashes (`claude-opus-4-8`), and the catalogue holds the API id. Without
+     * normalisation every Claude model ships unpriced and bills $0.
+     */
+    public function test_a_dotted_feed_id_prices_the_dashed_api_id(): void
+    {
+        $this->fakeFeed([$this->model('anthropic/claude-opus-4.8', 5.0, 25.0)]);
+        ModelCatalog::create(['provider' => 'anthropic', 'model' => 'claude-opus-4-8', 'input_usd_per_million' => 0, 'output_usd_per_million' => 0]);
+
+        $stats = app(ModelSyncService::class)->sync();
+
+        $this->assertSame(1, $stats['priced']);
+        $model = ModelCatalog::where('model', 'claude-opus-4-8')->first();
+        $this->assertEquals(5.0, (float) $model->input_usd_per_million);
+        $this->assertEquals(25.0, (float) $model->output_usd_per_million);
+        $this->assertSame('anthropic/claude-opus-4.8', $model->feed_ref);
+    }
+
+    /**
+     * An EXACT feed id must always beat another model's normalised alias, whichever order
+     * they arrive in — otherwise `gpt-5.4`'s alias could claim the price of a real,
+     * different `gpt-5-4`.
+     */
+    public function test_an_exact_id_beats_another_models_normalised_alias(): void
+    {
+        // Dotted model first: its `gpt-5-4` alias must NOT shadow the real `gpt-5-4`.
+        $this->fakeFeed([
+            $this->model('openai/gpt-5.4', 2.0, 8.0),
+            $this->model('openai/gpt-5-4', 99.0, 99.0),
+        ]);
+        ModelCatalog::create(['provider' => 'openai', 'model' => 'gpt-5.4', 'input_usd_per_million' => 0, 'output_usd_per_million' => 0]);
+        ModelCatalog::create(['provider' => 'openai', 'model' => 'gpt-5-4', 'input_usd_per_million' => 0, 'output_usd_per_million' => 0]);
+
+        app(ModelSyncService::class)->sync();
+
+        $this->assertEquals(2.0, (float) ModelCatalog::where('model', 'gpt-5.4')->value('input_usd_per_million'));
+        $this->assertEquals(99.0, (float) ModelCatalog::where('model', 'gpt-5-4')->value('input_usd_per_million'), 'the real gpt-5-4 keeps its own price');
+    }
+
     public function test_a_dated_snapshot_inherits_the_base_model_price(): void
     {
         $this->fakeFeed([$this->model('openai/gpt-x', 2.5, 10.0)]);

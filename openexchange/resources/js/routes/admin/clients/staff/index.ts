@@ -1,7 +1,7 @@
-import { queryParams, type RouteQueryOptions, type RouteDefinition, applyUrlDefaults } from './../../../../wayfinder'
+import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition, applyUrlDefaults } from './../../../../wayfinder'
 /**
 * @see \App\Http\Controllers\Admin\ClientsController::add
-* @see app/Http/Controllers/Admin/ClientsController.php:297
+* @see app/Http/Controllers/Admin/ClientsController.php:304
 * @route '/admin/clients/{client}/staff'
 */
 export const add = (args: { client: number | { id: number } } | [client: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -16,7 +16,7 @@ add.definition = {
 
 /**
 * @see \App\Http\Controllers\Admin\ClientsController::add
-* @see app/Http/Controllers/Admin/ClientsController.php:297
+* @see app/Http/Controllers/Admin/ClientsController.php:304
 * @route '/admin/clients/{client}/staff'
 */
 add.url = (args: { client: number | { id: number } } | [client: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
@@ -49,7 +49,7 @@ add.url = (args: { client: number | { id: number } } | [client: number | { id: n
 
 /**
 * @see \App\Http\Controllers\Admin\ClientsController::add
-* @see app/Http/Controllers/Admin/ClientsController.php:297
+* @see app/Http/Controllers/Admin/ClientsController.php:304
 * @route '/admin/clients/{client}/staff'
 */
 add.post = (args: { client: number | { id: number } } | [client: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -58,8 +58,30 @@ add.post = (args: { client: number | { id: number } } | [client: number | { id: 
 })
 
 /**
+* @see \App\Http\Controllers\Admin\ClientsController::add
+* @see app/Http/Controllers/Admin/ClientsController.php:304
+* @route '/admin/clients/{client}/staff'
+*/
+const addForm = (args: { client: number | { id: number } } | [client: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: add.url(args, options),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\ClientsController::add
+* @see app/Http/Controllers/Admin/ClientsController.php:304
+* @route '/admin/clients/{client}/staff'
+*/
+addForm.post = (args: { client: number | { id: number } } | [client: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: add.url(args, options),
+    method: 'post',
+})
+
+add.form = addForm
+
+/**
 * @see \App\Http\Controllers\Admin\ClientsController::remove
-* @see app/Http/Controllers/Admin/ClientsController.php:317
+* @see app/Http/Controllers/Admin/ClientsController.php:324
 * @route '/admin/clients/{client}/staff/{user}'
 */
 export const remove = (args: { client: number | { id: number }, user: number | { id: number } } | [client: number | { id: number }, user: number | { id: number } ], options?: RouteQueryOptions): RouteDefinition<'delete'> => ({
@@ -74,7 +96,7 @@ remove.definition = {
 
 /**
 * @see \App\Http\Controllers\Admin\ClientsController::remove
-* @see app/Http/Controllers/Admin/ClientsController.php:317
+* @see app/Http/Controllers/Admin/ClientsController.php:324
 * @route '/admin/clients/{client}/staff/{user}'
 */
 remove.url = (args: { client: number | { id: number }, user: number | { id: number } } | [client: number | { id: number }, user: number | { id: number } ], options?: RouteQueryOptions) => {
@@ -104,7 +126,7 @@ remove.url = (args: { client: number | { id: number }, user: number | { id: numb
 
 /**
 * @see \App\Http\Controllers\Admin\ClientsController::remove
-* @see app/Http/Controllers/Admin/ClientsController.php:317
+* @see app/Http/Controllers/Admin/ClientsController.php:324
 * @route '/admin/clients/{client}/staff/{user}'
 */
 remove.delete = (args: { client: number | { id: number }, user: number | { id: number } } | [client: number | { id: number }, user: number | { id: number } ], options?: RouteQueryOptions): RouteDefinition<'delete'> => ({
@@ -113,8 +135,40 @@ remove.delete = (args: { client: number | { id: number }, user: number | { id: n
 })
 
 /**
+* @see \App\Http\Controllers\Admin\ClientsController::remove
+* @see app/Http/Controllers/Admin/ClientsController.php:324
+* @route '/admin/clients/{client}/staff/{user}'
+*/
+const removeForm = (args: { client: number | { id: number }, user: number | { id: number } } | [client: number | { id: number }, user: number | { id: number } ], options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: remove.url(args, {
+        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+            _method: 'DELETE',
+            ...(options?.query ?? options?.mergeQuery ?? {}),
+        }
+    }),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\ClientsController::remove
+* @see app/Http/Controllers/Admin/ClientsController.php:324
+* @route '/admin/clients/{client}/staff/{user}'
+*/
+removeForm.delete = (args: { client: number | { id: number }, user: number | { id: number } } | [client: number | { id: number }, user: number | { id: number } ], options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: remove.url(args, {
+        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+            _method: 'DELETE',
+            ...(options?.query ?? options?.mergeQuery ?? {}),
+        }
+    }),
+    method: 'post',
+})
+
+remove.form = removeForm
+
+/**
 * @see \App\Http\Controllers\Admin\ClientsController::invite
-* @see app/Http/Controllers/Admin/ClientsController.php:329
+* @see app/Http/Controllers/Admin/ClientsController.php:336
 * @route '/admin/clients/{client}/staff/{user}/invite'
 */
 export const invite = (args: { client: number | { id: number }, user: number | { id: number } } | [client: number | { id: number }, user: number | { id: number } ], options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -129,7 +183,7 @@ invite.definition = {
 
 /**
 * @see \App\Http\Controllers\Admin\ClientsController::invite
-* @see app/Http/Controllers/Admin/ClientsController.php:329
+* @see app/Http/Controllers/Admin/ClientsController.php:336
 * @route '/admin/clients/{client}/staff/{user}/invite'
 */
 invite.url = (args: { client: number | { id: number }, user: number | { id: number } } | [client: number | { id: number }, user: number | { id: number } ], options?: RouteQueryOptions) => {
@@ -159,13 +213,35 @@ invite.url = (args: { client: number | { id: number }, user: number | { id: numb
 
 /**
 * @see \App\Http\Controllers\Admin\ClientsController::invite
-* @see app/Http/Controllers/Admin/ClientsController.php:329
+* @see app/Http/Controllers/Admin/ClientsController.php:336
 * @route '/admin/clients/{client}/staff/{user}/invite'
 */
 invite.post = (args: { client: number | { id: number }, user: number | { id: number } } | [client: number | { id: number }, user: number | { id: number } ], options?: RouteQueryOptions): RouteDefinition<'post'> => ({
     url: invite.url(args, options),
     method: 'post',
 })
+
+/**
+* @see \App\Http\Controllers\Admin\ClientsController::invite
+* @see app/Http/Controllers/Admin/ClientsController.php:336
+* @route '/admin/clients/{client}/staff/{user}/invite'
+*/
+const inviteForm = (args: { client: number | { id: number }, user: number | { id: number } } | [client: number | { id: number }, user: number | { id: number } ], options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: invite.url(args, options),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\ClientsController::invite
+* @see app/Http/Controllers/Admin/ClientsController.php:336
+* @route '/admin/clients/{client}/staff/{user}/invite'
+*/
+inviteForm.post = (args: { client: number | { id: number }, user: number | { id: number } } | [client: number | { id: number }, user: number | { id: number } ], options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: invite.url(args, options),
+    method: 'post',
+})
+
+invite.form = inviteForm
 
 const staff = {
     add: Object.assign(add, add),

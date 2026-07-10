@@ -126,4 +126,11 @@ export default [
             '@stylistic/brace-style': ['error', '1tbs', { allowSingleLine: false }],
         },
     },
+    {
+        // Build/verification scripts run in Node, not the browser.
+        files: ['scripts/**/*.mjs'],
+        languageOptions: {
+            globals: globals.node,
+        },
+    },
 ];

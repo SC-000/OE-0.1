@@ -1,4 +1,4 @@
-import { queryParams, type RouteQueryOptions, type RouteDefinition, applyUrlDefaults } from './../../../../../wayfinder'
+import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition, applyUrlDefaults } from './../../../../../wayfinder'
 /**
 * @see \App\Http\Controllers\Admin\ImpersonationController::stop
 * @see app/Http/Controllers/Admin/ImpersonationController.php:26
@@ -32,6 +32,28 @@ stop.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
     url: stop.url(options),
     method: 'post',
 })
+
+/**
+* @see \App\Http\Controllers\Admin\ImpersonationController::stop
+* @see app/Http/Controllers/Admin/ImpersonationController.php:26
+* @route '/impersonate/stop'
+*/
+const stopForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: stop.url(options),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\ImpersonationController::stop
+* @see app/Http/Controllers/Admin/ImpersonationController.php:26
+* @route '/impersonate/stop'
+*/
+stopForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: stop.url(options),
+    method: 'post',
+})
+
+stop.form = stopForm
 
 /**
 * @see \App\Http\Controllers\Admin\ImpersonationController::start
@@ -90,6 +112,28 @@ start.post = (args: { client: number | { id: number } } | [client: number | { id
     url: start.url(args, options),
     method: 'post',
 })
+
+/**
+* @see \App\Http\Controllers\Admin\ImpersonationController::start
+* @see app/Http/Controllers/Admin/ImpersonationController.php:15
+* @route '/admin/clients/{client}/impersonate'
+*/
+const startForm = (args: { client: number | { id: number } } | [client: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: start.url(args, options),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\ImpersonationController::start
+* @see app/Http/Controllers/Admin/ImpersonationController.php:15
+* @route '/admin/clients/{client}/impersonate'
+*/
+startForm.post = (args: { client: number | { id: number } } | [client: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: start.url(args, options),
+    method: 'post',
+})
+
+start.form = startForm
 
 const ImpersonationController = { stop, start }
 

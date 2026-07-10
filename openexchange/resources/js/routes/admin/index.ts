@@ -1,4 +1,4 @@
-import { queryParams, type RouteQueryOptions, type RouteDefinition } from './../../wayfinder'
+import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition } from './../../wayfinder'
 import clients3a2bdc from './clients'
 import modelsEff558 from './models'
 import proposals from './proposals'
@@ -52,8 +52,45 @@ dashboard.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 })
 
 /**
+* @see \App\Http\Controllers\Admin\DashboardController::__invoke
+* @see app/Http/Controllers/Admin/DashboardController.php:14
+* @route '/admin'
+*/
+const dashboardForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: dashboard.url(options),
+    method: 'get',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\DashboardController::__invoke
+* @see app/Http/Controllers/Admin/DashboardController.php:14
+* @route '/admin'
+*/
+dashboardForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: dashboard.url(options),
+    method: 'get',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\DashboardController::__invoke
+* @see app/Http/Controllers/Admin/DashboardController.php:14
+* @route '/admin'
+*/
+dashboardForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: dashboard.url({
+        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+            _method: 'HEAD',
+            ...(options?.query ?? options?.mergeQuery ?? {}),
+        }
+    }),
+    method: 'get',
+})
+
+dashboard.form = dashboardForm
+
+/**
 * @see \App\Http\Controllers\Admin\ClientsController::clients
-* @see app/Http/Controllers/Admin/ClientsController.php:33
+* @see app/Http/Controllers/Admin/ClientsController.php:37
 * @route '/admin/clients'
 */
 export const clients = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -68,7 +105,7 @@ clients.definition = {
 
 /**
 * @see \App\Http\Controllers\Admin\ClientsController::clients
-* @see app/Http/Controllers/Admin/ClientsController.php:33
+* @see app/Http/Controllers/Admin/ClientsController.php:37
 * @route '/admin/clients'
 */
 clients.url = (options?: RouteQueryOptions) => {
@@ -77,7 +114,7 @@ clients.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\Admin\ClientsController::clients
-* @see app/Http/Controllers/Admin/ClientsController.php:33
+* @see app/Http/Controllers/Admin/ClientsController.php:37
 * @route '/admin/clients'
 */
 clients.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -87,7 +124,7 @@ clients.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
 
 /**
 * @see \App\Http\Controllers\Admin\ClientsController::clients
-* @see app/Http/Controllers/Admin/ClientsController.php:33
+* @see app/Http/Controllers/Admin/ClientsController.php:37
 * @route '/admin/clients'
 */
 clients.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -96,8 +133,45 @@ clients.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 })
 
 /**
+* @see \App\Http\Controllers\Admin\ClientsController::clients
+* @see app/Http/Controllers/Admin/ClientsController.php:37
+* @route '/admin/clients'
+*/
+const clientsForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: clients.url(options),
+    method: 'get',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\ClientsController::clients
+* @see app/Http/Controllers/Admin/ClientsController.php:37
+* @route '/admin/clients'
+*/
+clientsForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: clients.url(options),
+    method: 'get',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\ClientsController::clients
+* @see app/Http/Controllers/Admin/ClientsController.php:37
+* @route '/admin/clients'
+*/
+clientsForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: clients.url({
+        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+            _method: 'HEAD',
+            ...(options?.query ?? options?.mergeQuery ?? {}),
+        }
+    }),
+    method: 'get',
+})
+
+clients.form = clientsForm
+
+/**
 * @see \App\Http\Controllers\Admin\ModelsController::models
-* @see app/Http/Controllers/Admin/ModelsController.php:22
+* @see app/Http/Controllers/Admin/ModelsController.php:27
 * @route '/admin/models'
 */
 export const models = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -112,7 +186,7 @@ models.definition = {
 
 /**
 * @see \App\Http\Controllers\Admin\ModelsController::models
-* @see app/Http/Controllers/Admin/ModelsController.php:22
+* @see app/Http/Controllers/Admin/ModelsController.php:27
 * @route '/admin/models'
 */
 models.url = (options?: RouteQueryOptions) => {
@@ -121,7 +195,7 @@ models.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\Admin\ModelsController::models
-* @see app/Http/Controllers/Admin/ModelsController.php:22
+* @see app/Http/Controllers/Admin/ModelsController.php:27
 * @route '/admin/models'
 */
 models.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -131,13 +205,50 @@ models.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
 
 /**
 * @see \App\Http\Controllers\Admin\ModelsController::models
-* @see app/Http/Controllers/Admin/ModelsController.php:22
+* @see app/Http/Controllers/Admin/ModelsController.php:27
 * @route '/admin/models'
 */
 models.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
     url: models.url(options),
     method: 'head',
 })
+
+/**
+* @see \App\Http\Controllers\Admin\ModelsController::models
+* @see app/Http/Controllers/Admin/ModelsController.php:27
+* @route '/admin/models'
+*/
+const modelsForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: models.url(options),
+    method: 'get',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\ModelsController::models
+* @see app/Http/Controllers/Admin/ModelsController.php:27
+* @route '/admin/models'
+*/
+modelsForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: models.url(options),
+    method: 'get',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\ModelsController::models
+* @see app/Http/Controllers/Admin/ModelsController.php:27
+* @route '/admin/models'
+*/
+modelsForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: models.url({
+        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+            _method: 'HEAD',
+            ...(options?.query ?? options?.mergeQuery ?? {}),
+        }
+    }),
+    method: 'get',
+})
+
+models.form = modelsForm
 
 /**
 * @see \App\Http\Controllers\Admin\PlatformController::platform
@@ -184,8 +295,45 @@ platform.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 })
 
 /**
+* @see \App\Http\Controllers\Admin\PlatformController::platform
+* @see app/Http/Controllers/Admin/PlatformController.php:26
+* @route '/admin/platform'
+*/
+const platformForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: platform.url(options),
+    method: 'get',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\PlatformController::platform
+* @see app/Http/Controllers/Admin/PlatformController.php:26
+* @route '/admin/platform'
+*/
+platformForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: platform.url(options),
+    method: 'get',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\PlatformController::platform
+* @see app/Http/Controllers/Admin/PlatformController.php:26
+* @route '/admin/platform'
+*/
+platformForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: platform.url({
+        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+            _method: 'HEAD',
+            ...(options?.query ?? options?.mergeQuery ?? {}),
+        }
+    }),
+    method: 'get',
+})
+
+platform.form = platformForm
+
+/**
 * @see \App\Http\Controllers\Admin\PlatformController::discover
-* @see app/Http/Controllers/Admin/PlatformController.php:133
+* @see app/Http/Controllers/Admin/PlatformController.php:159
 * @route '/admin/platform/discover'
 */
 export const discover = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -200,7 +348,7 @@ discover.definition = {
 
 /**
 * @see \App\Http\Controllers\Admin\PlatformController::discover
-* @see app/Http/Controllers/Admin/PlatformController.php:133
+* @see app/Http/Controllers/Admin/PlatformController.php:159
 * @route '/admin/platform/discover'
 */
 discover.url = (options?: RouteQueryOptions) => {
@@ -209,7 +357,7 @@ discover.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\Admin\PlatformController::discover
-* @see app/Http/Controllers/Admin/PlatformController.php:133
+* @see app/Http/Controllers/Admin/PlatformController.php:159
 * @route '/admin/platform/discover'
 */
 discover.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -218,8 +366,30 @@ discover.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 })
 
 /**
+* @see \App\Http\Controllers\Admin\PlatformController::discover
+* @see app/Http/Controllers/Admin/PlatformController.php:159
+* @route '/admin/platform/discover'
+*/
+const discoverForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: discover.url(options),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\PlatformController::discover
+* @see app/Http/Controllers/Admin/PlatformController.php:159
+* @route '/admin/platform/discover'
+*/
+discoverForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: discover.url(options),
+    method: 'post',
+})
+
+discover.form = discoverForm
+
+/**
 * @see \App\Http\Controllers\Admin\PlatformController::assignProject
-* @see app/Http/Controllers/Admin/PlatformController.php:146
+* @see app/Http/Controllers/Admin/PlatformController.php:172
 * @route '/admin/platform/assign-project'
 */
 export const assignProject = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -234,7 +404,7 @@ assignProject.definition = {
 
 /**
 * @see \App\Http\Controllers\Admin\PlatformController::assignProject
-* @see app/Http/Controllers/Admin/PlatformController.php:146
+* @see app/Http/Controllers/Admin/PlatformController.php:172
 * @route '/admin/platform/assign-project'
 */
 assignProject.url = (options?: RouteQueryOptions) => {
@@ -243,7 +413,7 @@ assignProject.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\Admin\PlatformController::assignProject
-* @see app/Http/Controllers/Admin/PlatformController.php:146
+* @see app/Http/Controllers/Admin/PlatformController.php:172
 * @route '/admin/platform/assign-project'
 */
 assignProject.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -252,8 +422,30 @@ assignProject.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => (
 })
 
 /**
+* @see \App\Http\Controllers\Admin\PlatformController::assignProject
+* @see app/Http/Controllers/Admin/PlatformController.php:172
+* @route '/admin/platform/assign-project'
+*/
+const assignProjectForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: assignProject.url(options),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\PlatformController::assignProject
+* @see app/Http/Controllers/Admin/PlatformController.php:172
+* @route '/admin/platform/assign-project'
+*/
+assignProjectForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: assignProject.url(options),
+    method: 'post',
+})
+
+assignProject.form = assignProjectForm
+
+/**
 * @see \App\Http\Controllers\Admin\PlatformController::toggleProject
-* @see app/Http/Controllers/Admin/PlatformController.php:166
+* @see app/Http/Controllers/Admin/PlatformController.php:192
 * @route '/admin/platform/toggle-project'
 */
 export const toggleProject = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -268,7 +460,7 @@ toggleProject.definition = {
 
 /**
 * @see \App\Http\Controllers\Admin\PlatformController::toggleProject
-* @see app/Http/Controllers/Admin/PlatformController.php:166
+* @see app/Http/Controllers/Admin/PlatformController.php:192
 * @route '/admin/platform/toggle-project'
 */
 toggleProject.url = (options?: RouteQueryOptions) => {
@@ -277,7 +469,7 @@ toggleProject.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\Admin\PlatformController::toggleProject
-* @see app/Http/Controllers/Admin/PlatformController.php:166
+* @see app/Http/Controllers/Admin/PlatformController.php:192
 * @route '/admin/platform/toggle-project'
 */
 toggleProject.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -286,8 +478,30 @@ toggleProject.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => (
 })
 
 /**
+* @see \App\Http\Controllers\Admin\PlatformController::toggleProject
+* @see app/Http/Controllers/Admin/PlatformController.php:192
+* @route '/admin/platform/toggle-project'
+*/
+const toggleProjectForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: toggleProject.url(options),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\PlatformController::toggleProject
+* @see app/Http/Controllers/Admin/PlatformController.php:192
+* @route '/admin/platform/toggle-project'
+*/
+toggleProjectForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: toggleProject.url(options),
+    method: 'post',
+})
+
+toggleProject.form = toggleProjectForm
+
+/**
 * @see \App\Http\Controllers\Admin\PlatformController::sync
-* @see app/Http/Controllers/Admin/PlatformController.php:207
+* @see app/Http/Controllers/Admin/PlatformController.php:238
 * @route '/admin/platform/sync'
 */
 export const sync = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -302,7 +516,7 @@ sync.definition = {
 
 /**
 * @see \App\Http\Controllers\Admin\PlatformController::sync
-* @see app/Http/Controllers/Admin/PlatformController.php:207
+* @see app/Http/Controllers/Admin/PlatformController.php:238
 * @route '/admin/platform/sync'
 */
 sync.url = (options?: RouteQueryOptions) => {
@@ -311,7 +525,7 @@ sync.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\Admin\PlatformController::sync
-* @see app/Http/Controllers/Admin/PlatformController.php:207
+* @see app/Http/Controllers/Admin/PlatformController.php:238
 * @route '/admin/platform/sync'
 */
 sync.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -320,8 +534,30 @@ sync.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 })
 
 /**
+* @see \App\Http\Controllers\Admin\PlatformController::sync
+* @see app/Http/Controllers/Admin/PlatformController.php:238
+* @route '/admin/platform/sync'
+*/
+const syncForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: sync.url(options),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\PlatformController::sync
+* @see app/Http/Controllers/Admin/PlatformController.php:238
+* @route '/admin/platform/sync'
+*/
+syncForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: sync.url(options),
+    method: 'post',
+})
+
+sync.form = syncForm
+
+/**
 * @see \App\Http\Controllers\Admin\PlatformController::rebill
-* @see app/Http/Controllers/Admin/PlatformController.php:218
+* @see app/Http/Controllers/Admin/PlatformController.php:291
 * @route '/admin/platform/rebill'
 */
 export const rebill = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -336,7 +572,7 @@ rebill.definition = {
 
 /**
 * @see \App\Http\Controllers\Admin\PlatformController::rebill
-* @see app/Http/Controllers/Admin/PlatformController.php:218
+* @see app/Http/Controllers/Admin/PlatformController.php:291
 * @route '/admin/platform/rebill'
 */
 rebill.url = (options?: RouteQueryOptions) => {
@@ -345,13 +581,35 @@ rebill.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\Admin\PlatformController::rebill
-* @see app/Http/Controllers/Admin/PlatformController.php:218
+* @see app/Http/Controllers/Admin/PlatformController.php:291
 * @route '/admin/platform/rebill'
 */
 rebill.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
     url: rebill.url(options),
     method: 'post',
 })
+
+/**
+* @see \App\Http\Controllers\Admin\PlatformController::rebill
+* @see app/Http/Controllers/Admin/PlatformController.php:291
+* @route '/admin/platform/rebill'
+*/
+const rebillForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: rebill.url(options),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\PlatformController::rebill
+* @see app/Http/Controllers/Admin/PlatformController.php:291
+* @route '/admin/platform/rebill'
+*/
+rebillForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: rebill.url(options),
+    method: 'post',
+})
+
+rebill.form = rebillForm
 
 /**
 * @see \App\Http\Controllers\Admin\AuditController::audit
@@ -396,6 +654,43 @@ audit.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
     url: audit.url(options),
     method: 'head',
 })
+
+/**
+* @see \App\Http\Controllers\Admin\AuditController::audit
+* @see app/Http/Controllers/Admin/AuditController.php:12
+* @route '/admin/audit'
+*/
+const auditForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: audit.url(options),
+    method: 'get',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\AuditController::audit
+* @see app/Http/Controllers/Admin/AuditController.php:12
+* @route '/admin/audit'
+*/
+auditForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: audit.url(options),
+    method: 'get',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\AuditController::audit
+* @see app/Http/Controllers/Admin/AuditController.php:12
+* @route '/admin/audit'
+*/
+auditForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: audit.url({
+        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+            _method: 'HEAD',
+            ...(options?.query ?? options?.mergeQuery ?? {}),
+        }
+    }),
+    method: 'get',
+})
+
+audit.form = auditForm
 
 const admin = {
     dashboard: Object.assign(dashboard, dashboard),

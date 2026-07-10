@@ -1,4 +1,4 @@
-import { queryParams, type RouteQueryOptions, type RouteDefinition } from './../../wayfinder'
+import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition } from './../../wayfinder'
 /**
 * @see \App\Http\Controllers\Admin\ImpersonationController::stop
 * @see app/Http/Controllers/Admin/ImpersonationController.php:26
@@ -32,6 +32,28 @@ stop.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
     url: stop.url(options),
     method: 'post',
 })
+
+/**
+* @see \App\Http\Controllers\Admin\ImpersonationController::stop
+* @see app/Http/Controllers/Admin/ImpersonationController.php:26
+* @route '/impersonate/stop'
+*/
+const stopForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: stop.url(options),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\ImpersonationController::stop
+* @see app/Http/Controllers/Admin/ImpersonationController.php:26
+* @route '/impersonate/stop'
+*/
+stopForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: stop.url(options),
+    method: 'post',
+})
+
+stop.form = stopForm
 
 const impersonate = {
     stop: Object.assign(stop, stop),

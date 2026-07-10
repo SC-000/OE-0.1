@@ -3,14 +3,17 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "build": "vite build",
-        "build:ssr": "vite build && vite build --ssr",
+        "build": "node scripts/check-form-variants.mjs && vite build",
+        "build:ssr": "node scripts/check-form-variants.mjs && vite build && vite build --ssr",
         "dev": "vite",
         "format": "prettier --write resources/",
         "format:check": "prettier --check resources/",
         "lint": "eslint . --fix",
         "lint:check": "eslint .",
-        "types:check": "tsc --noEmit"
+        "types:check": "tsc --noEmit",
+        "smoke:ssr": "node scripts/ssr-smoke.mjs",
+        "check:undefined": "tsc --noEmit -p tsconfig.json | grep -E 'TS2304|TS2552|TS18004' && exit 1 || exit 0",
+        "check:form-variants": "node scripts/check-form-variants.mjs"
     },
     "devDependencies": {
         "@eslint/js": "^9.19.0",

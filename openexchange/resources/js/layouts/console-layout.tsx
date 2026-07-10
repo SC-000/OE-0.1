@@ -1,9 +1,8 @@
-import { ReactNode } from 'react';
 import { Link, usePage } from '@inertiajs/react';
+import type { ReactNode } from 'react';
+import ImpersonationBanner from '@/components/impersonation-banner';
+import type { Impersonation } from '@/components/impersonation-banner';
 import { Icon, Logo } from '@/components/oe';
-import ImpersonationBanner, {
-    type Impersonation,
-} from '@/components/impersonation-banner';
 
 /**
  * The CLIENT console. Nothing admin lives here — platform operators get their own
@@ -74,6 +73,7 @@ export default function ConsoleLayout({
         href: string;
     }) => {
         const on = n.id === active;
+
         return (
             <Link
                 key={n.id}

@@ -1,9 +1,9 @@
-import { queryParams, type RouteQueryOptions, type RouteDefinition } from './../../wayfinder'
+import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition } from './../../wayfinder'
 import sources4cea9d from './sources'
 import billingFfcdcb from './billing'
 /**
 * @see \App\Http\Controllers\Console\UsageController::__invoke
-* @see app/Http/Controllers/Console/UsageController.php:16
+* @see app/Http/Controllers/Console/UsageController.php:22
 * @route '/console/usage'
 */
 export const usage = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -18,7 +18,7 @@ usage.definition = {
 
 /**
 * @see \App\Http\Controllers\Console\UsageController::__invoke
-* @see app/Http/Controllers/Console/UsageController.php:16
+* @see app/Http/Controllers/Console/UsageController.php:22
 * @route '/console/usage'
 */
 usage.url = (options?: RouteQueryOptions) => {
@@ -27,7 +27,7 @@ usage.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\Console\UsageController::__invoke
-* @see app/Http/Controllers/Console/UsageController.php:16
+* @see app/Http/Controllers/Console/UsageController.php:22
 * @route '/console/usage'
 */
 usage.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -37,13 +37,50 @@ usage.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
 
 /**
 * @see \App\Http\Controllers\Console\UsageController::__invoke
-* @see app/Http/Controllers/Console/UsageController.php:16
+* @see app/Http/Controllers/Console/UsageController.php:22
 * @route '/console/usage'
 */
 usage.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
     url: usage.url(options),
     method: 'head',
 })
+
+/**
+* @see \App\Http\Controllers\Console\UsageController::__invoke
+* @see app/Http/Controllers/Console/UsageController.php:22
+* @route '/console/usage'
+*/
+const usageForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: usage.url(options),
+    method: 'get',
+})
+
+/**
+* @see \App\Http\Controllers\Console\UsageController::__invoke
+* @see app/Http/Controllers/Console/UsageController.php:22
+* @route '/console/usage'
+*/
+usageForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: usage.url(options),
+    method: 'get',
+})
+
+/**
+* @see \App\Http\Controllers\Console\UsageController::__invoke
+* @see app/Http/Controllers/Console/UsageController.php:22
+* @route '/console/usage'
+*/
+usageForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: usage.url({
+        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+            _method: 'HEAD',
+            ...(options?.query ?? options?.mergeQuery ?? {}),
+        }
+    }),
+    method: 'get',
+})
+
+usage.form = usageForm
 
 /**
 * @see \App\Http\Controllers\Console\SourcesController::sources
@@ -90,6 +127,43 @@ sources.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 })
 
 /**
+* @see \App\Http\Controllers\Console\SourcesController::sources
+* @see app/Http/Controllers/Console/SourcesController.php:14
+* @route '/console/sources'
+*/
+const sourcesForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: sources.url(options),
+    method: 'get',
+})
+
+/**
+* @see \App\Http\Controllers\Console\SourcesController::sources
+* @see app/Http/Controllers/Console/SourcesController.php:14
+* @route '/console/sources'
+*/
+sourcesForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: sources.url(options),
+    method: 'get',
+})
+
+/**
+* @see \App\Http\Controllers\Console\SourcesController::sources
+* @see app/Http/Controllers/Console/SourcesController.php:14
+* @route '/console/sources'
+*/
+sourcesForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: sources.url({
+        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+            _method: 'HEAD',
+            ...(options?.query ?? options?.mergeQuery ?? {}),
+        }
+    }),
+    method: 'get',
+})
+
+sources.form = sourcesForm
+
+/**
 * @see \App\Http\Controllers\Console\BillingController::billing
 * @see app/Http/Controllers/Console/BillingController.php:17
 * @route '/console/billing'
@@ -134,6 +208,43 @@ billing.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 })
 
 /**
+* @see \App\Http\Controllers\Console\BillingController::billing
+* @see app/Http/Controllers/Console/BillingController.php:17
+* @route '/console/billing'
+*/
+const billingForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: billing.url(options),
+    method: 'get',
+})
+
+/**
+* @see \App\Http\Controllers\Console\BillingController::billing
+* @see app/Http/Controllers/Console/BillingController.php:17
+* @route '/console/billing'
+*/
+billingForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: billing.url(options),
+    method: 'get',
+})
+
+/**
+* @see \App\Http\Controllers\Console\BillingController::billing
+* @see app/Http/Controllers/Console/BillingController.php:17
+* @route '/console/billing'
+*/
+billingForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: billing.url({
+        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+            _method: 'HEAD',
+            ...(options?.query ?? options?.mergeQuery ?? {}),
+        }
+    }),
+    method: 'get',
+})
+
+billing.form = billingForm
+
+/**
 * @see \App\Http\Controllers\Console\BillingController::addCard
 * @see app/Http/Controllers/Console/BillingController.php:121
 * @route '/console/billing/add-card'
@@ -176,6 +287,43 @@ addCard.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
     url: addCard.url(options),
     method: 'head',
 })
+
+/**
+* @see \App\Http\Controllers\Console\BillingController::addCard
+* @see app/Http/Controllers/Console/BillingController.php:121
+* @route '/console/billing/add-card'
+*/
+const addCardForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: addCard.url(options),
+    method: 'get',
+})
+
+/**
+* @see \App\Http\Controllers\Console\BillingController::addCard
+* @see app/Http/Controllers/Console/BillingController.php:121
+* @route '/console/billing/add-card'
+*/
+addCardForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: addCard.url(options),
+    method: 'get',
+})
+
+/**
+* @see \App\Http\Controllers\Console\BillingController::addCard
+* @see app/Http/Controllers/Console/BillingController.php:121
+* @route '/console/billing/add-card'
+*/
+addCardForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: addCard.url({
+        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+            _method: 'HEAD',
+            ...(options?.query ?? options?.mergeQuery ?? {}),
+        }
+    }),
+    method: 'get',
+})
+
+addCard.form = addCardForm
 
 const console = {
     usage: Object.assign(usage, usage),

@@ -1,4 +1,4 @@
-import { queryParams, type RouteQueryOptions, type RouteDefinition } from './../../../../../wayfinder'
+import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition } from './../../../../../wayfinder'
 /**
 * @see \App\Http\Controllers\Admin\RatesController::upsert
 * @see app/Http/Controllers/Admin/RatesController.php:26
@@ -32,6 +32,28 @@ upsert.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
     url: upsert.url(options),
     method: 'post',
 })
+
+/**
+* @see \App\Http\Controllers\Admin\RatesController::upsert
+* @see app/Http/Controllers/Admin/RatesController.php:26
+* @route '/admin/rates'
+*/
+const upsertForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: upsert.url(options),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\RatesController::upsert
+* @see app/Http/Controllers/Admin/RatesController.php:26
+* @route '/admin/rates'
+*/
+upsertForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: upsert.url(options),
+    method: 'post',
+})
+
+upsert.form = upsertForm
 
 /**
 * @see \App\Http\Controllers\Admin\RatesController::destroy
@@ -68,6 +90,28 @@ destroy.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 })
 
 /**
+* @see \App\Http\Controllers\Admin\RatesController::destroy
+* @see app/Http/Controllers/Admin/RatesController.php:75
+* @route '/admin/rates/delete'
+*/
+const destroyForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: destroy.url(options),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\RatesController::destroy
+* @see app/Http/Controllers/Admin/RatesController.php:75
+* @route '/admin/rates/delete'
+*/
+destroyForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: destroy.url(options),
+    method: 'post',
+})
+
+destroy.form = destroyForm
+
+/**
 * @see \App\Http\Controllers\Admin\RatesController::updateDefault
 * @see app/Http/Controllers/Admin/RatesController.php:89
 * @route '/admin/rates/default'
@@ -102,6 +146,28 @@ updateDefault.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => (
 })
 
 /**
+* @see \App\Http\Controllers\Admin\RatesController::updateDefault
+* @see app/Http/Controllers/Admin/RatesController.php:89
+* @route '/admin/rates/default'
+*/
+const updateDefaultForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: updateDefault.url(options),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\RatesController::updateDefault
+* @see app/Http/Controllers/Admin/RatesController.php:89
+* @route '/admin/rates/default'
+*/
+updateDefaultForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: updateDefault.url(options),
+    method: 'post',
+})
+
+updateDefault.form = updateDefaultForm
+
+/**
 * @see \App\Http\Controllers\Admin\RatesController::preview
 * @see app/Http/Controllers/Admin/RatesController.php:107
 * @route '/admin/rates/preview'
@@ -134,6 +200,28 @@ preview.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
     url: preview.url(options),
     method: 'post',
 })
+
+/**
+* @see \App\Http\Controllers\Admin\RatesController::preview
+* @see app/Http/Controllers/Admin/RatesController.php:107
+* @route '/admin/rates/preview'
+*/
+const previewForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: preview.url(options),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\RatesController::preview
+* @see app/Http/Controllers/Admin/RatesController.php:107
+* @route '/admin/rates/preview'
+*/
+previewForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: preview.url(options),
+    method: 'post',
+})
+
+preview.form = previewForm
 
 const RatesController = { upsert, destroy, updateDefault, preview }
 
