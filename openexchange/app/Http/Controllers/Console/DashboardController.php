@@ -52,9 +52,6 @@ class DashboardController
         $dailyBurn = $burn / 14;
         $runwayDays = $dailyBurn > 0 ? (int) floor(max(0, $client->balance_cents) / $dailyBurn) : null;
 
-        $trailing = (int) $client->usageRecords()->where('period_start', '>=', $now->subDays(30))->sum('billed_cents');
-        [$rangeStatus, $rangeNote] = $this->range($projected, $trailing);
-
         $hasCard = $client->paymentMethods()->exists();
 
         return Inertia::render('console/overview', [
@@ -93,13 +90,11 @@ class DashboardController
                 'per_1k_cents' => $this->per1k($spendMtd, $tokensMtd),
                 'per_1k_last_month_cents' => $this->per1k($spendLast, $tokensLast),
                 'delta_pct' => $this->delta((int) round($this->per1k($spendMtd, $tokensMtd) ?? 0), (int) round($this->per1k($spendLast, $tokensLast) ?? 0)),
-                'per_request_cents' => $requests > 0 ? round($spendMtd / $requests, 2) : null,
                 'models_available' => ModelCatalog::where('active', true)->where('client_visible', true)->count(),
                 'providers' => ModelCatalog::where('active', true)->distinct()->count('provider'),
             ],
 
             'daily' => $this->dailySeries($client, $now, 30),
-            'range' => ['status' => $rangeStatus, 'note' => $rangeNote, 'projected_cents' => $projected, 'typical_cents' => $trailing],
             'alerts' => $this->alerts($client, $projected, $runwayDays, $hasCard),
             'sources' => $this->sources($client, $monthStart, $spendMtd),
 
@@ -206,22 +201,5 @@ class DashboardController
     private function delta(int $now, int $before): ?float
     {
         return $before > 0 ? round((($now - $before) / $before) * 100, 1) : null;
-    }
-
-    /** @return array{0:string,1:string} */
-    private function range(int $projected, int $trailing): array
-    {
-        if ($trailing < 500) {
-            return ['baseline', 'We’re still establishing your baseline — a normal-range indicator appears after a few days of usage.'];
-        }
-        $ratio = $projected / max(1, $trailing);
-        if ($ratio > 1.25) {
-            return ['high', 'Projected spend is running above your recent average. Worth a look if that wasn’t expected.'];
-        }
-        if ($ratio < 0.75) {
-            return ['low', 'Projected spend is below your recent average this month.'];
-        }
-
-        return ['normal', 'Your projected spend is in line with your typical usage.'];
     }
 }

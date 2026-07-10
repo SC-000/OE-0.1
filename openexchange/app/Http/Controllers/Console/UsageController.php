@@ -64,14 +64,13 @@ class UsageController
                 'tokens' => $tokens,
                 'requests' => $requests,
                 'spend_cents' => $spend,
-                'per_request_cents' => $requests > 0 ? round($spend / $requests, 2) : null,
                 'per_1k_cents' => $tokens > 0 ? round($spend / ($tokens / 1000), 4) : null,
             ],
             'daily' => $this->daily($client, $now, 30),
             'byProvider' => $byProvider,
             'bySource' => $bySource,
             'table' => $table,
-            'activity' => $this->activity($client, $presenter),
+            'activity' => $this->activity($client, $presenter, $request),
             'period' => ['label' => $now->format('F Y'), 'day' => $now->day, 'days' => $now->daysInMonth],
         ]);
     }
@@ -111,20 +110,86 @@ class UsageController
      * amounts, and showing them as they land is the honest way to present that — a
      * running record the customer can reconcile, not a total that appears from nowhere.
      *
-     * @return list<array<string, mixed>>
+     * @return array<string, mixed>
      */
-    private function activity($client, ModelPresenter $presenter): array
+    private function activity($client, ModelPresenter $presenter, Request $request): array
     {
-        return $client->usageRecords()->orderByDesc('period_start')->orderByDesc('id')->limit(25)->get()
+        $perPage = max(10, min(100, (int) $request->query('activity_per_page', 25)));
+        $page = max(1, (int) $request->query('activity_page', 1));
+
+        $paginator = $client->usageRecords()
+            ->orderByDesc('period_start')
+            ->orderByDesc('id')
+            ->paginate($perPage, ['*'], 'activity_page', $page)
+            ->withQueryString();
+
+        $items = $paginator->getCollection()
             ->map(fn ($u) => [
+                'id' => (int) $u->id,
                 'at' => $u->period_start->format('M j, H:i'),
                 'ago' => $u->period_start->diffForHumans(short: true),
                 'label' => $presenter->label($client, $u->provider, $u->model),
+                'window' => $this->activityWindow($u),
+                'kind' => $this->activityKind($u),
                 'input_tokens' => (int) $u->input_tokens,
                 'output_tokens' => (int) $u->output_tokens,
                 'billed_cents' => (int) $u->billed_cents,
                 // Gateway rows are one request each; a pulled bucket aggregates a window.
-                'source' => $u->source === 'gateway' ? 'request' : ($u->source === 'manual' ? 'adjustment' : 'metered'),
-            ])->all();
+                'source' => $u->source === 'gateway' ? 'request' : ($u->source === 'manual' ? 'adjustment' : 'rollup'),
+            ]);
+
+        return [
+            'items' => $items->all(),
+            'page' => $paginator->currentPage(),
+            'last_page' => $paginator->lastPage(),
+            'per_page' => $paginator->perPage(),
+            'total' => $paginator->total(),
+            'from' => $paginator->firstItem(),
+            'to' => $paginator->lastItem(),
+        ];
+    }
+
+    private function activityKind($usage): string
+    {
+        if ($usage->source === 'gateway') {
+            return 'Request';
+        }
+
+        if ($usage->source === 'manual') {
+            return 'Adjustment';
+        }
+
+        $minutes = max(1, (int) $usage->period_start->diffInMinutes($usage->period_end));
+
+        if ($minutes >= 1380 && $minutes <= 1500) {
+            return 'Daily rollup';
+        }
+
+        if ($minutes < 60) {
+            return "{$minutes}-min rollup";
+        }
+
+        if ($minutes % 60 === 0) {
+            return ($minutes / 60).'h rollup';
+        }
+
+        return 'Provider rollup';
+    }
+
+    private function activityWindow($usage): string
+    {
+        if ($usage->source === 'gateway') {
+            return 'Single request';
+        }
+
+        if ($usage->source === 'manual' || $usage->period_start->equalTo($usage->period_end)) {
+            return 'Point adjustment';
+        }
+
+        if ($usage->period_start->isSameDay($usage->period_end)) {
+            return $usage->period_start->format('M j, H:i').' - '.$usage->period_end->format('H:i');
+        }
+
+        return $usage->period_start->format('M j, H:i').' - '.$usage->period_end->format('M j, H:i');
     }
 }

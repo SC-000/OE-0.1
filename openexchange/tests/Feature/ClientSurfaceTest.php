@@ -176,6 +176,44 @@ class ClientSurfaceTest extends TestCase
             ->where('table.0.label', 'OpenAI Premium'));
     }
 
+    public function test_the_usage_activity_ledger_is_paginated_and_explains_rollups(): void
+    {
+        for ($i = 0; $i < 30; $i++) {
+            $start = now()->subDays($i + 1)->startOfDay();
+
+            UsageRecord::create([
+                'client_id' => $this->client->id,
+                'provider' => 'openai',
+                'model' => 'gpt-5.4',
+                'period_start' => $start,
+                'period_end' => $start->copy()->addDay(),
+                'input_tokens' => 1_000,
+                'output_tokens' => 500,
+                'provider_cost_cents' => 1,
+                'billed_cents' => 2,
+                'source' => 'pull',
+            ]);
+        }
+
+        $this->actingAs($this->user)->get('/console/usage')->assertInertia(function ($page) {
+            $activity = $page->toArray()['props']['activity'];
+
+            $this->assertSame(31, $activity['total']);
+            $this->assertSame(25, $activity['per_page']);
+            $this->assertCount(25, $activity['items']);
+            $this->assertSame('Request', $activity['items'][0]['kind']);
+            $this->assertSame('Single request', $activity['items'][0]['window']);
+            $this->assertSame('Daily rollup', $activity['items'][1]['kind']);
+        });
+
+        $this->actingAs($this->user)->get('/console/usage?activity_page=2')->assertInertia(function ($page) {
+            $activity = $page->toArray()['props']['activity'];
+
+            $this->assertSame(2, $activity['page']);
+            $this->assertCount(6, $activity['items']);
+        });
+    }
+
     /* -------------------------------------- gating ---------------------------------- */
 
     public function test_console_and_settings_require_authentication(): void

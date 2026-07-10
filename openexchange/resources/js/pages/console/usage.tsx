@@ -1,4 +1,4 @@
-import { Head } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import { useMemo } from 'react';
 import { Badge, Card, Donut, LineArea, StatCard } from '@/components/oe';
 import ConsoleLayout from '@/layouts/console-layout';
@@ -13,27 +13,38 @@ type Row = {
     share_pct: number;
 };
 type Activity = {
+    id: number;
     at: string;
     ago: string;
     label: string;
+    window: string;
+    kind: string;
     input_tokens: number;
     output_tokens: number;
     billed_cents: number;
     source: string;
+};
+type ActivityLedger = {
+    items: Activity[];
+    page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+    from: number | null;
+    to: number | null;
 };
 type Props = {
     stats: {
         tokens: number;
         requests: number;
         spend_cents: number;
-        per_request_cents: number | null;
         per_1k_cents: number | null;
     };
     daily: { labels: string[]; spend: number[]; per_1k: (number | null)[] };
     byProvider: { label: string; value: number }[];
     bySource: { label: string; value: number }[];
     table: Row[];
-    activity: Activity[];
+    activity: ActivityLedger;
     period: { label: string; day: number; days: number };
 };
 
@@ -56,10 +67,29 @@ const td: React.CSSProperties = {
     fontSize: 'var(--ox-text-sm)',
 };
 const mono: React.CSSProperties = { fontFamily: 'var(--ox-font-mono)' };
+const pagerButton: React.CSSProperties = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 32,
+    padding: '0 12px',
+    border: '1px solid var(--ox-border-strong)',
+    borderRadius: 'var(--ox-radius-sm)',
+    background: 'var(--ox-surface)',
+    color: 'var(--ox-text)',
+    fontSize: 'var(--ox-text-sm)',
+    fontWeight: 600,
+    textDecoration: 'none',
+};
+const pagerButtonDisabled: React.CSSProperties = {
+    ...pagerButton,
+    cursor: 'not-allowed',
+    opacity: 0.5,
+};
 
 const SOURCE_TONE: Record<string, 'neutral' | 'brand' | 'info'> = {
     request: 'brand',
-    metered: 'neutral',
+    rollup: 'neutral',
     adjustment: 'info',
 };
 
@@ -89,6 +119,9 @@ export default function Usage({
         return out;
     }, [daily.per_1k]);
     const hasUnit = daily.per_1k.some((v) => v !== null);
+    const activityRows = activity.items;
+    const activityHref = (page: number) =>
+        `/console/usage?activity_page=${page}#activity`;
 
     return (
         <ConsoleLayout
@@ -441,25 +474,58 @@ export default function Usage({
 
                 {/* The accrual log. Usage arrives as many small amounts; showing each one as
                     it lands is the honest way to present that — a record you can reconcile. */}
-                <Card padding="none">
-                    <div style={{ padding: '16px 20px 10px' }}>
-                        <h2
-                            style={{ margin: 0, fontSize: 16, fontWeight: 700 }}
-                        >
-                            Activity
-                        </h2>
-                        <p
-                            style={{
-                                margin: '2px 0 0',
-                                fontSize: 12.5,
-                                color: 'var(--ox-text-subtle)',
-                            }}
-                        >
-                            Every amount as it was metered, newest first. Your
-                            balance moves by exactly these amounts.
-                        </p>
+                <Card id="activity" padding="none">
+                    <div
+                        style={{
+                            padding: '16px 20px 10px',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'flex-start',
+                            gap: 16,
+                        }}
+                    >
+                        <div>
+                            <h2
+                                style={{
+                                    margin: 0,
+                                    fontSize: 16,
+                                    fontWeight: 700,
+                                }}
+                            >
+                                Activity
+                            </h2>
+                            <p
+                                style={{
+                                    margin: '2px 0 0',
+                                    fontSize: 12.5,
+                                    color: 'var(--ox-text-subtle)',
+                                    maxWidth: 760,
+                                }}
+                            >
+                                Gateway requests appear one by one. Provider
+                                imports appear as the rollup window shown on
+                                each row, currently daily rather than fixed
+                                30-minute buckets.
+                            </p>
+                        </div>
+                        {activity.total > 0 && (
+                            <div
+                                style={{
+                                    ...mono,
+                                    flexShrink: 0,
+                                    fontSize: 12,
+                                    color: 'var(--ox-text-subtle)',
+                                    paddingTop: 3,
+                                }}
+                            >
+                                {activity.from !== null && activity.to !== null
+                                    ? `${activity.from}-${activity.to}`
+                                    : '0'}{' '}
+                                of {num(activity.total)}
+                            </div>
+                        )}
                     </div>
-                    {activity.length === 0 ? (
+                    {activityRows.length === 0 ? (
                         <p
                             style={{
                                 padding: '0 20px 20px',
@@ -479,7 +545,8 @@ export default function Usage({
                             <thead>
                                 <tr>
                                     <th style={th}>When</th>
-                                    <th style={th}>Class</th>
+                                    <th style={th}>Type</th>
+                                    <th style={th}>Window</th>
                                     <th style={{ ...th, textAlign: 'right' }}>
                                         In / Out tokens
                                     </th>
@@ -489,8 +556,8 @@ export default function Usage({
                                 </tr>
                             </thead>
                             <tbody>
-                                {activity.map((a, i) => (
-                                    <tr key={i}>
+                                {activityRows.map((a) => (
+                                    <tr key={a.id}>
                                         <td style={td}>
                                             <div style={{ fontSize: 13 }}>
                                                 {a.at}
@@ -513,17 +580,24 @@ export default function Usage({
                                             >
                                                 {a.label}
                                             </span>
-                                            {a.source !== 'request' && (
-                                                <Badge
-                                                    tone={
-                                                        SOURCE_TONE[a.source] ??
-                                                        'neutral'
-                                                    }
-                                                    dot={false}
-                                                >
-                                                    {a.source}
-                                                </Badge>
-                                            )}
+                                            <Badge
+                                                tone={
+                                                    SOURCE_TONE[a.source] ??
+                                                    'neutral'
+                                                }
+                                                dot={false}
+                                            >
+                                                {a.kind}
+                                            </Badge>
+                                        </td>
+                                        <td
+                                            style={{
+                                                ...td,
+                                                color: 'var(--ox-text-muted)',
+                                                fontSize: 12.5,
+                                            }}
+                                        >
+                                            {a.window}
                                         </td>
                                         <td
                                             style={{
@@ -551,6 +625,57 @@ export default function Usage({
                                 ))}
                             </tbody>
                         </table>
+                    )}
+                    {activity.total > activity.per_page && (
+                        <div
+                            style={{
+                                padding: '12px 20px 16px',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                gap: 12,
+                                borderTop: '1px solid var(--ox-divider)',
+                            }}
+                        >
+                            <span
+                                style={{
+                                    fontSize: 12.5,
+                                    color: 'var(--ox-text-subtle)',
+                                }}
+                            >
+                                Page {activity.page} of {activity.last_page}
+                            </span>
+                            <div style={{ display: 'flex', gap: 8 }}>
+                                {activity.page > 1 ? (
+                                    <Link
+                                        href={activityHref(activity.page - 1)}
+                                        style={pagerButton}
+                                        preserveScroll
+                                        preserveState
+                                    >
+                                        Previous
+                                    </Link>
+                                ) : (
+                                    <span style={pagerButtonDisabled}>
+                                        Previous
+                                    </span>
+                                )}
+                                {activity.page < activity.last_page ? (
+                                    <Link
+                                        href={activityHref(activity.page + 1)}
+                                        style={pagerButton}
+                                        preserveScroll
+                                        preserveState
+                                    >
+                                        Next
+                                    </Link>
+                                ) : (
+                                    <span style={pagerButtonDisabled}>
+                                        Next
+                                    </span>
+                                )}
+                            </div>
+                        </div>
                     )}
                 </Card>
             </div>

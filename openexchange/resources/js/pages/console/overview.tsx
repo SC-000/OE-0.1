@@ -33,17 +33,10 @@ type Props = {
         per_1k_cents: number | null;
         per_1k_last_month_cents: number | null;
         delta_pct: number | null;
-        per_request_cents: number | null;
         models_available: number;
         providers: number;
     };
     daily: { date: string; cents: number }[];
-    range: {
-        status: string;
-        note: string;
-        projected_cents: number;
-        typical_cents: number;
-    };
     alerts: Alert[];
     sources: { label: string; spend_cents: number; share_pct: number }[];
     recent: {
@@ -100,7 +93,6 @@ export default function Overview({
     spend,
     efficiency,
     daily,
-    range,
     alerts,
     sources,
     recent,
@@ -477,12 +469,14 @@ export default function Overview({
                             }}
                         >
                             <Row
-                                label="Cost per request"
-                                value={
-                                    efficiency.per_request_cents !== null
-                                        ? `$${(efficiency.per_request_cents / 100).toFixed(4)}`
-                                        : '—'
-                                }
+                                label="This month / 1k tokens"
+                                value={per1k(efficiency.per_1k_cents)}
+                            />
+                            <Row
+                                label="Last month / 1k tokens"
+                                value={per1k(
+                                    efficiency.per_1k_last_month_cents,
+                                )}
                             />
                             <Row
                                 label="Models available"
@@ -492,25 +486,6 @@ export default function Overview({
                                 label="Providers, one bill"
                                 value={num(efficiency.providers)}
                             />
-                        </div>
-
-                        <div
-                            style={{
-                                fontSize: 12,
-                                color: 'var(--ox-text-subtle)',
-                                lineHeight: 1.6,
-                                background: 'var(--ox-bg-subtle)',
-                                padding: 10,
-                                borderRadius: 'var(--ox-radius-sm)',
-                            }}
-                        >
-                            <Icon
-                                name="activity"
-                                size={12}
-                                color="var(--ox-text-subtle)"
-                                style={{ verticalAlign: -1, marginRight: 5 }}
-                            />
-                            {range.note}
                         </div>
                     </Card>
                 </div>
@@ -652,7 +627,7 @@ export default function Overview({
                                         color: 'var(--ox-text-subtle)',
                                     }}
                                 >
-                                    Each amount as it was metered.
+                                    Latest requests and provider rollups.
                                 </p>
                             </div>
                             <Link
