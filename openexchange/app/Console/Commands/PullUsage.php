@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\Client;
 use App\Models\ProviderKey;
+use App\Models\UsageRecord;
 use App\Services\Billing\AutoTopupService;
 use App\Services\Metering\MeteringService;
 use App\Services\Providers\GoogleUsagePuller;
@@ -60,6 +61,26 @@ class PullUsage extends Command
             // window instead — re-metering a bucket is safe and bills only the difference.
             if ($since->gte($until)) {
                 $since = $until->subHours($lookback);
+            }
+
+            // Transition guard for the move from daily provider buckets to 15-minute
+            // buckets. A legacy open daily row has already billed its cumulative usage;
+            // pulling minute buckets again from midnight would bill the same usage twice.
+            if ($key->last_synced_at) {
+                $openWideBucket = UsageRecord::query()
+                    ->where('provider_key_id', $key->id)
+                    ->where('source', 'pull')
+                    ->where('period_start', '<=', $until)
+                    ->where('period_end', '>', $until)
+                    ->orderByDesc('period_end')
+                    ->first();
+
+                if ($openWideBucket && $openWideBucket->period_start->diffInMinutes($openWideBucket->period_end) > 15) {
+                    $lastSynced = CarbonImmutable::parse($key->last_synced_at);
+                    if ($lastSynced->gt($since) && $lastSynced->lt($until)) {
+                        $since = $lastSynced;
+                    }
+                }
             }
 
             try {

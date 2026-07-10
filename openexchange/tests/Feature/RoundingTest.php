@@ -174,17 +174,17 @@ class RoundingTest extends TestCase
             ]);
 
             foreach ([
-                ['at' => '2026-07-10 14:10:00', 'cost' => 40.4, 'billed' => 100],
-                ['at' => '2026-07-10 15:05:00', 'cost' => 25.2, 'billed' => 60],
+                ['model' => 'gpt-4o', 'at' => '2026-07-10 00:00:00', 'cost' => 40.4, 'billed' => 100],
+                ['model' => 'gpt-4o-mini', 'at' => '2026-07-10 00:00:00', 'cost' => 25.2, 'billed' => 60],
             ] as $row) {
                 $at = CarbonImmutable::parse($row['at']);
                 UsageRecord::create([
                     'client_id' => $client->id,
                     'provider_key_id' => $key->id,
                     'provider' => 'openai',
-                    'model' => 'gpt-4o',
+                    'model' => $row['model'],
                     'period_start' => $at,
-                    'period_end' => $at->addMinutes(5),
+                    'period_end' => $at->addDay(),
                     'provider_cost_cents' => $row['cost'],
                     'billed_cents' => $row['billed'],
                     'source' => 'pull',
@@ -192,15 +192,15 @@ class RoundingTest extends TestCase
             }
 
             $series = app(CommercialMetrics::class)->series('24h');
-            $hour = array_search('2026-07-10 14:00', $series['labels'], true);
+            $hour = array_search('2026-07-10 15:00', $series['labels'], true);
 
             $this->assertSame('24h', $series['range']);
             $this->assertSame('hour', $series['bucket']);
             $this->assertCount(24, $series['labels']);
             $this->assertNotFalse($hour);
-            $this->assertSame(1.0, $series['revenue'][$hour]);
-            $this->assertSame(0.4, $series['cost'][$hour]);
-            $this->assertSame(0.6, $series['margin'][$hour]);
+            $this->assertSame(1.6, $series['revenue'][$hour]);
+            $this->assertSame(0.66, $series['cost'][$hour]);
+            $this->assertSame(0.94, $series['margin'][$hour]);
 
             $daily = app(CommercialMetrics::class)->series(30);
             $this->assertSame('30d', $daily['range']);

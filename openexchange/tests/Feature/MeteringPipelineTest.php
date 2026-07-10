@@ -50,6 +50,12 @@ class MeteringPipelineTest extends TestCase
 
         $buckets = app(OpenAiUsagePuller::class)->pull($key, CarbonImmutable::now()->subDays(2), CarbonImmutable::now());
         $this->assertCount(1, $buckets);
+        $this->assertSame(15.0, $buckets[0]->periodStart->diffInMinutes($buckets[0]->periodEnd));
+        Http::assertSent(function ($request) {
+            parse_str(parse_url($request->url(), PHP_URL_QUERY) ?? '', $q);
+
+            return ($q['bucket_width'] ?? null) === '1m' && (int) ($q['limit'] ?? 0) === 1440;
+        });
 
         $summary = app(MeteringService::class)->ingest($key, $buckets);
 
@@ -96,6 +102,8 @@ class MeteringPipelineTest extends TestCase
         $buckets = app(GoogleUsagePuller::class)->pull($key, CarbonImmutable::parse('2026-07-06'), CarbonImmutable::parse('2026-07-07'));
 
         $this->assertCount(1, $buckets);
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'monitoring.googleapis.test')
+            && str_contains($request->url(), 'aggregation.alignmentPeriod=900s'));
         $this->assertSame('gemini-2.5-flash', $buckets[0]->model);
         $this->assertSame(500000, $buckets[0]->inputTokens);
         $this->assertSame(200000, $buckets[0]->outputTokens);

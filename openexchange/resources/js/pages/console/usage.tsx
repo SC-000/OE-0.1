@@ -36,6 +36,7 @@ type ActivityLedger = {
 type Props = {
     stats: {
         tokens: number;
+        tokens_30d: number;
         requests: number;
         spend_cents: number;
         per_1k_cents: number | null;
@@ -158,12 +159,12 @@ export default function Usage({
                         hint="input + output"
                     />
                     <StatCard
-                        label="Requests"
-                        value={num(stats.requests)}
+                        label="Total tokens 30d"
+                        value={fmtTokens(stats.tokens_30d)}
                         unit=""
                         delta={undefined}
                         deltaDirection={undefined}
-                        hint="metered"
+                        hint="input + output"
                     />
                     <StatCard
                         label="Cost per 1k tokens"
@@ -503,9 +504,9 @@ export default function Usage({
                                 }}
                             >
                                 Gateway requests appear one by one. Provider
-                                imports appear as the rollup window shown on
-                                each row, currently daily rather than fixed
-                                30-minute buckets.
+                                imports appear as 15-minute rollups when
+                                available; older imported windows may remain
+                                daily.
                             </p>
                         </div>
                         {activity.total > 0 && (
@@ -568,7 +569,7 @@ export default function Usage({
                                                     color: 'var(--ox-text-subtle)',
                                                 }}
                                             >
-                                                {a.ago} ago
+                                                {a.ago}
                                             </div>
                                         </td>
                                         <td style={td}>

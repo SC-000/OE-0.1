@@ -10,7 +10,7 @@ use RuntimeException;
 /**
  * Pulls Gemini token usage from Google Cloud Monitoring for a single GCP project
  * (one project per client). Sums the input/output token metrics grouped by model
- * over daily windows. Provider cost is derived from the model catalog downstream.
+ * over 15-minute windows. Provider cost is derived from the model catalog downstream.
  */
 class GoogleUsagePuller
 {
@@ -77,7 +77,7 @@ class GoogleUsagePuller
                 'filter' => 'metric.type="'.$metric.'"',
                 'interval.startTime' => $since->toIso8601ZuluString(),
                 'interval.endTime' => $until->toIso8601ZuluString(),
-                'aggregation.alignmentPeriod' => '86400s',
+                'aggregation.alignmentPeriod' => '900s',
                 'aggregation.perSeriesAligner' => 'ALIGN_SUM',
                 'aggregation.groupByFields' => 'metric.label."'.$modelLabel.'"',
                 'aggregation.crossSeriesReducer' => 'REDUCE_SUM',

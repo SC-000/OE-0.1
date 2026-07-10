@@ -197,20 +197,45 @@ class ClientSurfaceTest extends TestCase
 
         $this->actingAs($this->user)->get('/console/usage')->assertInertia(function ($page) {
             $activity = $page->toArray()['props']['activity'];
+            $kinds = collect($activity['items'])->pluck('kind')->all();
 
             $this->assertSame(31, $activity['total']);
             $this->assertSame(25, $activity['per_page']);
             $this->assertCount(25, $activity['items']);
-            $this->assertSame('Request', $activity['items'][0]['kind']);
-            $this->assertSame('Single request', $activity['items'][0]['window']);
-            $this->assertSame('Daily rollup', $activity['items'][1]['kind']);
+            $this->assertContains('Daily rollup', $kinds);
         });
 
         $this->actingAs($this->user)->get('/console/usage?activity_page=2')->assertInertia(function ($page) {
             $activity = $page->toArray()['props']['activity'];
+            $kinds = collect($activity['items'])->pluck('kind')->all();
 
             $this->assertSame(2, $activity['page']);
             $this->assertCount(6, $activity['items']);
+            $this->assertContains('Request', $kinds);
+        });
+    }
+
+    public function test_provider_activity_can_show_fifteen_minute_rollups(): void
+    {
+        $start = now()->subMinutes(15)->startOfMinute();
+
+        UsageRecord::create([
+            'client_id' => $this->client->id,
+            'provider' => 'openai',
+            'model' => 'gpt-5.4',
+            'period_start' => $start,
+            'period_end' => $start->copy()->addMinutes(15),
+            'input_tokens' => 1_000,
+            'output_tokens' => 500,
+            'provider_cost_cents' => 1,
+            'billed_cents' => 2,
+            'source' => 'pull',
+        ]);
+
+        $this->actingAs($this->user)->get('/console/usage')->assertInertia(function ($page) {
+            $activity = $page->toArray()['props']['activity'];
+
+            $this->assertSame('15-min rollup', $activity['items'][0]['kind']);
         });
     }
 

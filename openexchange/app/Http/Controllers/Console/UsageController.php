@@ -25,8 +25,10 @@ class UsageController
         $now = CarbonImmutable::now();
         $monthStart = $now->startOfMonth();
         $mtd = fn () => $client->usageRecords()->where('period_start', '>=', $monthStart);
+        $last30 = fn () => $client->usageRecords()->where('period_start', '>=', $now->subDays(29)->startOfDay());
 
         $tokens = (int) $mtd()->selectRaw('COALESCE(SUM(input_tokens+output_tokens),0) s')->value('s');
+        $tokens30d = (int) $last30()->selectRaw('COALESCE(SUM(input_tokens+output_tokens),0) s')->value('s');
         $spend = (int) $mtd()->sum('billed_cents');
         $requests = $mtd()->count();
 
@@ -62,6 +64,7 @@ class UsageController
         return Inertia::render('console/usage', [
             'stats' => [
                 'tokens' => $tokens,
+                'tokens_30d' => $tokens30d,
                 'requests' => $requests,
                 'spend_cents' => $spend,
                 'per_1k_cents' => $tokens > 0 ? round($spend / ($tokens / 1000), 4) : null,
@@ -118,25 +121,29 @@ class UsageController
         $page = max(1, (int) $request->query('activity_page', 1));
 
         $paginator = $client->usageRecords()
-            ->orderByDesc('period_start')
+            ->orderByDesc('updated_at')
             ->orderByDesc('id')
             ->paginate($perPage, ['*'], 'activity_page', $page)
             ->withQueryString();
 
         $items = $paginator->getCollection()
-            ->map(fn ($u) => [
-                'id' => (int) $u->id,
-                'at' => $u->period_start->format('M j, H:i'),
-                'ago' => $u->period_start->diffForHumans(short: true),
-                'label' => $presenter->label($client, $u->provider, $u->model),
-                'window' => $this->activityWindow($u),
-                'kind' => $this->activityKind($u),
-                'input_tokens' => (int) $u->input_tokens,
-                'output_tokens' => (int) $u->output_tokens,
-                'billed_cents' => (int) $u->billed_cents,
-                // Gateway rows are one request each; a pulled bucket aggregates a window.
-                'source' => $u->source === 'gateway' ? 'request' : ($u->source === 'manual' ? 'adjustment' : 'rollup'),
-            ]);
+            ->map(function ($u) use ($client, $presenter) {
+                $at = $this->activityTime($u);
+
+                return [
+                    'id' => (int) $u->id,
+                    'at' => $at->format('M j, H:i'),
+                    'ago' => $at->diffForHumans(short: true),
+                    'label' => $presenter->label($client, $u->provider, $u->model),
+                    'window' => $this->activityWindow($u),
+                    'kind' => $this->activityKind($u),
+                    'input_tokens' => (int) $u->input_tokens,
+                    'output_tokens' => (int) $u->output_tokens,
+                    'billed_cents' => (int) $u->billed_cents,
+                    // Gateway rows are one request each; a pulled bucket aggregates a window.
+                    'source' => $u->source === 'gateway' ? 'request' : ($u->source === 'manual' ? 'adjustment' : 'rollup'),
+                ];
+            });
 
         return [
             'items' => $items->all(),
@@ -191,5 +198,14 @@ class UsageController
         }
 
         return $usage->period_start->format('M j, H:i').' - '.$usage->period_end->format('M j, H:i');
+    }
+
+    private function activityTime($usage): CarbonImmutable
+    {
+        $time = $usage->source === 'pull'
+            ? ($usage->updated_at ?? $usage->created_at ?? $usage->period_start)
+            : $usage->period_start;
+
+        return CarbonImmutable::parse($time);
     }
 }

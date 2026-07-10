@@ -8,7 +8,6 @@ use App\Models\ModelPriceProposal;
 use App\Models\TopUp;
 use App\Models\UsageRecord;
 use Carbon\CarbonImmutable;
-use Illuminate\Support\Facades\DB;
 
 /**
  * The numbers that tell you whether this business is working.
@@ -87,26 +86,45 @@ class CommercialMetrics
             ? CarbonImmutable::now()->subHours($buckets - 1)->startOfHour()
             : CarbonImmutable::now()->subDays($buckets - 1)->startOfDay();
 
-        $rows = UsageRecord::query()
-            ->where('period_start', '>=', $from)
-            ->selectRaw($this->seriesBucketExpression($bucket).' bucket, SUM(billed_cents) rev, SUM(provider_cost_cents) cost')
-            ->groupBy('bucket')
-            ->orderBy('bucket')
-            ->get()
-            ->keyBy('bucket');
-
         $revenue = [];
         $cost = [];
         $margin = [];
         $labels = [];
+        $points = [];
         for ($i = 0; $i < $buckets; $i++) {
             $at = $bucket === 'hour' ? $from->addHours($i) : $from->addDays($i);
             $label = $at->format($bucket === 'hour' ? 'Y-m-d H:00' : 'Y-m-d');
-            $r = $rows->get($label);
-            $rev = (int) ($r->rev ?? 0);
-            $costCents = self::cents($r->cost ?? 0);
 
             $labels[] = $label;
+            $points[$label] = ['revenue' => 0, 'cost' => 0.0];
+        }
+
+        UsageRecord::query()
+            ->where(function ($q) use ($from) {
+                $q->where(fn ($w) => $w->where('source', 'pull')->where('updated_at', '>=', $from))
+                    ->orWhere(fn ($w) => $w->where('source', '!=', 'pull')->where('period_start', '>=', $from));
+            })
+            ->select(['source', 'period_start', 'provider_cost_cents', 'billed_cents', 'created_at', 'updated_at'])
+            ->orderBy('id')
+            ->chunk(500, function ($records) use (&$points, $bucket) {
+                foreach ($records as $record) {
+                    $time = $this->seriesRecordTime($record);
+                    $label = ($bucket === 'hour' ? $time->startOfHour() : $time->startOfDay())
+                        ->format($bucket === 'hour' ? 'Y-m-d H:00' : 'Y-m-d');
+
+                    if (! isset($points[$label])) {
+                        continue;
+                    }
+
+                    $points[$label]['revenue'] += (int) $record->billed_cents;
+                    $points[$label]['cost'] += (float) $record->provider_cost_cents;
+                }
+            });
+
+        foreach ($labels as $label) {
+            $rev = $points[$label]['revenue'];
+            $costCents = self::cents($points[$label]['cost']);
+
             $revenue[] = round($rev / 100, 2);
             $cost[] = round($costCents / 100, 2);
             $margin[] = round(($rev - $costCents) / 100, 2);
@@ -367,21 +385,13 @@ class CommercialMetrics
         return array_key_exists($range, self::SERIES_RANGES) ? $range : '30d';
     }
 
-    private function seriesBucketExpression(string $bucket): string
+    private function seriesRecordTime(UsageRecord $record): CarbonImmutable
     {
-        $driver = DB::connection()->getDriverName();
+        $time = $record->source === 'pull'
+            ? ($record->updated_at ?? $record->created_at ?? $record->period_start)
+            : $record->period_start;
 
-        return match ($driver) {
-            'sqlite' => $bucket === 'hour'
-                ? "strftime('%Y-%m-%d %H:00', period_start)"
-                : 'date(period_start)',
-            'pgsql' => $bucket === 'hour'
-                ? "to_char(date_trunc('hour', period_start), 'YYYY-MM-DD HH24:00')"
-                : "to_char(period_start::date, 'YYYY-MM-DD')",
-            default => $bucket === 'hour'
-                ? "DATE_FORMAT(period_start, '%Y-%m-%d %H:00')"
-                : 'DATE(period_start)',
-        };
+        return CarbonImmutable::parse($time);
     }
 
     private function pct(int $part, int $whole): ?float

@@ -30,11 +30,16 @@ class DashboardController
         $client = $this->client($request);
         $now = CarbonImmutable::now();
         $monthStart = $now->startOfMonth();
+        $thirtyDayStart = $now->subDays(29)->startOfDay();
 
         $mtd = fn () => $client->usageRecords()->where('period_start', '>=', $monthStart);
         $spendMtd = (int) $mtd()->sum('billed_cents');
         $tokensMtd = (int) $mtd()->selectRaw('COALESCE(SUM(input_tokens + output_tokens),0) s')->value('s');
         $requests = (int) $mtd()->count();
+        $tokens30d = (int) $client->usageRecords()
+            ->where('period_start', '>=', $thirtyDayStart)
+            ->selectRaw('COALESCE(SUM(input_tokens + output_tokens),0) s')
+            ->value('s');
 
         // Last full calendar month, for an honest month-on-month comparison.
         $lastMonthStart = $monthStart->subMonth();
@@ -82,6 +87,7 @@ class DashboardController
                 'days_in_month' => $now->daysInMonth,
                 'requests' => $requests,
                 'tokens' => $tokensMtd,
+                'tokens_30d' => $tokens30d,
             ],
 
             // The one honest growth lever: show the unit cost, and whether it is falling.

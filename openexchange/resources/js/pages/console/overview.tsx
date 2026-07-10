@@ -28,6 +28,7 @@ type Props = {
         days_in_month: number;
         requests: number;
         tokens: number;
+        tokens_30d: number;
     };
     efficiency: {
         per_1k_cents: number | null;
@@ -305,12 +306,12 @@ export default function Overview({
                         }
                     />
                     <StatCard
-                        label="Requests"
-                        value={num(spend.requests)}
+                        label="Total tokens 30d"
+                        value={fmtTokens(spend.tokens_30d)}
                         unit=""
                         delta={undefined}
                         deltaDirection={undefined}
-                        hint={`${fmtTokens(spend.tokens)} tokens`}
+                        hint="input + output"
                     />
                     <StatCard
                         label="Cost per 1k tokens"
