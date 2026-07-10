@@ -9,9 +9,13 @@ use Illuminate\Support\Str;
 class AccessKey extends Model
 {
     protected $guarded = [];
+
     protected $casts = ['last_used_at' => 'datetime'];
 
-    public function client(): BelongsTo { return $this->belongsTo(Client::class); }
+    public function client(): BelongsTo
+    {
+        return $this->belongsTo(Client::class);
+    }
 
     /** Create a key; returns [model, plaintext]. The plaintext is shown once. */
     public static function generate(Client $client, string $name): array

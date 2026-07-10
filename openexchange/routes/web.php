@@ -1,6 +1,13 @@
 <?php
 
-use App\Http\Controllers\Admin\AdminController;
+use App\Http\Controllers\Admin\AuditController;
+use App\Http\Controllers\Admin\ChargesController;
+use App\Http\Controllers\Admin\ClientsController;
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\ImpersonationController;
+use App\Http\Controllers\Admin\ModelsController;
+use App\Http\Controllers\Admin\PlatformController;
+use App\Http\Controllers\Admin\RatesController;
 use App\Http\Controllers\BillingsWebhookController;
 use App\Http\Controllers\Console\BillingController;
 use App\Http\Controllers\Console\DashboardController;
@@ -8,7 +15,9 @@ use App\Http\Controllers\Console\SourcesController;
 use App\Http\Controllers\Console\UsageController;
 use App\Http\Controllers\GatewayController;
 use App\Http\Middleware\AuthenticateAccessKey;
+use App\Http\Middleware\DenyWhileImpersonating;
 use App\Http\Middleware\EnsureAdmin;
+use App\Http\Middleware\RequireClientContext;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -39,50 +48,99 @@ Route::middleware(AuthenticateAccessKey::class)->group(function () {
     Route::get('/v1/models', [GatewayController::class, 'models'])->name('v1.models');
 });
 
-// Authenticated platform console
-Route::middleware(['auth', 'verified'])->group(function () {
+/*
+|--------------------------------------------------------------------------
+| Client console — /console
+|--------------------------------------------------------------------------
+| Always scoped to exactly one client: the signed-in user's, or the one an
+| admin is impersonating. RequireClientContext sends a context-less admin to
+| the admin portal rather than quietly showing them someone else's account.
+*/
+Route::middleware(['auth', 'verified', RequireClientContext::class])->group(function () {
     Route::redirect('dashboard', '/console')->name('dashboard');
 
     Route::get('/console', DashboardController::class)->name('console');
     Route::get('/console/usage', UsageController::class)->name('console.usage');
     Route::get('/console/sources', [SourcesController::class, 'index'])->name('console.sources');
-    Route::post('/console/sources', [SourcesController::class, 'store'])->name('console.sources.store');
-    Route::post('/console/sources/{source}/label', [SourcesController::class, 'updateLabel'])->name('console.sources.label');
-    Route::post('/console/sources/{source}/revoke', [SourcesController::class, 'revoke'])->name('console.sources.revoke');
-
-    // Client billing account
     Route::get('/console/billing', [BillingController::class, 'index'])->name('console.billing');
-    Route::post('/console/billing/settings', [BillingController::class, 'updateSettings'])->name('console.billing.settings');
-    Route::post('/console/billing/topup', [BillingController::class, 'topup'])->name('console.billing.topup');
-    Route::get('/console/billing/add-card', [BillingController::class, 'addCard'])->name('console.add-card');
-    Route::post('/console/billing/card', [BillingController::class, 'storeCard'])->name('console.billing.card');
 
-    // Platform admin
-    Route::middleware(EnsureAdmin::class)->group(function () {
-        Route::get('/console/admin', [AdminController::class, 'index'])->name('console.admin');
-        Route::post('/console/admin/clients', [AdminController::class, 'storeClient'])->name('admin.clients.store');
-        Route::post('/console/admin/keys', [AdminController::class, 'storeKey'])->name('admin.keys.store');
-        Route::post('/console/admin/rate', [AdminController::class, 'updateRate'])->name('admin.rate.update');
-        Route::post('/console/admin/backends', [AdminController::class, 'storeBackend'])->name('admin.backends.store');
-        Route::post('/console/admin/balance', [AdminController::class, 'adjustBalance'])->name('admin.balance.adjust');
-        Route::post('/console/admin/client', [AdminController::class, 'updateClient'])->name('admin.client.update');
-        Route::post('/console/admin/model-rate', [AdminController::class, 'updateModelRate'])->name('admin.model-rate.update');
-        Route::post('/console/admin/access-key', [AdminController::class, 'createAccessKey'])->name('admin.access-key.create');
-        Route::post('/console/admin/usage', [AdminController::class, 'addUsage'])->name('admin.usage.add');
-        Route::post('/console/admin/discover', [AdminController::class, 'discover'])->name('admin.discover');
-        Route::post('/console/admin/assign-project', [AdminController::class, 'assignProject'])->name('admin.assign-project');
-        Route::post('/console/admin/toggle-project', [AdminController::class, 'toggleProject'])->name('admin.toggle-project');
-        Route::get('/console/admin/client/{client}', [AdminController::class, 'manageClient'])->name('admin.client.manage');
-        Route::post('/console/admin/client/delete', [AdminController::class, 'destroyClient'])->name('admin.client.delete');
-        Route::post('/console/admin/model', [AdminController::class, 'storeModel'])->name('admin.model.store');
-        Route::post('/console/admin/model/update', [AdminController::class, 'updateModel'])->name('admin.model.update');
-        Route::post('/console/admin/access-key/revoke', [AdminController::class, 'revokeAccessKey'])->name('admin.access-key.revoke');
-        Route::post('/console/admin/client-model-rate', [AdminController::class, 'updateClientModelRate'])->name('admin.client-model-rate.update');
-        Route::post('/console/admin/client-model-rate/delete', [AdminController::class, 'deleteClientModelRate'])->name('admin.client-model-rate.delete');
-        Route::post('/console/admin/sync-models', [AdminController::class, 'syncModels'])->name('admin.sync-models');
-        Route::post('/console/admin/rebill', [AdminController::class, 'rebill'])->name('admin.rebill');
-        Route::post('/console/admin/sync', [AdminController::class, 'sync'])->name('admin.sync');
+    // Anything that moves the client's money is refused while impersonating.
+    Route::middleware(DenyWhileImpersonating::class)->group(function () {
+        Route::post('/console/sources', [SourcesController::class, 'store'])->name('console.sources.store');
+        Route::post('/console/sources/{source}/label', [SourcesController::class, 'updateLabel'])->name('console.sources.label');
+        Route::post('/console/sources/{source}/revoke', [SourcesController::class, 'revoke'])->name('console.sources.revoke');
+
+        Route::post('/console/billing/settings', [BillingController::class, 'updateSettings'])->name('console.billing.settings');
+        Route::post('/console/billing/topup', [BillingController::class, 'topup'])->name('console.billing.topup');
+        Route::get('/console/billing/add-card', [BillingController::class, 'addCard'])->name('console.add-card');
+        Route::post('/console/billing/card', [BillingController::class, 'storeCard'])->name('console.billing.card');
     });
 });
+
+// Ending an impersonation must never require admin rights to re-check — only an
+// admin could have started one, and they must always be able to get back out.
+Route::post('/impersonate/stop', [ImpersonationController::class, 'stop'])
+    ->middleware('auth')->name('impersonate.stop');
+
+/*
+|--------------------------------------------------------------------------
+| Platform admin — /admin
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth', 'verified', EnsureAdmin::class])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/', AdminDashboardController::class)->name('dashboard');
+
+    // Clients
+    Route::get('/clients', [ClientsController::class, 'index'])->name('clients');
+    Route::post('/clients', [ClientsController::class, 'store'])->name('clients.store');
+    Route::get('/clients/{client}', [ClientsController::class, 'show'])->name('clients.show');
+    Route::patch('/clients/{client}', [ClientsController::class, 'update'])->name('clients.update');
+    Route::delete('/clients/{client}', [ClientsController::class, 'destroy'])->name('clients.destroy');
+    Route::post('/clients/{client}/balance', [ClientsController::class, 'adjustBalance'])->name('clients.balance');
+    Route::post('/clients/{client}/staff', [ClientsController::class, 'addStaff'])->name('clients.staff.add');
+    Route::delete('/clients/{client}/staff/{user}', [ClientsController::class, 'removeStaff'])->name('clients.staff.remove');
+    Route::post('/clients/{client}/staff/{user}/invite', [ClientsController::class, 'resendInvite'])->name('clients.staff.invite');
+    Route::post('/clients/{client}/impersonate', [ImpersonationController::class, 'start'])->name('clients.impersonate');
+
+    // Models + pricing
+    Route::get('/models', [ModelsController::class, 'index'])->name('models');
+    Route::post('/models', [ModelsController::class, 'store'])->name('models.store');
+    Route::patch('/models/{model}', [ModelsController::class, 'update'])->name('models.update');
+    Route::patch('/models/{model}/presentation', [ModelsController::class, 'presentation'])->name('models.presentation');
+    Route::post('/models/sync', [ModelsController::class, 'sync'])->name('models.sync');
+    Route::post('/models/retier', [ModelsController::class, 'retier'])->name('models.retier');
+    Route::post('/proposals/{proposal}/accept', [ModelsController::class, 'acceptProposal'])->name('proposals.accept');
+    Route::post('/proposals/{proposal}/reject', [ModelsController::class, 'rejectProposal'])->name('proposals.reject');
+
+    // Rate card
+    Route::post('/rates', [RatesController::class, 'upsert'])->name('rates.upsert');
+    Route::post('/rates/delete', [RatesController::class, 'destroy'])->name('rates.delete');
+    Route::post('/rates/default', [RatesController::class, 'updateDefault'])->name('rates.default');
+    Route::post('/rates/preview', [RatesController::class, 'preview'])->name('rates.preview');
+
+    // Charges (fees, credits, off-platform AI cost)
+    Route::post('/charges', [ChargesController::class, 'store'])->name('charges.store');
+    Route::patch('/charges/{charge}', [ChargesController::class, 'update'])->name('charges.update');
+    Route::delete('/charges/{charge}', [ChargesController::class, 'destroy'])->name('charges.destroy');
+    Route::post('/charges/{charge}/run', [ChargesController::class, 'runNow'])->name('charges.run');
+
+    // Provider plumbing
+    Route::get('/platform', [PlatformController::class, 'index'])->name('platform');
+    Route::post('/platform/backends', [PlatformController::class, 'storeBackend'])->name('backends.store');
+    Route::delete('/platform/backends/{backend}', [PlatformController::class, 'destroyBackend'])->name('backends.destroy');
+    Route::post('/platform/keys', [PlatformController::class, 'storeKey'])->name('keys.store');
+    Route::post('/platform/discover', [PlatformController::class, 'discover'])->name('discover');
+    Route::post('/platform/assign-project', [PlatformController::class, 'assignProject'])->name('assign-project');
+    Route::post('/platform/toggle-project', [PlatformController::class, 'toggleProject'])->name('toggle-project');
+    Route::post('/platform/access-keys', [PlatformController::class, 'createAccessKey'])->name('access-key.create');
+    Route::delete('/platform/access-keys/{accessKey}', [PlatformController::class, 'revokeAccessKey'])->name('access-key.revoke');
+    Route::post('/platform/sync', [PlatformController::class, 'sync'])->name('sync');
+    Route::post('/platform/rebill', [PlatformController::class, 'rebill'])->name('rebill');
+
+    Route::get('/audit', [AuditController::class, 'index'])->name('audit');
+});
+
+// The admin portal used to live under /console/admin.
+Route::permanentRedirect('/console/admin', '/admin');
 
 require __DIR__.'/settings.php';

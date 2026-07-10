@@ -17,7 +17,10 @@ class ProviderKey extends Model
 
     protected $hidden = ['secret'];
 
-    public function client(): BelongsTo { return $this->belongsTo(Client::class); }
+    public function client(): BelongsTo
+    {
+        return $this->belongsTo(Client::class);
+    }
 
     /** The client-facing name for this token/source. */
     public function displayLabel(): string
@@ -32,6 +35,7 @@ class ProviderKey extends Model
         if ($this->provider === 'google') {
             return 'AIza••••'.substr($s ?: str_repeat('0', 4), -4);
         }
+
         return 'sk-••••'.substr($s ?: str_repeat('0', 4), -4);
     }
 }

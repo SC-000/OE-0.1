@@ -7,6 +7,7 @@ use App\Models\ProviderKey;
 use App\Models\UsageRecord;
 use App\Services\Billing\BalanceService;
 use App\Services\Providers\UsageBucket;
+use App\Support\DetectsUniqueViolations;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
@@ -16,6 +17,8 @@ use Illuminate\Support\Facades\DB;
  */
 class MeteringService
 {
+    use DetectsUniqueViolations;
+
     public function __construct(
         private RateResolver $rates,
         private BalanceService $balance,
@@ -76,8 +79,9 @@ class MeteringService
             ? $catalog->costCents($bucket->inputTokens, $bucket->outputTokens)
             : (int) ($bucket->providerCostCents ?? 0);
 
-        $markupBps = $this->rates->markupBps($client, $bucket->provider, $bucket->model);
-        $billed = (int) round($providerCost * (1 + $markupBps / 10000));
+        // Pulled buckets aggregate an unknown number of requests, so no per-request fee.
+        $billed = $this->rates->resolve($client, $bucket->provider, $bucket->model)
+            ->billedCents($providerCost, $bucket->inputTokens, $bucket->outputTokens);
 
         return DB::transaction(function () use ($key, $client, $bucket, $providerCost, $billed) {
             $idem = $bucket->idempotencyParts();
@@ -143,7 +147,8 @@ class MeteringService
                     if ($cost <= 0 || ! $client) {
                         continue;
                     }
-                    $billed = (int) round($cost * (1 + $this->rates->markupBps($client, $rec->provider, $rec->model) / 10000));
+                    $billed = $this->rates->resolve($client, $rec->provider, $rec->model)
+                        ->billedCents($cost, (int) $rec->input_tokens, (int) $rec->output_tokens);
 
                     DB::transaction(function () use ($rec, $cost, $billed, $client, &$rebilled, &$billedTotal) {
                         $fresh = UsageRecord::whereKey($rec->id)->lockForUpdate()->first();
@@ -176,14 +181,5 @@ class MeteringService
         }
 
         return null;
-    }
-
-    private function isUniqueViolation(QueryException $e): bool
-    {
-        $code = (string) ($e->errorInfo[0] ?? '');
-        $msg = strtolower($e->getMessage());
-
-        return $code === '23000' || $code === '23505'
-            || str_contains($msg, 'unique') || str_contains($msg, 'duplicate');
     }
 }

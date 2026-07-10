@@ -4,6 +4,7 @@ namespace App\Services\Billing;
 
 use App\Models\Client;
 use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -34,7 +35,7 @@ class BillingsClient
         return $idempotencyKey ? $req->withHeaders(['Idempotency-Key' => $idempotencyKey]) : $req;
     }
 
-    private function data(\Illuminate\Http\Client\Response $res, string $ctx): array
+    private function data(Response $res, string $ctx): array
     {
         if ($res->failed()) {
             throw new RuntimeException("billings.systems {$ctx} failed ({$res->status()}): ".$res->body());

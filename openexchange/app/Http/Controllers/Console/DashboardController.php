@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Console;
 
+use App\Models\AccessKey;
 use App\Models\ModelCatalog;
+use App\Services\Metering\ModelPresenter;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -11,7 +13,7 @@ class DashboardController
 {
     use ClientContext;
 
-    public function __invoke(Request $request): Response
+    public function __invoke(Request $request, ModelPresenter $presenter): Response
     {
         $client = $this->client($request);
         $monthStart = now()->startOfMonth();
@@ -29,14 +31,17 @@ class DashboardController
         [$rangeStatus, $rangeNote] = $this->range($projected, $trailing);
         $blended = $tokensMtd > 0 ? '$'.number_format(($spendMtd / 100) / ($tokensMtd / 1000), 4) : '—';
 
-        $sources = \App\Models\AccessKey::where('client_id', $client->id)->where('status', 'active')->get()->map(function ($k) use ($monthStart, $client) {
+        $sources = AccessKey::where('client_id', $client->id)->where('status', 'active')->get()->map(function ($k) use ($monthStart, $client) {
             $usage = (int) $client->usageRecords()->where('access_key_id', $k->id)->where('period_start', '>=', $monthStart)->sum('billed_cents');
 
             return ['label' => $k->name, 'provider' => 'Gateway', 'usage' => '$'.number_format($usage / 100, 2), 'usageCents' => $usage];
         })->sortByDesc('usageCents')->take(4)->values();
 
+        // Never render `$u->model` straight out — ModelPresenter decides how much of the
+        // model identity this client is entitled to see.
         $recent = $client->usageRecords()->orderByDesc('period_start')->limit(5)->get()->map(fn ($u) => [
-            'model' => $u->model, 'provider' => ucfirst($u->provider),
+            'model' => $presenter->label($client, $u->provider, $u->model),
+            'provider' => ModelCatalog::providerLabel($u->provider),
             'tokens' => number_format($u->input_tokens + $u->output_tokens),
             'billed' => $this->money($u->billed_cents), 'date' => $u->period_start->format('M j'),
         ]);

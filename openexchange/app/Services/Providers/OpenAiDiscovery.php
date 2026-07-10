@@ -71,6 +71,7 @@ class OpenAiDiscovery
 
     /**
      * Token usage per project over a window (best-effort — returns [] on API error).
+     *
      * @return array<string,array{input:int,output:int}> keyed by project_id
      */
     public function usageByProject(CarbonImmutable $since, CarbonImmutable $until): array
@@ -106,6 +107,7 @@ class OpenAiDiscovery
 
     /**
      * Daily token totals per project over a window (for usage-over-time sparklines).
+     *
      * @return array<string,array<string,int>> project_id => [ 'YYYY-MM-DD' => tokens ]
      */
     public function usageDaily(CarbonImmutable $since, CarbonImmutable $until): array

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Console;
 
+use App\Models\TopUp;
 use App\Services\Billing\AutoTopupService;
 use App\Services\Billing\BillingsClient;
 use Illuminate\Http\Request;
@@ -20,12 +21,19 @@ class BillingController
 
         $transactions = $client->ledger()->latest()->limit(12)->get()->map(fn ($e) => [
             'date' => $e->created_at->format('M j, Y'),
+            // A fee is not inference. Label each line as what it actually is — the
+            // charge's own name for fees and credits, generic wording for usage.
             'description' => match ($e->type) {
                 'topup_credit' => 'Auto top-up',
                 'refund' => 'Refund',
+                'fee' => $e->description ?: 'Platform fee',
+                'credit' => $e->description ?: 'Credit',
+                'adjustment' => $e->description ?: 'Account adjustment',
                 default => 'Usage — inference',
             },
-            'detail' => $e->description ?? '',
+            // Usage ledger descriptions are internal ("gateway openai/gpt-5.4") and would
+            // leak the raw model id. Only charge-backed lines carry an admin-authored name.
+            'detail' => $e->type === 'usage_debit' && ! isset($e->meta['charge_id']) ? '' : ($e->description ?? ''),
             'amount' => ($e->amount_cents >= 0 ? '+' : '−').'$'.number_format(abs($e->amount_cents) / 100, 2),
             'type' => $e->amount_cents >= 0 ? 'credit' : 'debit',
         ]);
@@ -43,7 +51,7 @@ class BillingController
                 'exp' => sprintf('%02d / %02d', $card->exp_month, $card->exp_year % 100),
             ] : null,
             'transactions' => $transactions,
-            'topping' => \App\Models\TopUp::where('client_id', $client->id)->where('status', 'pending')->exists(),
+            'topping' => TopUp::where('client_id', $client->id)->where('status', 'pending')->exists(),
             'publishableKey' => config('openexchange.billings.publishable'),
         ]);
     }
@@ -132,4 +140,3 @@ class BillingController
         ]);
     }
 }
-

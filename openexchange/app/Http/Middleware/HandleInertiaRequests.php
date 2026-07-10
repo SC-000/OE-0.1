@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\Admin\ImpersonationService;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -35,12 +36,21 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $impersonation = app(ImpersonationService::class);
+        $viewingAs = $impersonation->active() ? $impersonation->client() : null;
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
             'auth' => [
                 'user' => $request->user(),
             ],
+            // Drives the persistent "viewing as" banner. Never null-checked away: an
+            // admin must always be able to tell whose data is on screen.
+            'impersonation' => $viewingAs ? [
+                'client' => ['id' => $viewingAs->id, 'name' => $viewingAs->name],
+                'admin' => $request->user()?->name,
+            ] : null,
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }

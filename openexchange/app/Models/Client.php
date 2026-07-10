@@ -18,6 +18,7 @@ class Client extends Model
         'auto_topup' => true,
         'default_markup_bps' => 2500,
         'debt_limit_cents' => 5000,
+        'model_visibility' => 'aliased',
     ];
 
     protected $casts = [
@@ -29,13 +30,50 @@ class Client extends Model
         'debt_limit_cents' => 'integer',
     ];
 
-    public function users(): HasMany { return $this->hasMany(User::class); }
-    public function providerKeys(): HasMany { return $this->hasMany(ProviderKey::class); }
-    public function usageRecords(): HasMany { return $this->hasMany(UsageRecord::class); }
-    public function ledger(): HasMany { return $this->hasMany(BalanceLedgerEntry::class); }
-    public function topUps(): HasMany { return $this->hasMany(TopUp::class); }
-    public function paymentMethods(): HasMany { return $this->hasMany(PaymentMethod::class); }
-    public function rates(): HasMany { return $this->hasMany(ClientModelRate::class); }
+    public function users(): HasMany
+    {
+        return $this->hasMany(User::class);
+    }
+
+    public function charges(): HasMany
+    {
+        return $this->hasMany(Charge::class);
+    }
+
+    public function accessKeys(): HasMany
+    {
+        return $this->hasMany(AccessKey::class);
+    }
+
+    public function providerKeys(): HasMany
+    {
+        return $this->hasMany(ProviderKey::class);
+    }
+
+    public function usageRecords(): HasMany
+    {
+        return $this->hasMany(UsageRecord::class);
+    }
+
+    public function ledger(): HasMany
+    {
+        return $this->hasMany(BalanceLedgerEntry::class);
+    }
+
+    public function topUps(): HasMany
+    {
+        return $this->hasMany(TopUp::class);
+    }
+
+    public function paymentMethods(): HasMany
+    {
+        return $this->hasMany(PaymentMethod::class);
+    }
+
+    public function rates(): HasMany
+    {
+        return $this->hasMany(ClientModelRate::class);
+    }
 
     public function defaultPaymentMethod(): ?PaymentMethod
     {
@@ -58,5 +96,16 @@ class Client extends Model
     public function balanceDollars(): float
     {
         return round($this->balance_cents / 100, 2);
+    }
+
+    public function owner(): ?User
+    {
+        return $this->users()->where('role', 'owner')->orderBy('id')->first()
+            ?? $this->users()->orderBy('id')->first();
+    }
+
+    public function primaryEmail(): ?string
+    {
+        return $this->contact_email ?: $this->owner()?->email;
     }
 }

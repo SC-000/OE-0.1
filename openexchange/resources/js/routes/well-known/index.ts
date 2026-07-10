@@ -1,6 +1,6 @@
-import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition } from './../../wayfinder'
+import { queryParams, type RouteQueryOptions, type RouteDefinition } from './../../wayfinder'
 /**
-* @see routes/settings.php:29
+* @see routes/settings.php:34
 * @route '/.well-known/passkey-endpoints'
 */
 export const passkeys = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -14,7 +14,7 @@ passkeys.definition = {
 } satisfies RouteDefinition<["get","head"]>
 
 /**
-* @see routes/settings.php:29
+* @see routes/settings.php:34
 * @route '/.well-known/passkey-endpoints'
 */
 passkeys.url = (options?: RouteQueryOptions) => {
@@ -22,7 +22,7 @@ passkeys.url = (options?: RouteQueryOptions) => {
 }
 
 /**
-* @see routes/settings.php:29
+* @see routes/settings.php:34
 * @route '/.well-known/passkey-endpoints'
 */
 passkeys.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -31,47 +31,13 @@ passkeys.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
 })
 
 /**
-* @see routes/settings.php:29
+* @see routes/settings.php:34
 * @route '/.well-known/passkey-endpoints'
 */
 passkeys.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
     url: passkeys.url(options),
     method: 'head',
 })
-
-/**
-* @see routes/settings.php:29
-* @route '/.well-known/passkey-endpoints'
-*/
-const passkeysForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
-    action: passkeys.url(options),
-    method: 'get',
-})
-
-/**
-* @see routes/settings.php:29
-* @route '/.well-known/passkey-endpoints'
-*/
-passkeysForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
-    action: passkeys.url(options),
-    method: 'get',
-})
-
-/**
-* @see routes/settings.php:29
-* @route '/.well-known/passkey-endpoints'
-*/
-passkeysForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
-    action: passkeys.url({
-        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
-            _method: 'HEAD',
-            ...(options?.query ?? options?.mergeQuery ?? {}),
-        }
-    }),
-    method: 'get',
-})
-
-passkeys.form = passkeysForm
 
 const wellKnown = {
     passkeys: Object.assign(passkeys, passkeys),

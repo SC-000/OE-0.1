@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class BalanceLedgerEntry extends Model
 {
     protected $table = 'balance_ledger';
+
     protected $guarded = [];
 
     protected $casts = [
@@ -16,5 +17,8 @@ class BalanceLedgerEntry extends Model
         'meta' => 'array',
     ];
 
-    public function client(): BelongsTo { return $this->belongsTo(Client::class); }
+    public function client(): BelongsTo
+    {
+        return $this->belongsTo(Client::class);
+    }
 }

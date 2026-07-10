@@ -11,7 +11,9 @@ use Illuminate\Database\Eloquent\Model;
 class ProviderBackend extends Model
 {
     protected $guarded = [];
+
     protected $casts = ['secret' => 'encrypted'];
+
     protected $hidden = ['secret'];
 
     /** Pick the best active backend for a provider, optionally preferring one type. */

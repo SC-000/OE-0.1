@@ -1,8 +1,8 @@
-import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition } from './../../../wayfinder'
+import { queryParams, type RouteQueryOptions, type RouteDefinition, applyUrlDefaults } from './../../../wayfinder'
 /**
-* @see \App\Http\Controllers\Admin\AdminController::create
-* @see app/Http/Controllers/Admin/AdminController.php:213
-* @route '/console/admin/access-key'
+* @see \App\Http\Controllers\Admin\PlatformController::create
+* @see app/Http/Controllers/Admin/PlatformController.php:184
+* @route '/admin/platform/access-keys'
 */
 export const create = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
     url: create.url(options),
@@ -11,22 +11,22 @@ export const create = (options?: RouteQueryOptions): RouteDefinition<'post'> => 
 
 create.definition = {
     methods: ["post"],
-    url: '/console/admin/access-key',
+    url: '/admin/platform/access-keys',
 } satisfies RouteDefinition<["post"]>
 
 /**
-* @see \App\Http\Controllers\Admin\AdminController::create
-* @see app/Http/Controllers/Admin/AdminController.php:213
-* @route '/console/admin/access-key'
+* @see \App\Http\Controllers\Admin\PlatformController::create
+* @see app/Http/Controllers/Admin/PlatformController.php:184
+* @route '/admin/platform/access-keys'
 */
 create.url = (options?: RouteQueryOptions) => {
     return create.definition.url + queryParams(options)
 }
 
 /**
-* @see \App\Http\Controllers\Admin\AdminController::create
-* @see app/Http/Controllers/Admin/AdminController.php:213
-* @route '/console/admin/access-key'
+* @see \App\Http\Controllers\Admin\PlatformController::create
+* @see app/Http/Controllers/Admin/PlatformController.php:184
+* @route '/admin/platform/access-keys'
 */
 create.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
     url: create.url(options),
@@ -34,82 +34,62 @@ create.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 })
 
 /**
-* @see \App\Http\Controllers\Admin\AdminController::create
-* @see app/Http/Controllers/Admin/AdminController.php:213
-* @route '/console/admin/access-key'
+* @see \App\Http\Controllers\Admin\PlatformController::revoke
+* @see app/Http/Controllers/Admin/PlatformController.php:199
+* @route '/admin/platform/access-keys/{accessKey}'
 */
-const createForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
-    action: create.url(options),
-    method: 'post',
-})
-
-/**
-* @see \App\Http\Controllers\Admin\AdminController::create
-* @see app/Http/Controllers/Admin/AdminController.php:213
-* @route '/console/admin/access-key'
-*/
-createForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
-    action: create.url(options),
-    method: 'post',
-})
-
-create.form = createForm
-
-/**
-* @see \App\Http\Controllers\Admin\AdminController::revoke
-* @see app/Http/Controllers/Admin/AdminController.php:477
-* @route '/console/admin/access-key/revoke'
-*/
-export const revoke = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
-    url: revoke.url(options),
-    method: 'post',
+export const revoke = (args: { accessKey: number | { id: number } } | [accessKey: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'delete'> => ({
+    url: revoke.url(args, options),
+    method: 'delete',
 })
 
 revoke.definition = {
-    methods: ["post"],
-    url: '/console/admin/access-key/revoke',
-} satisfies RouteDefinition<["post"]>
+    methods: ["delete"],
+    url: '/admin/platform/access-keys/{accessKey}',
+} satisfies RouteDefinition<["delete"]>
 
 /**
-* @see \App\Http\Controllers\Admin\AdminController::revoke
-* @see app/Http/Controllers/Admin/AdminController.php:477
-* @route '/console/admin/access-key/revoke'
+* @see \App\Http\Controllers\Admin\PlatformController::revoke
+* @see app/Http/Controllers/Admin/PlatformController.php:199
+* @route '/admin/platform/access-keys/{accessKey}'
 */
-revoke.url = (options?: RouteQueryOptions) => {
-    return revoke.definition.url + queryParams(options)
+revoke.url = (args: { accessKey: number | { id: number } } | [accessKey: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
+    if (typeof args === 'string' || typeof args === 'number') {
+        args = { accessKey: args }
+    }
+
+    if (typeof args === 'object' && !Array.isArray(args) && 'id' in args) {
+        args = { accessKey: args.id }
+    }
+
+    if (Array.isArray(args)) {
+        args = {
+            accessKey: args[0],
+        }
+    }
+
+    args = applyUrlDefaults(args)
+
+    const parsedArgs = {
+        accessKey: typeof args.accessKey === 'object'
+        ? args.accessKey.id
+        : args.accessKey,
+    }
+
+    return revoke.definition.url
+            .replace('{accessKey}', parsedArgs.accessKey.toString())
+            .replace(/\/+$/, '') + queryParams(options)
 }
 
 /**
-* @see \App\Http\Controllers\Admin\AdminController::revoke
-* @see app/Http/Controllers/Admin/AdminController.php:477
-* @route '/console/admin/access-key/revoke'
+* @see \App\Http\Controllers\Admin\PlatformController::revoke
+* @see app/Http/Controllers/Admin/PlatformController.php:199
+* @route '/admin/platform/access-keys/{accessKey}'
 */
-revoke.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
-    url: revoke.url(options),
-    method: 'post',
+revoke.delete = (args: { accessKey: number | { id: number } } | [accessKey: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'delete'> => ({
+    url: revoke.url(args, options),
+    method: 'delete',
 })
-
-/**
-* @see \App\Http\Controllers\Admin\AdminController::revoke
-* @see app/Http/Controllers/Admin/AdminController.php:477
-* @route '/console/admin/access-key/revoke'
-*/
-const revokeForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
-    action: revoke.url(options),
-    method: 'post',
-})
-
-/**
-* @see \App\Http\Controllers\Admin\AdminController::revoke
-* @see app/Http/Controllers/Admin/AdminController.php:477
-* @route '/console/admin/access-key/revoke'
-*/
-revokeForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
-    action: revoke.url(options),
-    method: 'post',
-})
-
-revoke.form = revokeForm
 
 const accessKey = {
     create: Object.assign(create, create),

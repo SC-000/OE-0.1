@@ -35,5 +35,9 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withSchedule(function (Schedule $schedule): void {
         $schedule->command('metering:pull')->hourly()->withoutOverlapping();
         $schedule->command('oe:billings:reconcile')->hourly()->withoutOverlapping();
+        // Discover new models + auto-price them before the day's traffic bills at $0.
+        $schedule->command('models:sync')->dailyAt('00:05')->withoutOverlapping();
+        // Recurring fees. Idempotent per period, so a missed or repeated run is safe.
+        $schedule->command('charges:run')->dailyAt('00:15')->withoutOverlapping();
     })
     ->create();

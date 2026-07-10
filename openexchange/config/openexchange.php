@@ -1,5 +1,7 @@
 <?php
 
+use App\Services\Pricing\OpenRouterPricingSource;
+
 return [
     // OpenAI organization-level usage/costs pull
     'openai' => [
@@ -26,6 +28,24 @@ return [
         'publishable' => env('BILLINGS_PUBLISHABLE'),   // browser SetupWidget key (zero scopes)
         'webhook_secret' => env('BILLINGS_WEBHOOK_SECRET'),
         'currency' => env('BILLINGS_CURRENCY', 'USD'),
+    ],
+
+    /*
+     | Model pricing. The catalogue holds your PROVIDER COST BASIS (what a model costs
+     | you); what you charge lives on the rate card. Resolution is manual > official > feed:
+     | a price an admin typed is never overwritten, and a feed price CHANGE on an
+     | already-priced model raises a review proposal rather than applying itself.
+     |
+     | Neither OpenAI nor Google publishes machine-readable pricing today, so the only
+     | source is the OpenRouter catalogue. Add an official source here when one exists.
+     */
+    'pricing' => [
+        'sources' => [
+            OpenRouterPricingSource::class,
+        ],
+        'openrouter_url' => env('OPENROUTER_MODELS_URL', 'https://openrouter.ai/api/v1/models'),
+        'timeout' => (int) env('PRICING_FEED_TIMEOUT', 25),
+        'cache_minutes' => (int) env('PRICING_CACHE_MINUTES', 180),
     ],
 
     'metering' => [

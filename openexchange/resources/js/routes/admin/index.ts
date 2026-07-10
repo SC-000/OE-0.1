@@ -1,19 +1,192 @@
-import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition } from './../../wayfinder'
-import clients from './clients'
-import keys from './keys'
-import rate from './rate'
+import { queryParams, type RouteQueryOptions, type RouteDefinition } from './../../wayfinder'
+import clients3a2bdc from './clients'
+import modelsEff558 from './models'
+import proposals from './proposals'
+import rates from './rates'
+import charges from './charges'
 import backends from './backends'
-import balance from './balance'
-import client from './client'
-import modelRate from './model-rate'
+import keys from './keys'
 import accessKey from './access-key'
-import usage from './usage'
-import model from './model'
-import clientModelRate from './client-model-rate'
 /**
-* @see \App\Http\Controllers\Admin\AdminController::discover
-* @see app/Http/Controllers/Admin/AdminController.php:381
-* @route '/console/admin/discover'
+* @see \App\Http\Controllers\Admin\DashboardController::__invoke
+* @see app/Http/Controllers/Admin/DashboardController.php:14
+* @route '/admin'
+*/
+export const dashboard = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: dashboard.url(options),
+    method: 'get',
+})
+
+dashboard.definition = {
+    methods: ["get","head"],
+    url: '/admin',
+} satisfies RouteDefinition<["get","head"]>
+
+/**
+* @see \App\Http\Controllers\Admin\DashboardController::__invoke
+* @see app/Http/Controllers/Admin/DashboardController.php:14
+* @route '/admin'
+*/
+dashboard.url = (options?: RouteQueryOptions) => {
+    return dashboard.definition.url + queryParams(options)
+}
+
+/**
+* @see \App\Http\Controllers\Admin\DashboardController::__invoke
+* @see app/Http/Controllers/Admin/DashboardController.php:14
+* @route '/admin'
+*/
+dashboard.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: dashboard.url(options),
+    method: 'get',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\DashboardController::__invoke
+* @see app/Http/Controllers/Admin/DashboardController.php:14
+* @route '/admin'
+*/
+dashboard.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
+    url: dashboard.url(options),
+    method: 'head',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\ClientsController::clients
+* @see app/Http/Controllers/Admin/ClientsController.php:33
+* @route '/admin/clients'
+*/
+export const clients = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: clients.url(options),
+    method: 'get',
+})
+
+clients.definition = {
+    methods: ["get","head"],
+    url: '/admin/clients',
+} satisfies RouteDefinition<["get","head"]>
+
+/**
+* @see \App\Http\Controllers\Admin\ClientsController::clients
+* @see app/Http/Controllers/Admin/ClientsController.php:33
+* @route '/admin/clients'
+*/
+clients.url = (options?: RouteQueryOptions) => {
+    return clients.definition.url + queryParams(options)
+}
+
+/**
+* @see \App\Http\Controllers\Admin\ClientsController::clients
+* @see app/Http/Controllers/Admin/ClientsController.php:33
+* @route '/admin/clients'
+*/
+clients.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: clients.url(options),
+    method: 'get',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\ClientsController::clients
+* @see app/Http/Controllers/Admin/ClientsController.php:33
+* @route '/admin/clients'
+*/
+clients.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
+    url: clients.url(options),
+    method: 'head',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\ModelsController::models
+* @see app/Http/Controllers/Admin/ModelsController.php:22
+* @route '/admin/models'
+*/
+export const models = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: models.url(options),
+    method: 'get',
+})
+
+models.definition = {
+    methods: ["get","head"],
+    url: '/admin/models',
+} satisfies RouteDefinition<["get","head"]>
+
+/**
+* @see \App\Http\Controllers\Admin\ModelsController::models
+* @see app/Http/Controllers/Admin/ModelsController.php:22
+* @route '/admin/models'
+*/
+models.url = (options?: RouteQueryOptions) => {
+    return models.definition.url + queryParams(options)
+}
+
+/**
+* @see \App\Http\Controllers\Admin\ModelsController::models
+* @see app/Http/Controllers/Admin/ModelsController.php:22
+* @route '/admin/models'
+*/
+models.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: models.url(options),
+    method: 'get',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\ModelsController::models
+* @see app/Http/Controllers/Admin/ModelsController.php:22
+* @route '/admin/models'
+*/
+models.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
+    url: models.url(options),
+    method: 'head',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\PlatformController::platform
+* @see app/Http/Controllers/Admin/PlatformController.php:26
+* @route '/admin/platform'
+*/
+export const platform = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: platform.url(options),
+    method: 'get',
+})
+
+platform.definition = {
+    methods: ["get","head"],
+    url: '/admin/platform',
+} satisfies RouteDefinition<["get","head"]>
+
+/**
+* @see \App\Http\Controllers\Admin\PlatformController::platform
+* @see app/Http/Controllers/Admin/PlatformController.php:26
+* @route '/admin/platform'
+*/
+platform.url = (options?: RouteQueryOptions) => {
+    return platform.definition.url + queryParams(options)
+}
+
+/**
+* @see \App\Http\Controllers\Admin\PlatformController::platform
+* @see app/Http/Controllers/Admin/PlatformController.php:26
+* @route '/admin/platform'
+*/
+platform.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: platform.url(options),
+    method: 'get',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\PlatformController::platform
+* @see app/Http/Controllers/Admin/PlatformController.php:26
+* @route '/admin/platform'
+*/
+platform.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
+    url: platform.url(options),
+    method: 'head',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\PlatformController::discover
+* @see app/Http/Controllers/Admin/PlatformController.php:133
+* @route '/admin/platform/discover'
 */
 export const discover = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
     url: discover.url(options),
@@ -22,22 +195,22 @@ export const discover = (options?: RouteQueryOptions): RouteDefinition<'post'> =
 
 discover.definition = {
     methods: ["post"],
-    url: '/console/admin/discover',
+    url: '/admin/platform/discover',
 } satisfies RouteDefinition<["post"]>
 
 /**
-* @see \App\Http\Controllers\Admin\AdminController::discover
-* @see app/Http/Controllers/Admin/AdminController.php:381
-* @route '/console/admin/discover'
+* @see \App\Http\Controllers\Admin\PlatformController::discover
+* @see app/Http/Controllers/Admin/PlatformController.php:133
+* @route '/admin/platform/discover'
 */
 discover.url = (options?: RouteQueryOptions) => {
     return discover.definition.url + queryParams(options)
 }
 
 /**
-* @see \App\Http\Controllers\Admin\AdminController::discover
-* @see app/Http/Controllers/Admin/AdminController.php:381
-* @route '/console/admin/discover'
+* @see \App\Http\Controllers\Admin\PlatformController::discover
+* @see app/Http/Controllers/Admin/PlatformController.php:133
+* @route '/admin/platform/discover'
 */
 discover.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
     url: discover.url(options),
@@ -45,31 +218,9 @@ discover.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 })
 
 /**
-* @see \App\Http\Controllers\Admin\AdminController::discover
-* @see app/Http/Controllers/Admin/AdminController.php:381
-* @route '/console/admin/discover'
-*/
-const discoverForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
-    action: discover.url(options),
-    method: 'post',
-})
-
-/**
-* @see \App\Http\Controllers\Admin\AdminController::discover
-* @see app/Http/Controllers/Admin/AdminController.php:381
-* @route '/console/admin/discover'
-*/
-discoverForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
-    action: discover.url(options),
-    method: 'post',
-})
-
-discover.form = discoverForm
-
-/**
-* @see \App\Http\Controllers\Admin\AdminController::assignProject
-* @see app/Http/Controllers/Admin/AdminController.php:397
-* @route '/console/admin/assign-project'
+* @see \App\Http\Controllers\Admin\PlatformController::assignProject
+* @see app/Http/Controllers/Admin/PlatformController.php:146
+* @route '/admin/platform/assign-project'
 */
 export const assignProject = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
     url: assignProject.url(options),
@@ -78,22 +229,22 @@ export const assignProject = (options?: RouteQueryOptions): RouteDefinition<'pos
 
 assignProject.definition = {
     methods: ["post"],
-    url: '/console/admin/assign-project',
+    url: '/admin/platform/assign-project',
 } satisfies RouteDefinition<["post"]>
 
 /**
-* @see \App\Http\Controllers\Admin\AdminController::assignProject
-* @see app/Http/Controllers/Admin/AdminController.php:397
-* @route '/console/admin/assign-project'
+* @see \App\Http\Controllers\Admin\PlatformController::assignProject
+* @see app/Http/Controllers/Admin/PlatformController.php:146
+* @route '/admin/platform/assign-project'
 */
 assignProject.url = (options?: RouteQueryOptions) => {
     return assignProject.definition.url + queryParams(options)
 }
 
 /**
-* @see \App\Http\Controllers\Admin\AdminController::assignProject
-* @see app/Http/Controllers/Admin/AdminController.php:397
-* @route '/console/admin/assign-project'
+* @see \App\Http\Controllers\Admin\PlatformController::assignProject
+* @see app/Http/Controllers/Admin/PlatformController.php:146
+* @route '/admin/platform/assign-project'
 */
 assignProject.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
     url: assignProject.url(options),
@@ -101,31 +252,9 @@ assignProject.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => (
 })
 
 /**
-* @see \App\Http\Controllers\Admin\AdminController::assignProject
-* @see app/Http/Controllers/Admin/AdminController.php:397
-* @route '/console/admin/assign-project'
-*/
-const assignProjectForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
-    action: assignProject.url(options),
-    method: 'post',
-})
-
-/**
-* @see \App\Http\Controllers\Admin\AdminController::assignProject
-* @see app/Http/Controllers/Admin/AdminController.php:397
-* @route '/console/admin/assign-project'
-*/
-assignProjectForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
-    action: assignProject.url(options),
-    method: 'post',
-})
-
-assignProject.form = assignProjectForm
-
-/**
-* @see \App\Http\Controllers\Admin\AdminController::toggleProject
-* @see app/Http/Controllers/Admin/AdminController.php:415
-* @route '/console/admin/toggle-project'
+* @see \App\Http\Controllers\Admin\PlatformController::toggleProject
+* @see app/Http/Controllers/Admin/PlatformController.php:166
+* @route '/admin/platform/toggle-project'
 */
 export const toggleProject = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
     url: toggleProject.url(options),
@@ -134,22 +263,22 @@ export const toggleProject = (options?: RouteQueryOptions): RouteDefinition<'pos
 
 toggleProject.definition = {
     methods: ["post"],
-    url: '/console/admin/toggle-project',
+    url: '/admin/platform/toggle-project',
 } satisfies RouteDefinition<["post"]>
 
 /**
-* @see \App\Http\Controllers\Admin\AdminController::toggleProject
-* @see app/Http/Controllers/Admin/AdminController.php:415
-* @route '/console/admin/toggle-project'
+* @see \App\Http\Controllers\Admin\PlatformController::toggleProject
+* @see app/Http/Controllers/Admin/PlatformController.php:166
+* @route '/admin/platform/toggle-project'
 */
 toggleProject.url = (options?: RouteQueryOptions) => {
     return toggleProject.definition.url + queryParams(options)
 }
 
 /**
-* @see \App\Http\Controllers\Admin\AdminController::toggleProject
-* @see app/Http/Controllers/Admin/AdminController.php:415
-* @route '/console/admin/toggle-project'
+* @see \App\Http\Controllers\Admin\PlatformController::toggleProject
+* @see app/Http/Controllers/Admin/PlatformController.php:166
+* @route '/admin/platform/toggle-project'
 */
 toggleProject.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
     url: toggleProject.url(options),
@@ -157,143 +286,9 @@ toggleProject.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => (
 })
 
 /**
-* @see \App\Http\Controllers\Admin\AdminController::toggleProject
-* @see app/Http/Controllers/Admin/AdminController.php:415
-* @route '/console/admin/toggle-project'
-*/
-const toggleProjectForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
-    action: toggleProject.url(options),
-    method: 'post',
-})
-
-/**
-* @see \App\Http\Controllers\Admin\AdminController::toggleProject
-* @see app/Http/Controllers/Admin/AdminController.php:415
-* @route '/console/admin/toggle-project'
-*/
-toggleProjectForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
-    action: toggleProject.url(options),
-    method: 'post',
-})
-
-toggleProject.form = toggleProjectForm
-
-/**
-* @see \App\Http\Controllers\Admin\AdminController::syncModels
-* @see app/Http/Controllers/Admin/AdminController.php:512
-* @route '/console/admin/sync-models'
-*/
-export const syncModels = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
-    url: syncModels.url(options),
-    method: 'post',
-})
-
-syncModels.definition = {
-    methods: ["post"],
-    url: '/console/admin/sync-models',
-} satisfies RouteDefinition<["post"]>
-
-/**
-* @see \App\Http\Controllers\Admin\AdminController::syncModels
-* @see app/Http/Controllers/Admin/AdminController.php:512
-* @route '/console/admin/sync-models'
-*/
-syncModels.url = (options?: RouteQueryOptions) => {
-    return syncModels.definition.url + queryParams(options)
-}
-
-/**
-* @see \App\Http\Controllers\Admin\AdminController::syncModels
-* @see app/Http/Controllers/Admin/AdminController.php:512
-* @route '/console/admin/sync-models'
-*/
-syncModels.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
-    url: syncModels.url(options),
-    method: 'post',
-})
-
-/**
-* @see \App\Http\Controllers\Admin\AdminController::syncModels
-* @see app/Http/Controllers/Admin/AdminController.php:512
-* @route '/console/admin/sync-models'
-*/
-const syncModelsForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
-    action: syncModels.url(options),
-    method: 'post',
-})
-
-/**
-* @see \App\Http\Controllers\Admin\AdminController::syncModels
-* @see app/Http/Controllers/Admin/AdminController.php:512
-* @route '/console/admin/sync-models'
-*/
-syncModelsForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
-    action: syncModels.url(options),
-    method: 'post',
-})
-
-syncModels.form = syncModelsForm
-
-/**
-* @see \App\Http\Controllers\Admin\AdminController::rebill
-* @see app/Http/Controllers/Admin/AdminController.php:524
-* @route '/console/admin/rebill'
-*/
-export const rebill = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
-    url: rebill.url(options),
-    method: 'post',
-})
-
-rebill.definition = {
-    methods: ["post"],
-    url: '/console/admin/rebill',
-} satisfies RouteDefinition<["post"]>
-
-/**
-* @see \App\Http\Controllers\Admin\AdminController::rebill
-* @see app/Http/Controllers/Admin/AdminController.php:524
-* @route '/console/admin/rebill'
-*/
-rebill.url = (options?: RouteQueryOptions) => {
-    return rebill.definition.url + queryParams(options)
-}
-
-/**
-* @see \App\Http\Controllers\Admin\AdminController::rebill
-* @see app/Http/Controllers/Admin/AdminController.php:524
-* @route '/console/admin/rebill'
-*/
-rebill.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
-    url: rebill.url(options),
-    method: 'post',
-})
-
-/**
-* @see \App\Http\Controllers\Admin\AdminController::rebill
-* @see app/Http/Controllers/Admin/AdminController.php:524
-* @route '/console/admin/rebill'
-*/
-const rebillForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
-    action: rebill.url(options),
-    method: 'post',
-})
-
-/**
-* @see \App\Http\Controllers\Admin\AdminController::rebill
-* @see app/Http/Controllers/Admin/AdminController.php:524
-* @route '/console/admin/rebill'
-*/
-rebillForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
-    action: rebill.url(options),
-    method: 'post',
-})
-
-rebill.form = rebillForm
-
-/**
-* @see \App\Http\Controllers\Admin\AdminController::sync
-* @see app/Http/Controllers/Admin/AdminController.php:325
-* @route '/console/admin/sync'
+* @see \App\Http\Controllers\Admin\PlatformController::sync
+* @see app/Http/Controllers/Admin/PlatformController.php:207
+* @route '/admin/platform/sync'
 */
 export const sync = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
     url: sync.url(options),
@@ -302,22 +297,22 @@ export const sync = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 
 sync.definition = {
     methods: ["post"],
-    url: '/console/admin/sync',
+    url: '/admin/platform/sync',
 } satisfies RouteDefinition<["post"]>
 
 /**
-* @see \App\Http\Controllers\Admin\AdminController::sync
-* @see app/Http/Controllers/Admin/AdminController.php:325
-* @route '/console/admin/sync'
+* @see \App\Http\Controllers\Admin\PlatformController::sync
+* @see app/Http/Controllers/Admin/PlatformController.php:207
+* @route '/admin/platform/sync'
 */
 sync.url = (options?: RouteQueryOptions) => {
     return sync.definition.url + queryParams(options)
 }
 
 /**
-* @see \App\Http\Controllers\Admin\AdminController::sync
-* @see app/Http/Controllers/Admin/AdminController.php:325
-* @route '/console/admin/sync'
+* @see \App\Http\Controllers\Admin\PlatformController::sync
+* @see app/Http/Controllers/Admin/PlatformController.php:207
+* @route '/admin/platform/sync'
 */
 sync.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
     url: sync.url(options),
@@ -325,45 +320,100 @@ sync.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 })
 
 /**
-* @see \App\Http\Controllers\Admin\AdminController::sync
-* @see app/Http/Controllers/Admin/AdminController.php:325
-* @route '/console/admin/sync'
+* @see \App\Http\Controllers\Admin\PlatformController::rebill
+* @see app/Http/Controllers/Admin/PlatformController.php:218
+* @route '/admin/platform/rebill'
 */
-const syncForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
-    action: sync.url(options),
+export const rebill = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+    url: rebill.url(options),
+    method: 'post',
+})
+
+rebill.definition = {
+    methods: ["post"],
+    url: '/admin/platform/rebill',
+} satisfies RouteDefinition<["post"]>
+
+/**
+* @see \App\Http\Controllers\Admin\PlatformController::rebill
+* @see app/Http/Controllers/Admin/PlatformController.php:218
+* @route '/admin/platform/rebill'
+*/
+rebill.url = (options?: RouteQueryOptions) => {
+    return rebill.definition.url + queryParams(options)
+}
+
+/**
+* @see \App\Http\Controllers\Admin\PlatformController::rebill
+* @see app/Http/Controllers/Admin/PlatformController.php:218
+* @route '/admin/platform/rebill'
+*/
+rebill.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+    url: rebill.url(options),
     method: 'post',
 })
 
 /**
-* @see \App\Http\Controllers\Admin\AdminController::sync
-* @see app/Http/Controllers/Admin/AdminController.php:325
-* @route '/console/admin/sync'
+* @see \App\Http\Controllers\Admin\AuditController::audit
+* @see app/Http/Controllers/Admin/AuditController.php:12
+* @route '/admin/audit'
 */
-syncForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
-    action: sync.url(options),
-    method: 'post',
+export const audit = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: audit.url(options),
+    method: 'get',
 })
 
-sync.form = syncForm
+audit.definition = {
+    methods: ["get","head"],
+    url: '/admin/audit',
+} satisfies RouteDefinition<["get","head"]>
+
+/**
+* @see \App\Http\Controllers\Admin\AuditController::audit
+* @see app/Http/Controllers/Admin/AuditController.php:12
+* @route '/admin/audit'
+*/
+audit.url = (options?: RouteQueryOptions) => {
+    return audit.definition.url + queryParams(options)
+}
+
+/**
+* @see \App\Http\Controllers\Admin\AuditController::audit
+* @see app/Http/Controllers/Admin/AuditController.php:12
+* @route '/admin/audit'
+*/
+audit.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: audit.url(options),
+    method: 'get',
+})
+
+/**
+* @see \App\Http\Controllers\Admin\AuditController::audit
+* @see app/Http/Controllers/Admin/AuditController.php:12
+* @route '/admin/audit'
+*/
+audit.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
+    url: audit.url(options),
+    method: 'head',
+})
 
 const admin = {
-    clients: Object.assign(clients, clients),
-    keys: Object.assign(keys, keys),
-    rate: Object.assign(rate, rate),
+    dashboard: Object.assign(dashboard, dashboard),
+    clients: Object.assign(clients, clients3a2bdc),
+    models: Object.assign(models, modelsEff558),
+    proposals: Object.assign(proposals, proposals),
+    rates: Object.assign(rates, rates),
+    charges: Object.assign(charges, charges),
+    platform: Object.assign(platform, platform),
     backends: Object.assign(backends, backends),
-    balance: Object.assign(balance, balance),
-    client: Object.assign(client, client),
-    modelRate: Object.assign(modelRate, modelRate),
-    accessKey: Object.assign(accessKey, accessKey),
-    usage: Object.assign(usage, usage),
+    keys: Object.assign(keys, keys),
     discover: Object.assign(discover, discover),
     assignProject: Object.assign(assignProject, assignProject),
     toggleProject: Object.assign(toggleProject, toggleProject),
-    model: Object.assign(model, model),
-    clientModelRate: Object.assign(clientModelRate, clientModelRate),
-    syncModels: Object.assign(syncModels, syncModels),
-    rebill: Object.assign(rebill, rebill),
+    accessKey: Object.assign(accessKey, accessKey),
     sync: Object.assign(sync, sync),
+    rebill: Object.assign(rebill, rebill),
+    audit: Object.assign(audit, audit),
 }
 
 export default admin

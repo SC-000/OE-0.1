@@ -39,7 +39,7 @@ class AccountTest extends TestCase
         Notification::fake();
         $admin = User::factory()->create(['role' => 'admin']);
 
-        $this->actingAs($admin)->post('/console/admin/clients', [
+        $this->actingAs($admin)->post('/admin/clients', [
             'name' => 'Northwind',
             'owner_name' => 'Owen Ward',
             'owner_email' => 'owen@northwind.test',
@@ -58,7 +58,7 @@ class AccountTest extends TestCase
         $client = Client::create(['name' => 'X', 'slug' => 'x', 'balance_cents' => 1000]);
         $admin = User::factory()->create(['role' => 'admin']);
 
-        $this->actingAs($admin)->post('/console/admin/balance', ['client_id' => $client->id, 'amount' => 25.50, 'reason' => 'goodwill credit']);
+        $this->actingAs($admin)->post("/admin/clients/{$client->id}/balance", ['amount' => 25.50, 'reason' => 'goodwill credit']);
 
         $this->assertSame(1000 + 2550, $client->fresh()->balance_cents);
         $this->assertDatabaseHas('balance_ledger', ['client_id' => $client->id, 'type' => 'adjustment']);
@@ -69,18 +69,21 @@ class AccountTest extends TestCase
         $client = Client::create(['name' => 'X', 'slug' => 'x']);
         $admin = User::factory()->create(['role' => 'admin']);
 
-        $this->actingAs($admin)->post('/console/admin/access-key', ['client_id' => $client->id, 'name' => 'Prod']);
+        $this->actingAs($admin)->post('/admin/platform/access-keys', ['client_id' => $client->id, 'name' => 'Prod']);
 
         $this->assertDatabaseHas('access_keys', ['client_id' => $client->id, 'name' => 'Prod', 'status' => 'active']);
     }
 
-    public function test_admin_can_add_usage_manually_and_debit_the_balance(): void
+    public function test_admin_can_bill_off_platform_usage_as_a_one_off_charge(): void
     {
         $client = Client::create(['name' => 'X', 'slug' => 'x', 'balance_cents' => 100000, 'default_markup_bps' => 2500]);
         ModelCatalog::create(['provider' => 'google', 'model' => 'gemini-2.5-flash', 'input_usd_per_million' => 0.30, 'output_usd_per_million' => 2.50]);
         $admin = User::factory()->create(['role' => 'admin']);
 
-        $this->actingAs($admin)->post('/console/admin/usage', ['client_id' => $client->id, 'model' => 'gemini-2.5-flash', 'input_tokens' => 1_000_000, 'output_tokens' => 1_000_000]);
+        $this->actingAs($admin)->post('/admin/charges', [
+            'client_id' => $client->id, 'kind' => 'usage', 'cadence' => 'once', 'name' => 'Batch backfill',
+            'provider' => 'google', 'model' => 'gemini-2.5-flash', 'input_tokens' => 1_000_000, 'output_tokens' => 1_000_000,
+        ]);
 
         // provider cost 0.30 + 2.50 = $2.80 = 280c; billed = 280 * 1.25 = 350c
         $this->assertDatabaseHas('usage_records', ['client_id' => $client->id, 'model' => 'gemini-2.5-flash', 'source' => 'manual', 'billed_cents' => 350]);
@@ -93,7 +96,7 @@ class AccountTest extends TestCase
         $owner = User::factory()->create(['client_id' => $client->id, 'role' => 'owner']);
         $admin = User::factory()->create(['role' => 'admin']);
 
-        $this->actingAs($admin)->post('/console/admin/client/delete', ['client_id' => $client->id]);
+        $this->actingAs($admin)->delete("/admin/clients/{$client->id}");
 
         $this->assertDatabaseMissing('clients', ['id' => $client->id]);
         $this->assertDatabaseMissing('users', ['id' => $owner->id]);
@@ -104,7 +107,7 @@ class AccountTest extends TestCase
         $client = Client::create(['name' => 'Z', 'slug' => 'z']);
         $admin = User::factory()->create(['role' => 'admin']);
 
-        $this->actingAs($admin)->post('/console/admin/assign-project', [
+        $this->actingAs($admin)->post('/admin/platform/assign-project', [
             'client_id' => $client->id, 'provider' => 'openai', 'external_project_id' => 'proj_123', 'label' => 'Prod',
         ]);
 
@@ -117,7 +120,7 @@ class AccountTest extends TestCase
     {
         $admin = User::factory()->create(['role' => 'admin']);
 
-        $this->actingAs($admin)->post('/console/admin/model', ['provider' => 'openai', 'model' => 'gpt-x', 'input' => 1.5, 'output' => 4.0]);
+        $this->actingAs($admin)->post('/admin/models', ['provider' => 'openai', 'model' => 'gpt-x', 'input' => 1.5, 'output' => 4.0]);
 
         $this->assertDatabaseHas('model_catalog', ['provider' => 'openai', 'model' => 'gpt-x', 'input_usd_per_million' => 1.5, 'output_usd_per_million' => 4.0]);
     }
@@ -127,7 +130,10 @@ class AccountTest extends TestCase
         $client = Client::create(['name' => 'Z', 'slug' => 'z']);
         $admin = User::factory()->create(['role' => 'admin']);
 
-        $this->actingAs($admin)->post('/console/admin/client-model-rate', ['client_id' => $client->id, 'provider' => 'openai', 'model' => 'gpt-x', 'markup_bps' => 5000]);
+        $this->actingAs($admin)->post('/admin/rates', [
+            'client_id' => $client->id, 'provider' => 'openai', 'model' => 'gpt-x',
+            'pricing_mode' => 'markup', 'markup_bps' => 5000,
+        ]);
 
         $this->assertDatabaseHas('client_model_rates', ['client_id' => $client->id, 'provider' => 'openai', 'model' => 'gpt-x', 'markup_bps' => 5000]);
     }

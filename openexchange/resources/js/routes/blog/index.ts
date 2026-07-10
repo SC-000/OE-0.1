@@ -1,6 +1,6 @@
-import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition, applyUrlDefaults } from './../../wayfinder'
+import { queryParams, type RouteQueryOptions, type RouteDefinition, applyUrlDefaults } from './../../wayfinder'
 /**
-* @see routes/web.php:31
+* @see routes/web.php:40
 * @route '/blog/{slug}'
 */
 export const article = (args: { slug: string | number } | [slug: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -14,7 +14,7 @@ article.definition = {
 } satisfies RouteDefinition<["get","head"]>
 
 /**
-* @see routes/web.php:31
+* @see routes/web.php:40
 * @route '/blog/{slug}'
 */
 article.url = (args: { slug: string | number } | [slug: string | number ] | string | number, options?: RouteQueryOptions) => {
@@ -40,7 +40,7 @@ article.url = (args: { slug: string | number } | [slug: string | number ] | stri
 }
 
 /**
-* @see routes/web.php:31
+* @see routes/web.php:40
 * @route '/blog/{slug}'
 */
 article.get = (args: { slug: string | number } | [slug: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -49,47 +49,13 @@ article.get = (args: { slug: string | number } | [slug: string | number ] | stri
 })
 
 /**
-* @see routes/web.php:31
+* @see routes/web.php:40
 * @route '/blog/{slug}'
 */
 article.head = (args: { slug: string | number } | [slug: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'head'> => ({
     url: article.url(args, options),
     method: 'head',
 })
-
-/**
-* @see routes/web.php:31
-* @route '/blog/{slug}'
-*/
-const articleForm = (args: { slug: string | number } | [slug: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
-    action: article.url(args, options),
-    method: 'get',
-})
-
-/**
-* @see routes/web.php:31
-* @route '/blog/{slug}'
-*/
-articleForm.get = (args: { slug: string | number } | [slug: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
-    action: article.url(args, options),
-    method: 'get',
-})
-
-/**
-* @see routes/web.php:31
-* @route '/blog/{slug}'
-*/
-articleForm.head = (args: { slug: string | number } | [slug: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
-    action: article.url(args, {
-        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
-            _method: 'HEAD',
-            ...(options?.query ?? options?.mergeQuery ?? {}),
-        }
-    }),
-    method: 'get',
-})
-
-article.form = articleForm
 
 const blog = {
     article: Object.assign(article, article),

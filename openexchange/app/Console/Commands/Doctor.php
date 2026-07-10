@@ -65,7 +65,7 @@ class Doctor extends Command
         $user = (string) config('mail.mailers.smtp.username');
         $scheme = (string) config('mail.mailers.smtp.scheme');
         $from = (string) config('mail.from.address');
-        $this->line("  <fg=cyan>i</> mail: {$mailer} · {$host}:{$port} · user ".($user !== '' ? "set ({$user})" : '<fg=yellow>MISSING</>')." · from ".($from ?: '<fg=yellow>MISSING</>'));
+        $this->line("  <fg=cyan>i</> mail: {$mailer} · {$host}:{$port} · user ".($user !== '' ? "set ({$user})" : '<fg=yellow>MISSING</>').' · from '.($from ?: '<fg=yellow>MISSING</>'));
         if ($scheme === 'ssl') {
             $fail('MAIL_SCHEME=ssl is invalid', 'ZeptoMail on 587: leave MAIL_SCHEME empty (STARTTLS). For 465 use smtps.');
         } elseif ($scheme !== '' && (int) $port === 587) {

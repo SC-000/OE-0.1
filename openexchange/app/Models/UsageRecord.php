@@ -18,6 +18,13 @@ class UsageRecord extends Model
         'billed_cents' => 'integer',
     ];
 
-    public function client(): BelongsTo { return $this->belongsTo(Client::class); }
-    public function providerKey(): BelongsTo { return $this->belongsTo(ProviderKey::class); }
+    public function client(): BelongsTo
+    {
+        return $this->belongsTo(Client::class);
+    }
+
+    public function providerKey(): BelongsTo
+    {
+        return $this->belongsTo(ProviderKey::class);
+    }
 }

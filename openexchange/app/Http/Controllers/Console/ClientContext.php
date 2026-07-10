@@ -3,24 +3,38 @@
 namespace App\Http\Controllers\Console;
 
 use App\Models\Client;
+use App\Services\Admin\ImpersonationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 trait ClientContext
 {
-    /** The client whose account we're viewing; every owner is guaranteed one. */
+    /**
+     * The client whose account this request is about.
+     *
+     * Precedence: an active impersonation, then the user's own client, then
+     * self-heal for an owner who somehow has none. An admin with no client and no
+     * impersonation gets 403 — RequireClientContext should already have redirected
+     * them to /admin, so reaching here means a route is missing that middleware.
+     */
     protected function client(Request $request): Client
     {
+        $impersonation = app(ImpersonationService::class);
+
+        if ($impersonation->active()) {
+            if ($client = $impersonation->client()) {
+                return $client;
+            }
+            $impersonation->stop(); // the impersonated client was deleted underneath us
+        }
+
         $user = $request->user();
 
         if ($user->client) {
             return $user->client;
         }
 
-        // Admins preview the first account; owners always get their own.
-        if ($user->isAdmin()) {
-            return Client::query()->firstOrFail();
-        }
+        abort_if($user->isAdmin(), 403, 'Admins have no client account. Use the admin portal, or view as a client.');
 
         $client = Client::create([
             'name' => $user->name,

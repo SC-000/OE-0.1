@@ -55,9 +55,32 @@ class SmokeTest extends TestCase
     {
         Client::create(['name' => 'Acme', 'slug' => 'acme']);
         $owner = User::factory()->create(['role' => 'owner']);
-        $this->actingAs($owner)->get('/console/admin')->assertForbidden();
+        $this->actingAs($owner)->get('/admin')->assertForbidden();
 
         $admin = User::factory()->create(['role' => 'admin']);
-        $this->actingAs($admin)->get('/console/admin')->assertOk();
+        $this->actingAs($admin)->get('/admin')->assertOk();
+    }
+
+    /** Every admin page resolves a real Inertia component and renders with an empty database. */
+    public function test_admin_pages_render(): void
+    {
+        $client = Client::create(['name' => 'Acme', 'slug' => 'acme']);
+        $admin = User::factory()->create(['role' => 'admin', 'client_id' => null]);
+
+        foreach (['/admin', '/admin/clients', "/admin/clients/{$client->id}", '/admin/models', '/admin/platform', '/admin/audit'] as $page) {
+            $this->actingAs($admin)->get($page)->assertOk();
+        }
+    }
+
+    /**
+     * The old bug: an admin opening /console silently got whichever client happened
+     * to be first in the table, which is what made the portal read as a hybrid.
+     */
+    public function test_an_admin_without_a_client_is_sent_to_the_admin_portal(): void
+    {
+        Client::create(['name' => 'Acme', 'slug' => 'acme']);
+        $admin = User::factory()->create(['role' => 'admin', 'client_id' => null]);
+
+        $this->actingAs($admin)->get('/console')->assertRedirect('/admin');
     }
 }
