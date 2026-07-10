@@ -53,6 +53,7 @@ class AdminSurfaceTest extends TestCase
         'admin.dashboard', 'admin.clients', 'admin.clients.store', 'admin.clients.show', 'admin.clients.update',
         'admin.clients.destroy', 'admin.clients.balance', 'admin.clients.staff.add', 'admin.clients.staff.remove',
         'admin.clients.staff.invite', 'admin.clients.impersonate',
+        'admin.clients.recost', 'admin.clients.recost.preview',
         'admin.models', 'admin.models.store', 'admin.models.update', 'admin.models.presentation',
         'admin.models.price-from-feed', 'admin.models.rebill', 'admin.models.sync', 'admin.models.retier',
         'admin.proposals.accept', 'admin.proposals.reject',
@@ -116,6 +117,13 @@ class AdminSurfaceTest extends TestCase
         $this->actingAs($this->admin)->post("/admin/clients/{$globex->id}/staff/{$sam->id}/invite")->assertRedirect();
         $this->actingAs($this->admin)->delete("/admin/clients/{$globex->id}/staff/{$sam->id}")->assertRedirect();
         $this->assertDatabaseMissing('users', ['id' => $sam->id]);
+
+        // re-cost: preview never writes, apply settles the difference
+        $this->actingAs($this->admin)->postJson("/admin/clients/{$globex->id}/recost/preview", ['provider' => 'openai', 'model' => 'gpt-x'])
+            ->assertOk()->assertJsonPath('applied', false);
+        $this->actingAs($this->admin)->post("/admin/clients/{$globex->id}/recost", ['provider' => 'openai', 'model' => 'gpt-x'])
+            ->assertRedirect();
+        $this->assertSame('info', session('flash')['type'], 'no usage => explains itself rather than silently doing nothing');
 
         // impersonate + stop
         $this->actingAs($this->admin)->post("/admin/clients/{$globex->id}/impersonate")->assertRedirect('/console');

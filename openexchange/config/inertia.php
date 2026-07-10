@@ -15,11 +15,19 @@ return [
     |
     */
 
+    /*
+     | SSR pre-renders each initial page request to real HTML, so the marketing pages
+     | paint before any JS is parsed (and are indexable). It needs a long-running node
+     | process: `npm run build:ssr` then `php artisan inertia:start-ssr`.
+     |
+     | It does NOT reduce client-side work — the bundle still downloads and hydrates.
+     */
     'ssr' => [
-        'enabled' => false,
-        'url' => 'http://127.0.0.1:13714',
-        // 'bundle' => base_path('bootstrap/ssr/ssr.mjs'),
-
+        'enabled' => env('INERTIA_SSR_ENABLED', false),
+        'url' => env('INERTIA_SSR_URL', 'http://127.0.0.1:13714'),
+        // Vite names the output after the entry (resources/js/ssr.tsx). The package is
+        // "type": "module", so this .js file is ESM and node runs it directly.
+        'bundle' => base_path('bootstrap/ssr/ssr.js'),
     ],
 
     /*

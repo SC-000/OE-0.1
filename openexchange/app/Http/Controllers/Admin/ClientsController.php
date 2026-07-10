@@ -13,11 +13,15 @@ use App\Models\UsageRecord;
 use App\Models\User;
 use App\Services\Admin\AuditLogger;
 use App\Services\Billing\BalanceService;
+use App\Services\Metering\MeteringService;
 use App\Services\Metering\ModelPresenter;
 use App\Services\Metering\RateResolver;
 use App\Services\Metering\ResolvedRate;
+use App\Services\Pricing\ModelRegistrar;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
@@ -103,6 +107,14 @@ class ClientsController
                 ];
             })->all();
 
+        $rates = ClientModelRate::where('client_id', $client->id)->get()->map(fn ($r) => [
+            'id' => $r->id, 'provider' => $r->provider, 'model' => $r->model,
+            'mode' => $r->pricing_mode, 'label' => ResolvedRate::fromRow($r)->label(),
+            'markup_bps' => $r->markup_bps, 'note' => $r->note,
+            'per_request_fee_cents' => $r->per_request_fee_cents,
+            'min_margin_bps' => $r->min_margin_bps,
+        ])->all();
+
         $revenue = array_sum(array_column($perModel, 'revenue_cents'));
         $cost = array_sum(array_column($perModel, 'cost_cents'));
 
@@ -140,13 +152,7 @@ class ClientsController
                 'joined' => $u->created_at?->format('M j, Y'),
             ]),
             'perModel' => $perModel,
-            'rates' => ClientModelRate::where('client_id', $client->id)->get()->map(fn ($r) => [
-                'id' => $r->id, 'provider' => $r->provider, 'model' => $r->model,
-                'mode' => $r->pricing_mode, 'label' => ResolvedRate::fromRow($r)->label(),
-                'markup_bps' => $r->markup_bps, 'note' => $r->note,
-                'per_request_fee_cents' => $r->per_request_fee_cents,
-                'min_margin_bps' => $r->min_margin_bps,
-            ]),
+            'rates' => $rates,
             'charges' => Charge::where('client_id', $client->id)->latest()->get()->map(fn ($c) => [
                 'id' => $c->id, 'kind' => $c->kind, 'cadence' => $c->cadence, 'name' => $c->name,
                 'amount_cents' => $c->amount_cents, 'model' => $c->model, 'provider' => $c->provider,
@@ -191,6 +197,7 @@ class ClientsController
                     'provider' => $m->provider, 'model' => $m->model,
                     'in' => (float) $m->input_usd_per_million, 'out' => (float) $m->output_usd_per_million,
                 ]),
+            'rateGrid' => $this->rateGrid($client, $rates),
             'newKey' => session('new_access_key'),
         ]);
     }
@@ -334,6 +341,138 @@ class ClientsController
         $this->audit->log('client.staff.invite', $client, "Re-sent set-password email to {$user->email}");
 
         return back();
+    }
+
+    /**
+     * Every model laid out for this client: the two prices, the rate that actually applies
+     * (inherited or overridden), what it sells for, and what this client has spent on it.
+     *
+     * @param  Collection<int, ClientModelRate>  $rates
+     * @return list<array<string, mixed>>
+     */
+    private function rateGrid(Client $client, $rates): array
+    {
+        $resolver = app(RateResolver::class);
+        $monthStart = now()->startOfMonth();
+
+        // This client's MTD usage, folded onto the base model (dated snapshots share a price).
+        $usage = [];
+        $rows = UsageRecord::where('client_id', $client->id)
+            ->where('period_start', '>=', $monthStart)
+            ->selectRaw('provider, model, COUNT(*) n, SUM(input_tokens+output_tokens) toks, SUM(billed_cents) rev, SUM(provider_cost_cents) cost')
+            ->groupBy('provider', 'model')->get();
+        foreach ($rows as $r) {
+            $key = $r->provider.'|'.ModelRegistrar::baseModel($r->model);
+            foreach (['n', 'toks', 'rev', 'cost'] as $f) {
+                $usage[$key][$f] = ($usage[$key][$f] ?? 0) + (int) $r->{$f};
+            }
+        }
+
+        $overrides = collect($rates)->filter(fn ($r) => $r['model'] !== null)->keyBy(fn ($r) => $r['provider'].'|'.$r['model']);
+
+        return ModelCatalog::where('active', true)->orderBy('provider')->orderBy('model')->get()
+            ->map(function ($m) use ($client, $resolver, $usage, $overrides) {
+                $key = $m->provider.'|'.$m->model;
+                $u = $usage[$key] ?? null;
+                $override = $overrides->get($key);
+                $rate = $resolver->resolve($client, $m->provider, $m->model);
+
+                $rev = (int) ($u['rev'] ?? 0);
+                $cost = (int) ($u['cost'] ?? 0);
+
+                // What one million in + one million out would bill this client today.
+                $costPerM = $m->costCents(1_000_000, 1_000_000);
+                $basisPerM = $m->chargeBasisCents(1_000_000, 1_000_000);
+                $sellPerM = $rate->billedCents($basisPerM, 1_000_000, 1_000_000, 0, $costPerM);
+
+                return [
+                    'id' => $m->id,
+                    'provider' => $m->provider,
+                    'provider_label' => ModelCatalog::providerLabel($m->provider),
+                    'model' => $m->model,
+                    'tier' => $m->tier,
+                    'priced' => $m->isPriced(),
+
+                    'cost_in' => (float) $m->input_usd_per_million,
+                    'cost_out' => (float) $m->output_usd_per_million,
+                    'base_in' => $m->baseInput(),
+                    'base_out' => $m->baseOutput(),
+
+                    // The rate in force, and whether it is this client's own or inherited.
+                    'mode' => $rate->mode,
+                    'markup_bps' => $rate->markupBps,
+                    'rate_label' => $rate->label(),
+                    'rate_origin' => $rate->origin,
+                    'inherited' => $override === null,
+                    'override_id' => $override['id'] ?? null,
+                    'note' => $override['note'] ?? null,
+
+                    // Per 1M-in + 1M-out, so a rate change is legible in dollars.
+                    'cost_per_m_cents' => $costPerM,
+                    'sell_per_m_cents' => $sellPerM,
+                    'margin_per_m_cents' => $sellPerM - $costPerM,
+
+                    'usage_records' => (int) ($u['n'] ?? 0),
+                    'usage_tokens' => (int) ($u['toks'] ?? 0),
+                    'revenue_cents' => $rev,
+                    'usage_cost_cents' => $cost,
+                    'margin_cents' => $rev - $cost,
+                ];
+            })->values()->all();
+    }
+
+    /**
+     * Preview a re-cost: what would this client's usage of one model bill at today's
+     * price and rate? Never writes. The admin sees the delta before committing.
+     */
+    public function recostPreview(Request $request, Client $client, MeteringService $metering): JsonResponse
+    {
+        $data = $request->validate([
+            'provider' => ['required', 'string', 'max:40'],
+            'model' => ['required', 'string', 'max:120'],
+        ]);
+
+        return response()->json($metering->recost($client->id, $data['provider'], $data['model'], dryRun: true));
+    }
+
+    /**
+     * Re-bill this client's usage of one model at the CURRENT real cost, charge-on price
+     * and rate card, settling the difference.
+     *
+     * The client's statement shows the corrected usage and a balance movement — as it
+     * must, because money cannot move invisibly. What they never see is the model id, or
+     * that a re-price happened: the ledger line reads "Usage — inference" like any other.
+     */
+    public function recost(Request $request, Client $client, MeteringService $metering): RedirectResponse
+    {
+        $data = $request->validate([
+            'provider' => ['required', 'string', 'max:40'],
+            'model' => ['required', 'string', 'max:120'],
+        ]);
+
+        $result = $metering->recost($client->id, $data['provider'], $data['model']);
+
+        if ($result['records'] === 0) {
+            return back()->with('flash', ['type' => 'info', 'message' => "No usage of {$data['model']} to re-cost for {$client->name}."]);
+        }
+
+        $delta = $result['delta_cents'];
+        $this->audit->log('metering.recost', $client, sprintf(
+            'Re-costed %d record(s) of %s/%s — $%s to $%s (net %s$%s)',
+            $result['records'], $data['provider'], $data['model'],
+            number_format($result['was_cents'] / 100, 2), number_format($result['now_cents'] / 100, 2),
+            $delta >= 0 ? '+' : '-', number_format(abs($delta) / 100, 2),
+        ), $result + $data);
+
+        if ($delta === 0) {
+            return back()->with('flash', ['type' => 'info', 'message' => "{$data['model']} was already billed at the current rate - nothing changed."]);
+        }
+
+        return back()->with('flash', ['type' => 'success', 'message' => sprintf(
+            'Re-costed %d record(s) of %s - %s $%s.',
+            $result['records'], $data['model'],
+            $delta > 0 ? 'billed a further' : 'credited back', number_format(abs($delta) / 100, 2),
+        )]);
     }
 
     /** Coarse account health for the clients list. */

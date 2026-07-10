@@ -84,9 +84,10 @@ class GatewayService
 
         // Meter — exact tokens, the client's rate card, one atomic record + debit.
         $providerCost = $catalog ? $catalog->costCents($result->inputTokens, $result->outputTokens) : 0;
+        $chargeBasis = $catalog ? $catalog->chargeBasisCents($result->inputTokens, $result->outputTokens) : $providerCost;
         // The gateway is the one place a true request count exists — so the per-request fee applies here.
         $billed = $this->rates->resolve($client, $provider, $model)
-            ->billedCents($providerCost, $result->inputTokens, $result->outputTokens, requests: 1);
+            ->billedCents($chargeBasis, $result->inputTokens, $result->outputTokens, 1, $providerCost);
         $requestId = (string) Str::uuid();
 
         DB::transaction(function () use ($client, $key, $backend, $result, $model, $provider, $providerCost, $billed, $requestId) {

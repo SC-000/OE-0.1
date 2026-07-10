@@ -101,6 +101,9 @@ Route::middleware(['auth', 'verified', EnsureAdmin::class])->prefix('admin')->na
     Route::delete('/clients/{client}/staff/{user}', [ClientsController::class, 'removeStaff'])->name('clients.staff.remove');
     Route::post('/clients/{client}/staff/{user}/invite', [ClientsController::class, 'resendInvite'])->name('clients.staff.invite');
     Route::post('/clients/{client}/impersonate', [ImpersonationController::class, 'start'])->name('clients.impersonate');
+    // Re-bill this client's existing usage of one model at today's cost + rate.
+    Route::post('/clients/{client}/recost/preview', [ClientsController::class, 'recostPreview'])->name('clients.recost.preview');
+    Route::post('/clients/{client}/recost', [ClientsController::class, 'recost'])->name('clients.recost');
 
     // Models + pricing
     Route::get('/models', [ModelsController::class, 'index'])->name('models');

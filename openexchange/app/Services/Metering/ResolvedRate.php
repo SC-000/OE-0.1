@@ -63,25 +63,40 @@ final class ResolvedRate
     /**
      * What we charge the client, in integer cents.
      *
+     * Two distinct inputs, and mixing them up is how margin disappears:
+     *
+     *   $chargeBasisCents — the model's charge-on price. Markup % is applied to THIS.
+     *   $realCostCents    — what the provider actually charges us. The margin floor
+     *                       protects THIS, because that's the only number that can
+     *                       make a request unprofitable. Defaults to the charge basis
+     *                       when a model has no separate charge-on price.
+     *
      * @param  int  $requests  Only the gateway knows a true request count; pulled usage
      *                         buckets aggregate many requests, so they pass 0 and skip the fee.
      */
-    public function billedCents(int $providerCostCents, int $inputTokens, int $outputTokens, int $requests = 0): int
-    {
-        $base = $this->mode === 'fixed'
+    public function billedCents(
+        int $chargeBasisCents,
+        int $inputTokens,
+        int $outputTokens,
+        int $requests = 0,
+        ?int $realCostCents = null,
+    ): int {
+        $realCostCents ??= $chargeBasisCents;
+
+        $billed = $this->mode === 'fixed'
             ? (int) round(
                 (($inputTokens / 1_000_000) * (float) ($this->inputUsdPerMillion ?? 0)
                 + ($outputTokens / 1_000_000) * (float) ($this->outputUsdPerMillion ?? 0)) * 100
             )
-            : (int) round($providerCostCents * (1 + (($this->markupBps ?? 0) / 10000)));
+            : (int) round($chargeBasisCents * (1 + (($this->markupBps ?? 0) / 10000)));
 
-        $base += $this->perRequestFeeCents * max(0, $requests);
+        $billed += $this->perRequestFeeCents * max(0, $requests);
 
-        if ($this->minMarginBps !== null && $providerCostCents > 0) {
-            $base = max($base, (int) round($providerCostCents * (1 + $this->minMarginBps / 10000)));
+        if ($this->minMarginBps !== null && $realCostCents > 0) {
+            $billed = max($billed, (int) round($realCostCents * (1 + $this->minMarginBps / 10000)));
         }
 
-        return max(0, $base);
+        return max(0, $billed);
     }
 
     /** Realised markup in bps for a booked line — the number margin reports care about. */

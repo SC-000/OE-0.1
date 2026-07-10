@@ -30,11 +30,13 @@ class ModelSyncService
     ) {}
 
     /**
-     * @param  bool  $importFeed  Also import feed models for providers we gateway, even
-     *                            when the provider API isn't configured (useful pre-launch).
+     * @param  bool|null  $importFeed  null (default) = import the feed catalogue for every
+     *                                 provider we hold credentials for, so a model released
+     *                                 today is in the system and priced before anyone calls
+     *                                 it. true = all gateway providers. false = discovery only.
      * @return array{discovered:int,added:int,priced:int,proposed:int,unchanged:int,rebilled:int,rebilled_cents:int,errors:list<string>}
      */
-    public function sync(bool $importFeed = false, bool $freshQuotes = true): array
+    public function sync(?bool $importFeed = null, bool $freshQuotes = true): array
     {
         $stats = ['discovered' => 0, 'added' => 0, 'priced' => 0, 'proposed' => 0, 'unchanged' => 0, 'rebilled' => 0, 'rebilled_cents' => 0, 'errors' => []];
 
@@ -58,12 +60,15 @@ class ModelSyncService
                 $stats['errors'][] = "{$provider} discovery: ".$e->getMessage();
             }
         }
-        if ($importFeed) {
-            foreach ($quotes as $q) {
-                // Only price-bearing models we could actually serve.
-                if (in_array($q->provider, ['openai', 'google'], true) && $q->isPriced() && $this->isChatModel($q->provider, $q->model)) {
-                    $ids[] = [$q->provider, $q->model];
-                }
+        // Import the feed's catalogue for every provider we actually hold credentials for,
+        // so a model that ships today is in the system (and priced) before anyone calls it.
+        // Explicit `--import-feed` forces it on; `--no-import-feed` forces it off.
+        $feedProviders = $importFeed === false ? [] : ($importFeed === true ? ['openai', 'google'] : $this->servableProviders());
+
+        foreach ($quotes as $q) {
+            // Only price-bearing chat models from providers we could actually serve.
+            if (in_array($q->provider, $feedProviders, true) && $q->isPriced() && $this->isChatModel($q->provider, $q->model)) {
+                $ids[] = [$q->provider, $q->model];
             }
         }
 
@@ -185,6 +190,23 @@ class ModelSyncService
         );
 
         return true;
+    }
+
+    /**
+     * Providers we hold working credentials for. Importing the feed's whole catalogue for
+     * a provider we can't call would list models the gateway would only 503 on.
+     *
+     * @return list<string>
+     */
+    private function servableProviders(): array
+    {
+        $providers = ProviderBackend::where('status', 'active')->distinct()->pluck('provider')->all();
+
+        if (config('openexchange.openai.admin_key') && ! in_array('openai', $providers, true)) {
+            $providers[] = 'openai';
+        }
+
+        return array_values(array_intersect($providers, ['openai', 'google']));
     }
 
     private function isChatModel(string $provider, string $id): bool

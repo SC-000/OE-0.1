@@ -2,32 +2,14 @@ import { createInertiaApp } from '@inertiajs/react';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { initializeTheme } from '@/hooks/use-appearance';
-import AppLayout from '@/layouts/app-layout';
-import AuthLayout from '@/layouts/auth-layout';
-import SettingsLayout from '@/layouts/settings/oe-settings-layout';
+import { resolveLayout } from '@/lib/inertia-layout';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
 createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
-    layout: (name) => {
-        switch (true) {
-            case name === 'welcome':
-                return null;
-            case name.startsWith('marketing/'):
-                return null;
-            case name.startsWith('console/'):
-                return null;
-            case name.startsWith('admin/'):
-                return null;
-            case name.startsWith('auth/'):
-                return AuthLayout;
-            case name.startsWith('settings/'):
-                return SettingsLayout;
-            default:
-                return AppLayout;
-        }
-    },
+    // Shared with ssr.tsx — the two entries must agree or hydration mismatches.
+    layout: resolveLayout,
     strictMode: true,
     withApp(app) {
         return (

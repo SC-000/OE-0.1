@@ -76,10 +76,14 @@ class MeteringService
         $providerCost = $catalog
             ? $catalog->costCents($bucket->inputTokens, $bucket->outputTokens)
             : (int) ($bucket->providerCostCents ?? 0);
+        // Markup sits on the charge-on price, not on what the provider charged us.
+        $chargeBasis = $catalog
+            ? $catalog->chargeBasisCents($bucket->inputTokens, $bucket->outputTokens)
+            : $providerCost;
 
         // Pulled buckets aggregate an unknown number of requests, so no per-request fee.
         $billed = $this->rates->resolve($client, $bucket->provider, $bucket->model)
-            ->billedCents($providerCost, $bucket->inputTokens, $bucket->outputTokens);
+            ->billedCents($chargeBasis, $bucket->inputTokens, $bucket->outputTokens, 0, $providerCost);
 
         return DB::transaction(function () use ($key, $client, $bucket, $providerCost, $billed) {
             $idem = $bucket->idempotencyParts();
@@ -172,7 +176,7 @@ class MeteringService
                     // Gateway rows are one request; pulled buckets aggregate an unknown count.
                     $requests = $rec->source === 'gateway' ? 1 : 0;
                     $billed = $this->rates->resolve($client, $rec->provider, $rec->model)
-                        ->billedCents($cost, $in, $out, $requests);
+                        ->billedCents($catalog->chargeBasisCents($in, $out), $in, $out, $requests, $cost);
 
                     DB::transaction(function () use ($rec, $cost, $billed, $client, &$rebilled, &$netCents, &$credited) {
                         $fresh = UsageRecord::whereKey($rec->id)->lockForUpdate()->first();
@@ -205,6 +209,99 @@ class MeteringService
             });
 
         return ['rebilled' => $rebilled, 'billed_cents' => $netCents, 'credited' => $credited];
+    }
+
+    /**
+     * Re-price usage that ALREADY has a cost basis, at today's cost + charge-on price +
+     * rate card. Use when a price was wrong, not merely missing (that's `rebill()`).
+     *
+     * Unlike `rebill()` this rewrites history, so it always settles the exact difference
+     * and is safe to run twice — the second run computes a delta of zero. Pass
+     * `dryRun: true` to preview who moves and by how much before committing.
+     *
+     * The client's statement shows a generic "Usage — inference" line, same as any other
+     * metered usage: no model id leaks. Their BALANCE does move, and the ledger records
+     * it — a re-cost cannot be, and should not be, invisible to the person paying.
+     *
+     * @return array{records:int, was_cents:int, now_cents:int, delta_cents:int, credited:int, applied:bool}
+     */
+    public function recost(?int $clientId, string $provider, string $model, bool $dryRun = false): array
+    {
+        $records = 0;
+        $was = 0;
+        $now = 0;
+        $credited = 0;
+
+        UsageRecord::query()
+            ->whereRaw('(input_tokens + output_tokens) > 0')
+            ->where('provider', $provider)
+            ->where(fn ($q) => $q->where('model', $model)->orWhere('model', 'like', $model.'-%'))
+            ->when($clientId, fn ($q, $id) => $q->where('client_id', $id))
+            ->with('client')
+            ->chunkById(200, function ($rows) use ($model, $dryRun, &$records, &$was, &$now, &$credited) {
+                foreach ($rows as $rec) {
+                    if (ModelRegistrar::baseModel($rec->model) !== $model) {
+                        continue; // `gpt-4o` must not sweep up `gpt-4o-mini`
+                    }
+
+                    $client = $rec->client;
+                    $catalog = $this->catalogFor($rec->provider, $rec->model);
+                    if (! $client || ! $catalog || ! $catalog->isPriced()) {
+                        continue;
+                    }
+
+                    $in = (int) $rec->input_tokens;
+                    $out = (int) $rec->output_tokens;
+                    $cost = $catalog->costCents($in, $out);
+                    $requests = $rec->source === 'gateway' ? 1 : 0;
+                    $billed = $this->rates->resolve($client, $rec->provider, $rec->model)
+                        ->billedCents($catalog->chargeBasisCents($in, $out), $in, $out, $requests, $cost);
+
+                    $delta = $billed - (int) $rec->billed_cents;
+                    $records++;
+                    $was += (int) $rec->billed_cents;
+                    $now += $billed;
+                    if ($delta < 0) {
+                        $credited++;
+                    }
+                    if ($dryRun || ($delta === 0 && (int) $rec->provider_cost_cents === $cost)) {
+                        continue;
+                    }
+
+                    DB::transaction(function () use ($rec, $cost, $billed, $client) {
+                        $fresh = UsageRecord::whereKey($rec->id)->lockForUpdate()->first();
+                        if (! $fresh) {
+                            return;
+                        }
+                        // Read the previous amount BEFORE update() re-syncs the model's originals,
+                        // and recompute the delta under the lock in case a concurrent run moved it.
+                        $wasCents = (int) $fresh->billed_cents;
+                        $liveDelta = $billed - $wasCents;
+
+                        $fresh->update(['provider_cost_cents' => $cost, 'billed_cents' => $billed]);
+
+                        if ($liveDelta !== 0) {
+                            $this->balance->apply(
+                                $client,
+                                -$liveDelta, // owes more => balance down; owes less => refund
+                                'usage_debit',
+                                "{$rec->provider}/{$rec->model} usage (re-costed)",
+                                "usage:{$rec->id}:recost",
+                                ['recost' => true, 'was_billed_cents' => $wasCents, 'now_billed_cents' => $billed, 'provider_cost_cents' => $cost],
+                            );
+                        }
+                    });
+                }
+            });
+
+        return [
+            'records' => $records,
+            'was_cents' => $was,
+            'now_cents' => $now,
+            'delta_cents' => $now - $was,
+            'credited' => $credited,
+            'applied' => ! $dryRun,
+        ];
     }
 
     /** How much usage is sitting unpriced, so the admin can see the exposure before acting. */

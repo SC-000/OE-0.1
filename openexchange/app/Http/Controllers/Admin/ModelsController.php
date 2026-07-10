@@ -36,6 +36,8 @@ class ModelsController
 
         $overrides = ClientModelRate::whereNull('client_id')->whereNotNull('model')->get()->keyBy(fn ($r) => $r->provider.'|'.$r->model);
 
+        $globalMarkupBps = (int) (ClientModelRate::whereNull('client_id')->whereNull('provider')->whereNull('model')->value('markup_bps') ?? 2500);
+
         // Usage that metered with NO cost basis — the money currently on the floor.
         // Aggregated onto the BASE model, because dated snapshots re-bill with their parent.
         $outstanding = [];
@@ -51,7 +53,7 @@ class ModelsController
             $outstanding[$key]['billed'] = ($outstanding[$key]['billed'] ?? 0) + (int) $r->billed;
         }
 
-        $catalog = ModelCatalog::orderBy('provider')->orderBy('model')->get()->map(function ($m) use ($usage, $overrides, $outstanding) {
+        $catalog = ModelCatalog::orderBy('provider')->orderBy('model')->get()->map(function ($m) use ($usage, $overrides, $outstanding, $globalMarkupBps) {
             $u = $usage->get($m->provider.'|'.$m->model);
             $ov = $overrides->get($m->provider.'|'.$m->model);
             $rev = (int) ($u->rev ?? 0);
@@ -70,8 +72,22 @@ class ModelsController
                 'alias' => $m->display_alias,
                 'client_label' => $m->clientLabel(),
                 'tier' => $m->tier,
-                'in' => (float) $m->input_usd_per_million,
-                'out' => (float) $m->output_usd_per_million,
+
+                // Three distinct numbers. Never merge them.
+                //   cost_*  what the provider charges US   -> margin is measured against this
+                //   base_*  the charge-on price            -> markup % is applied on top of this
+                //   feed_*  the feed's list price          -> read-only reference, drift alarm
+                'cost_in' => (float) $m->input_usd_per_million,
+                'cost_out' => (float) $m->output_usd_per_million,
+                'base_in' => $m->baseInput(),
+                'base_out' => $m->baseOutput(),
+                'has_base' => $m->hasChargeBasis(),
+                'padding_bps' => $m->basisPaddingBps(),
+                // What the charge-on price becomes at the platform default markup, before
+                // any per-client override. The number a salesperson quotes.
+                'sell_in' => round($m->baseInput() * (1 + $globalMarkupBps / 10000), 4),
+                'sell_out' => round($m->baseOutput() * (1 + $globalMarkupBps / 10000), 4),
+
                 'active' => (bool) $m->active,
                 'client_visible' => (bool) $m->client_visible,
                 'price_source' => $m->price_source,
@@ -119,6 +135,7 @@ class ModelsController
             'providers' => ModelCatalog::distinct()->orderBy('provider')->pluck('provider'),
             'lastSync' => ModelCatalog::max('feed_synced_at'),
             'feedSource' => 'openrouter',
+            'globalMarkupBps' => $globalMarkupBps,
             // The headline the admin must not be able to miss.
             'exposure' => [
                 'unpriced_models' => $catalog->where('priced', false)->where('unbilled_records', '>', 0)->count(),
@@ -187,29 +204,59 @@ class ModelsController
             : ['type' => 'info', 'message' => "Nothing outstanding for {$model->model} — all of its usage already has a cost basis."]);
     }
 
-    /** Edit cost basis + availability. Marks the price as manual so sync won't touch it. */
+    /**
+     * Edit the two prices + availability.
+     *
+     *   input/output            REAL COST to the platform. Marks the price manual, so the
+     *                           feed will report drift but never overwrite it.
+     *   base_input/base_output  CHARGE-ON price that markup sits on. Null = same as cost.
+     */
     public function update(Request $request, ModelCatalog $model): RedirectResponse
     {
         $data = $request->validate([
             'input' => ['required', 'numeric', 'min:0', 'max:100000'],
             'output' => ['required', 'numeric', 'min:0', 'max:100000'],
+            'base_input' => ['nullable', 'numeric', 'min:0', 'max:100000'],
+            'base_output' => ['nullable', 'numeric', 'min:0', 'max:100000'],
             'active' => ['required', 'boolean'],
         ]);
 
-        $changed = abs((float) $model->input_usd_per_million - (float) $data['input']) > 1e-9
+        $costChanged = abs((float) $model->input_usd_per_million - (float) $data['input']) > 1e-9
             || abs((float) $model->output_usd_per_million - (float) $data['output']) > 1e-9;
 
-        $model->active = (bool) $data['active'];
+        // Omitted entirely (`?? null`) means "leave the charge-on price following the cost".
+        // A charge-on price equal to the cost is likewise stored as NULL, never duplicated.
+        $rawBaseIn = $data['base_input'] ?? null;
+        $rawBaseOut = $data['base_output'] ?? null;
+        $baseIn = $rawBaseIn !== null && abs((float) $rawBaseIn - (float) $data['input']) > 1e-9 ? (float) $rawBaseIn : null;
+        $baseOut = $rawBaseOut !== null && abs((float) $rawBaseOut - (float) $data['output']) > 1e-9 ? (float) $rawBaseOut : null;
+        $baseChanged = $baseIn !== ($model->base_input_usd_per_million !== null ? (float) $model->base_input_usd_per_million : null)
+            || $baseOut !== ($model->base_output_usd_per_million !== null ? (float) $model->base_output_usd_per_million : null);
 
-        if (! $changed) {
+        $model->active = (bool) $data['active'];
+        $model->base_input_usd_per_million = $baseIn;
+        $model->base_output_usd_per_million = $baseOut;
+
+        if (! $costChanged) {
             $model->save();
 
-            return back();
+            if ($baseChanged) {
+                $this->audit->log('model.charge_basis', null, sprintf(
+                    '%s/%s charge-on price set to $%s/$%s per 1M (cost $%s/$%s)',
+                    $model->provider, $model->model, $model->baseInput(), $model->baseOutput(),
+                    $model->input_usd_per_million, $model->output_usd_per_million,
+                ));
+            }
+
+            return back()->with('flash', ['type' => 'success', 'message' => $baseChanged
+                ? "{$model->model} charge-on price updated. It applies to new usage; use Re-bill at current rate to apply it to existing usage."
+                : "{$model->model} saved."]);
         }
 
+        // Setting the real cost also settles any usage that metered with no cost basis.
         $settled = $this->pricing->setManualPrice($model, (float) $data['input'], (float) $data['output']);
 
-        $this->audit->log('model.reprice', null, "{$model->provider}/{$model->model} cost basis set to \${$data['input']}/\${$data['output']} per 1M");
+        $this->audit->log('model.reprice', null, "{$model->provider}/{$model->model} real cost set to \${$data['input']}/\${$data['output']} per 1M");
         $this->auditRebill($model, $settled);
 
         return back()->with('flash', $this->pricedMessage($model, $settled));
@@ -253,7 +300,8 @@ class ModelsController
     public function sync(Request $request, ModelSyncService $sync): RedirectResponse
     {
         try {
-            $stats = $sync->sync(importFeed: $request->boolean('import_feed'));
+            // null => import the feed for providers we hold credentials for (the default).
+            $stats = $sync->sync(importFeed: $request->has('import_feed') ? $request->boolean('import_feed') : null);
         } catch (\Throwable $e) {
             return back()->with('flash', ['type' => 'error', 'message' => 'Sync failed: '.mb_substr($e->getMessage(), 0, 160)]);
         }

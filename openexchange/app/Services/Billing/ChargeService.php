@@ -152,10 +152,11 @@ class ChargeService
 
         $catalog = ModelCatalog::where('provider', $provider)->where('model', $model)->first();
         $providerCost = $catalog ? $catalog->costCents($in, $out) : 0;
+        $chargeBasis = $catalog ? $catalog->chargeBasisCents($in, $out) : $providerCost;
 
         $billed = $charge->amount_cents > 0
             ? (int) $charge->amount_cents
-            : $this->rates->resolve($client, $provider, $model)->billedCents($providerCost, $in, $out);
+            : $this->rates->resolve($client, $provider, $model)->billedCents($chargeBasis, $in, $out, 0, $providerCost);
 
         $record = UsageRecord::create([
             'client_id' => $client->id,

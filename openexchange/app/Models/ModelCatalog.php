@@ -14,6 +14,8 @@ class ModelCatalog extends Model
     protected $casts = [
         'input_usd_per_million' => 'decimal:6',
         'output_usd_per_million' => 'decimal:6',
+        'base_input_usd_per_million' => 'decimal:6',
+        'base_output_usd_per_million' => 'decimal:6',
         'cached_input_usd_per_million' => 'decimal:6',
         'feed_input_usd_per_million' => 'decimal:6',
         'feed_output_usd_per_million' => 'decimal:6',
@@ -29,11 +31,59 @@ class ModelCatalog extends Model
         return $this->hasMany(ModelPriceProposal::class);
     }
 
-    /** Provider cost in integer cents for the given token counts. */
+    /**
+     * REAL COST: what the provider charges us for this usage, in integer cents.
+     * Recorded as `usage_records.provider_cost_cents`. Margin is measured against it.
+     */
     public function costCents(int $inputTokens, int $outputTokens): int
     {
-        $usd = ($inputTokens / 1_000_000) * (float) $this->input_usd_per_million
-            + ($outputTokens / 1_000_000) * (float) $this->output_usd_per_million;
+        return self::money($inputTokens, $outputTokens, (float) $this->input_usd_per_million, (float) $this->output_usd_per_million);
+    }
+
+    /**
+     * CHARGE-ON PRICE: the basis that markup % and rate-card overrides sit on top of.
+     * Defaults to the real cost, so a model with no charge-on price behaves exactly as
+     * it always did. Setting it above cost earns margin before any markup is applied.
+     */
+    public function chargeBasisCents(int $inputTokens, int $outputTokens): int
+    {
+        return self::money($inputTokens, $outputTokens, $this->baseInput(), $this->baseOutput());
+    }
+
+    public function baseInput(): float
+    {
+        return $this->base_input_usd_per_million !== null
+            ? (float) $this->base_input_usd_per_million
+            : (float) $this->input_usd_per_million;
+    }
+
+    public function baseOutput(): float
+    {
+        return $this->base_output_usd_per_million !== null
+            ? (float) $this->base_output_usd_per_million
+            : (float) $this->output_usd_per_million;
+    }
+
+    /** True when the admin has set a charge-on price distinct from the real cost. */
+    public function hasChargeBasis(): bool
+    {
+        return $this->base_input_usd_per_million !== null || $this->base_output_usd_per_million !== null;
+    }
+
+    /** How much the charge-on price is padded over the real cost, in bps. Null when no cost. */
+    public function basisPaddingBps(): ?int
+    {
+        $cost = $this->blendedUsdPerMillion();
+        if ($cost <= 0.0) {
+            return null;
+        }
+
+        return (int) round((($this->baseInput() + $this->baseOutput() - $cost) / $cost) * 10000);
+    }
+
+    private static function money(int $inputTokens, int $outputTokens, float $inPerM, float $outPerM): int
+    {
+        $usd = ($inputTokens / 1_000_000) * $inPerM + ($outputTokens / 1_000_000) * $outPerM;
 
         return (int) round($usd * 100);
     }

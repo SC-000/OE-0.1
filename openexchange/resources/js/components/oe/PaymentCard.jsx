@@ -21,7 +21,8 @@ export function PaymentCard({
     style = {},
 }) {
     // A live-typed number renders exactly as typed; a saved card is masked to its last 4.
-    const pan = number || (last4 ? `•••• •••• •••• ${last4}` : '•••• •••• •••• ••••');
+    const pan =
+        number || (last4 ? `•••• •••• •••• ${last4}` : '•••• •••• •••• ••••');
 
     return (
         <div
@@ -31,7 +32,8 @@ export function PaymentCard({
                 padding: compact ? 18 : 24,
                 minHeight: compact ? 150 : 200,
                 color: '#eef3f2',
-                background: 'linear-gradient(135deg, var(--ox-ink-800), var(--ox-ink-950))',
+                background:
+                    'linear-gradient(135deg, var(--ox-ink-800), var(--ox-ink-950))',
                 border: '1px solid rgba(255,255,255,0.1)',
                 overflow: 'hidden',
                 boxShadow: 'var(--ox-shadow-lg)',
@@ -44,7 +46,14 @@ export function PaymentCard({
                 strands={compact ? 14 : 22}
                 density={compact ? 0.8 : 1}
                 fit={compact ? 0.85 : 1}
-                style={{ left: 'auto', right: '-30%', top: '-20%', width: '80%', height: '140%', opacity: 0.4 }}
+                style={{
+                    left: 'auto',
+                    right: '-30%',
+                    top: '-20%',
+                    width: '80%',
+                    height: '140%',
+                    opacity: 0.4,
+                }}
             />
 
             <div
@@ -58,24 +67,54 @@ export function PaymentCard({
                     gap: compact ? 14 : 0,
                 }}
             >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Icon name="credit-card" size={compact ? 22 : 26} color="var(--ox-green-400)" />
-                    <span style={{ fontWeight: 700, fontSize: compact ? 13 : 14, letterSpacing: '0.06em' }}>{brand}</span>
+                <div
+                    style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                    }}
+                >
+                    <Icon
+                        name="credit-card"
+                        size={compact ? 22 : 26}
+                        color="var(--ox-green-400)"
+                    />
+                    <span
+                        style={{
+                            fontWeight: 700,
+                            fontSize: compact ? 13 : 14,
+                            letterSpacing: '0.06em',
+                        }}
+                    >
+                        {brand}
+                    </span>
                 </div>
 
-                <div style={{ fontFamily: 'var(--ox-font-mono)', fontSize: compact ? 17 : 20, letterSpacing: compact ? '0.14em' : '0.12em' }}>
+                <div
+                    style={{
+                        fontFamily: 'var(--ox-font-mono)',
+                        fontSize: compact ? 17 : 20,
+                        letterSpacing: compact ? '0.14em' : '0.12em',
+                    }}
+                >
                     {pan}
                 </div>
 
                 <div
                     style={{
                         display: 'flex',
-                        justifyContent: showHolder ? 'space-between' : 'flex-end',
+                        justifyContent: showHolder
+                            ? 'space-between'
+                            : 'flex-end',
                         fontSize: compact ? 12 : 12.5,
                         color: 'rgba(238,243,242,0.72)',
                     }}
                 >
-                    {showHolder && <span style={{ textTransform: 'uppercase' }}>{holder || 'Cardholder name'}</span>}
+                    {showHolder && (
+                        <span style={{ textTransform: 'uppercase' }}>
+                            {holder || 'Cardholder name'}
+                        </span>
+                    )}
                     <span className="ox-mono">{exp || 'MM / YY'}</span>
                 </div>
             </div>

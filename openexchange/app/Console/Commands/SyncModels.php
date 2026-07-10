@@ -7,13 +7,22 @@ use Illuminate\Console\Command;
 
 class SyncModels extends Command
 {
-    protected $signature = 'models:sync {--import-feed : also import feed models for providers we gateway, even without provider API creds}';
+    protected $signature = 'models:sync
+        {--import-feed : import the feed catalogue for every gateway provider, even without creds}
+        {--no-import-feed : provider API discovery only}';
 
-    protected $description = 'Discover new models, auto-price unpriced ones, and queue price changes for review';
+    protected $description = 'Discover new models, auto-price unpriced ones, re-bill $0 usage, and queue price changes for review';
 
     public function handle(ModelSyncService $sync): int
     {
-        $stats = $sync->sync(importFeed: (bool) $this->option('import-feed'));
+        // Default (neither flag): import the feed for providers we hold credentials for.
+        $importFeed = match (true) {
+            (bool) $this->option('import-feed') => true,
+            (bool) $this->option('no-import-feed') => false,
+            default => null,
+        };
+
+        $stats = $sync->sync(importFeed: $importFeed);
 
         foreach ($stats['errors'] as $error) {
             $this->warn($error);
