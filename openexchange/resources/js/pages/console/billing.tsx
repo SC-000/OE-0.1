@@ -107,7 +107,7 @@ export default function Billing({
         <ConsoleLayout
             active="billing"
             title="Billing"
-            subtitle="Prepaid balance, auto top-up and payment method"
+            subtitle="Prepaid balance, auto top-up and payment method · billed in GBP"
             actions={
                 <>
                     {card && (
@@ -433,7 +433,7 @@ export default function Billing({
                                             'Date',
                                             'Description',
                                             'Detail',
-                                            'Amount',
+                                            'Amount (GBP)',
                                         ].map((h) => (
                                             <th key={h} style={th}>
                                                 {h}

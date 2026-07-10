@@ -367,7 +367,7 @@ export default function AddCard({
                                 className="ox-mono"
                                 style={{ color: 'var(--ox-text-muted)' }}
                             >
-                                ${topupAmount}
+                                ${topupAmount} GBP
                             </span>{' '}
                             top-up to activate your prepaid balance. After that
                             we only top up automatically when your balance runs

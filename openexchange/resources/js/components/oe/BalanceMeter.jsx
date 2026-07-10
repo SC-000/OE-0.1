@@ -5,7 +5,7 @@ import React from 'react';
  * minimum-balance threshold and the auto-top-up amount that fires when it's
  * crossed. The core of the advanced billing portal, in one glanceable tile.
  */
-export function BalanceMeter({ balance = 42.5, min = 10, topUp = 50, currency = '$', tone = 'light', hasCard = true, autoTopup = true, topping = false, style = {} }) {
+export function BalanceMeter({ balance = 42.5, min = 10, topUp = 50, currency = '$', currencyCode = 'GBP', tone = 'light', hasCard = true, autoTopup = true, topping = false, style = {} }) {
     const dark = tone === 'dark';
     const max = Math.max(balance, min + topUp) * 1.12;
     const pct = Math.max(2, Math.min(100, (balance / max) * 100));
@@ -30,7 +30,7 @@ export function BalanceMeter({ balance = 42.5, min = 10, topUp = 50, currency = 
                     <div style={{ fontFamily: 'var(--ox-font-sans)', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: dark ? 'rgba(238,243,242,0.5)' : 'var(--ox-text-subtle)' }}>Prepaid balance</div>
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 6 }}>
                         <span style={{ fontFamily: 'var(--ox-font-mono)', fontSize: 'var(--ox-text-3xl)', fontWeight: 500, color: text, lineHeight: 1, letterSpacing: '-0.02em' }}>{currency}{fmt(balance)}</span>
-                        <span style={{ fontFamily: 'var(--ox-font-sans)', fontSize: 13, color: muted }}>USD</span>
+                        <span style={{ fontFamily: 'var(--ox-font-sans)', fontSize: 13, color: muted }}>{currencyCode}</span>
                     </div>
                 </div>
                 <span style={{
