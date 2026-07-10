@@ -54,14 +54,22 @@ class PullUsage extends Command
                 ? CarbonImmutable::parse($key->watermark_at)
                 : $until->subHours($lookback);
 
+            // A watermark at or after `until` would make the provider reject the window
+            // ("End time must be after start time"). Older rows carry exactly that, from
+            // when an open day-bucket's future end_time was stored. Re-read the lookback
+            // window instead — re-metering a bucket is safe and bills only the difference.
+            if ($since->gte($until)) {
+                $since = $until->subHours($lookback);
+            }
+
             try {
                 $buckets = match ($key->provider) {
                     'openai' => $openai->pull($key, $since, $until),
                     'google' => $google->pull($key, $since, $until),
                     default => [],
                 };
-                $summary = $metering->ingest($key, $buckets);
-                $totalMetered += $summary['metered'];
+                $summary = $metering->ingest($key, $buckets, $until);
+                $totalMetered += $summary['metered'] + $summary['updated'];
                 $totalBilled += $summary['billed_cents'];
 
                 $key->forceFill([
@@ -75,9 +83,9 @@ class PullUsage extends Command
                 }
 
                 $this->line(sprintf(
-                    '  [%s] key #%d "%s": %d returned, %d metered, %d skipped, $%.2f billed%s',
+                    '  [%s] key #%d "%s": %d returned, %d new, %d grew, %d unchanged, $%.2f billed%s',
                     $key->provider, $key->id, $key->label,
-                    count($buckets), $summary['metered'], $summary['skipped'], $summary['billed_cents'] / 100,
+                    count($buckets), $summary['metered'], $summary['updated'], $summary['skipped'], $summary['billed_cents'] / 100,
                     $buckets === [] ? '  <- nothing upstream for project '.($key->external_project_id ?: '(none)') : '',
                 ));
             } catch (Throwable $e) {

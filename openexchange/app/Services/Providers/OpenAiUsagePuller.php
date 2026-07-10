@@ -19,6 +19,12 @@ class OpenAiUsagePuller
     /** @return UsageBucket[] */
     public function pull(ProviderKey $key, CarbonImmutable $since, CarbonImmutable $until): array
     {
+        // An inverted or empty window is a caller bug, not something to ask the provider
+        // about — it answers 400 and the whole pull fails.
+        if ($since->gte($until)) {
+            return [];
+        }
+
         $adminKey = config('openexchange.openai.admin_key');
         if (! $adminKey) {
             throw new RuntimeException('OPENAI_ADMIN_KEY is not configured.');

@@ -9,12 +9,14 @@ use App\Services\Billing\BalanceService;
 use App\Services\Pricing\ModelRegistrar;
 use App\Services\Providers\UsageBucket;
 use App\Support\DetectsUniqueViolations;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Converts pulled usage into billed debits — idempotently. A usage window that
- * has already been metered (unique on key+model+window) is never billed twice.
+ * Converts pulled usage into billed debits — idempotently. A window that has already
+ * been metered (unique on key+model+window) is never billed twice; a window that is
+ * still OPEN and has grown since we last saw it bills only the difference.
  */
 class MeteringService
 {
@@ -30,28 +32,44 @@ class MeteringService
      * Ingest a batch of buckets for one provider key.
      *
      * @param  UsageBucket[]  $buckets
-     * @return array{metered:int, skipped:int, billed_cents:int}
+     * @param  CarbonImmutable|null  $until  End of the window that was queried. A bucket
+     *                                       ending after it is still OPEN and will grow.
+     * @return array{metered:int, updated:int, skipped:int, billed_cents:int}
      */
-    public function ingest(ProviderKey $key, array $buckets): array
+    public function ingest(ProviderKey $key, array $buckets, ?CarbonImmutable $until = null): array
     {
+        $until ??= CarbonImmutable::now();
         $key->loadMissing('client');
+
         $metered = 0;
+        $updated = 0;
         $skipped = 0;
         $billed = 0;
-        $watermark = $key->watermark_at;
+        $watermark = $key->watermark_at ? CarbonImmutable::parse($key->watermark_at) : null;
 
         foreach ($buckets as $bucket) {
-            $record = $this->meterBucket($key, $bucket);
-            if ($record === null) {
-                $skipped++;
+            $result = $this->meterBucket($key, $bucket);
 
-                continue;
+            match ($result['action']) {
+                'created' => $metered++,
+                'updated' => $updated++,
+                default => $skipped++,
+            };
+            $billed += $result['billed_delta_cents'];
+
+            // `bucket_width=1d` means today's bucket ends at TOMORROW's midnight and its
+            // totals keep growing. Never advance the watermark past an open bucket's
+            // START, or the rest of the day is never pulled again. And never past the
+            // window itself, or the next pull sends start_time > end_time and the
+            // provider answers 400 "End time must be after start time."
+            $candidate = $bucket->periodEnd->lte($until) ? $bucket->periodEnd : $bucket->periodStart;
+            if ($watermark === null || $candidate->gt($watermark)) {
+                $watermark = $candidate;
             }
-            $metered++;
-            $billed += $record->billed_cents;
-            if ($watermark === null || $bucket->periodEnd->gt($watermark)) {
-                $watermark = $bucket->periodEnd;
-            }
+        }
+
+        if ($watermark !== null && $watermark->gt($until)) {
+            $watermark = $until;
         }
 
         $key->forceFill([
@@ -59,11 +77,21 @@ class MeteringService
             'watermark_at' => $watermark,
         ])->save();
 
-        return ['metered' => $metered, 'skipped' => $skipped, 'billed_cents' => $billed];
+        return ['metered' => $metered, 'updated' => $updated, 'skipped' => $skipped, 'billed_cents' => $billed];
     }
 
-    /** Meter a single bucket; returns null if it was already metered. */
-    public function meterBucket(ProviderKey $key, UsageBucket $bucket): ?UsageRecord
+    /**
+     * Meter one bucket.
+     *
+     * A pulled bucket is not immutable. With `bucket_width=1d` the current day's bucket
+     * is OPEN: it is returned again on every pull with larger totals. So this is an
+     * upsert, not an insert — an unchanged bucket is skipped, a grown bucket is updated
+     * to its new cumulative totals and only the DIFFERENCE is billed. A bucket that
+     * shrinks (a provider correcting itself) is left alone rather than silently credited.
+     *
+     * @return array{record: ?UsageRecord, action: 'created'|'updated'|'skipped', billed_delta_cents: int}
+     */
+    public function meterBucket(ProviderKey $key, UsageBucket $bucket): array
     {
         $client = $key->client;
 
@@ -88,6 +116,44 @@ class MeteringService
 
         return DB::transaction(function () use ($key, $client, $bucket, $costExact, $billed) {
             $idem = $bucket->idempotencyParts();
+
+            $existing = UsageRecord::query()
+                ->where('provider_key_id', $key->id)
+                ->where('model', $idem['model'])
+                ->where('period_start', $idem['period_start'])
+                ->where('period_end', $idem['period_end'])
+                ->lockForUpdate()
+                ->first();
+
+            if ($existing) {
+                $wasTokens = (int) $existing->input_tokens + (int) $existing->output_tokens;
+                $nowTokens = $bucket->inputTokens + $bucket->outputTokens;
+                if ($nowTokens <= $wasTokens) {
+                    return ['record' => $existing, 'action' => 'skipped', 'billed_delta_cents' => 0];
+                }
+
+                $delta = $billed - (int) $existing->billed_cents;
+                $existing->update([
+                    'input_tokens' => $bucket->inputTokens,
+                    'output_tokens' => $bucket->outputTokens,
+                    'provider_cost_cents' => $costExact,
+                    'billed_cents' => $billed,
+                ]);
+
+                if ($delta !== 0) {
+                    $this->balance->apply(
+                        $client,
+                        -$delta, // owes more => balance down
+                        'usage_debit',
+                        "{$bucket->provider}/{$bucket->model} usage",
+                        "usage:{$existing->id}:inc",
+                        ['incremental' => true, 'tokens_in' => $bucket->inputTokens, 'tokens_out' => $bucket->outputTokens, 'provider_cost_cents' => $costExact],
+                    );
+                }
+
+                return ['record' => $existing, 'action' => 'updated', 'billed_delta_cents' => $delta];
+            }
+
             try {
                 $record = UsageRecord::create([
                     'client_id' => $client->id,
@@ -104,7 +170,7 @@ class MeteringService
                 ]);
             } catch (QueryException $e) {
                 if ($this->isUniqueViolation($e)) {
-                    return null; // already metered — never double-bill
+                    return ['record' => null, 'action' => 'skipped', 'billed_delta_cents' => 0]; // a concurrent run won
                 }
                 throw $e;
             }
@@ -120,7 +186,7 @@ class MeteringService
                 );
             }
 
-            return $record;
+            return ['record' => $record, 'action' => 'created', 'billed_delta_cents' => $billed];
         });
     }
 
