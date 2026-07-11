@@ -140,8 +140,8 @@ class UsageController
                     'input_tokens' => (int) $u->input_tokens,
                     'output_tokens' => (int) $u->output_tokens,
                     'billed_cents' => (int) $u->billed_cents,
-                    // Gateway rows are one request each; a pulled bucket aggregates a window.
-                    'source' => $u->source === 'gateway' ? 'request' : ($u->source === 'manual' ? 'adjustment' : 'rollup'),
+                    // Gateway rows are one request each; everything else aggregates a window.
+                    'source' => $u->source === 'gateway' ? 'request' : 'rollup',
                 ];
             });
 
@@ -156,30 +156,36 @@ class UsageController
         ];
     }
 
+    /**
+     * How the customer is told a line was metered. Only two things they can act on:
+     * a single request we served, or a bucket of usage aggregated over a window.
+     *
+     * Where the bucket came from is our business, not theirs — a line booked by an
+     * admin for AI cost we carried on their behalf is the same fact as a line pulled
+     * from a provider, and gets the same words. The provenance stays on the record
+     * (`source`, `request_id`, the audit log) for us to answer with, not in their face.
+     */
     private function activityKind($usage): string
     {
         if ($usage->source === 'gateway') {
             return 'Request';
         }
 
-        if ($usage->source === 'manual') {
-            return 'Adjustment';
-        }
-
-        $minutes = max(1, (int) $usage->period_start->diffInMinutes($usage->period_end));
+        $minutes = (int) $usage->period_start->diffInMinutes($usage->period_end);
 
         if ($minutes >= 1380 && $minutes <= 1500) {
             return 'Daily rollup';
         }
 
-        if ($minutes < 60) {
+        if ($minutes > 0 && $minutes < 60) {
             return "{$minutes}-min rollup";
         }
 
-        if ($minutes % 60 === 0) {
+        if ($minutes >= 60 && $minutes % 60 === 0) {
             return ($minutes / 60).'h rollup';
         }
 
+        // No window to name — a bucket booked at an instant rather than across a span.
         return 'Provider rollup';
     }
 
@@ -189,8 +195,8 @@ class UsageController
             return 'Single request';
         }
 
-        if ($usage->source === 'manual' || $usage->period_start->equalTo($usage->period_end)) {
-            return 'Point adjustment';
+        if ($usage->period_start->equalTo($usage->period_end)) {
+            return $usage->period_start->format('M j, H:i');
         }
 
         if ($usage->period_start->isSameDay($usage->period_end)) {

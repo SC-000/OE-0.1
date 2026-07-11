@@ -91,7 +91,6 @@ const pagerButtonDisabled: React.CSSProperties = {
 const SOURCE_TONE: Record<string, 'neutral' | 'brand' | 'info'> = {
     request: 'brand',
     rollup: 'neutral',
-    adjustment: 'info',
 };
 
 export default function Usage({

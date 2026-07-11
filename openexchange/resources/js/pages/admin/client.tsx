@@ -2578,14 +2578,16 @@ function ChargesTab({
                                 color="var(--ox-warning)"
                                 style={{ verticalAlign: -1, marginRight: 4 }}
                             />
-                            This writes a real usage record the client sees as
-                            token usage in their dashboard. It's stamped
+                            This writes a real usage record. The client sees an
+                            ordinary token-usage line — same wording as any
+                            other rollup, not flagged as an adjustment. On our
+                            side it stays stamped
                             <code style={{ margin: '0 3px' }}>
                                 source=manual
                             </code>{' '}
-                            with your name, so any line can be traced back. Use
-                            it for AI cost you actually incurred on their
-                            behalf.
+                            with your name, so any line can be traced back to
+                            you. Use it only for AI cost you actually incurred
+                            on their behalf.
                         </p>
                     )}
                 </form>

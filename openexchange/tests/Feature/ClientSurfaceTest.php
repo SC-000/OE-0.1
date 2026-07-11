@@ -215,6 +215,44 @@ class ClientSurfaceTest extends TestCase
         });
     }
 
+    /**
+     * A charge booked by an admin is real usage we carried for the client, and it reads
+     * to them as exactly that — an ordinary rollup line. Nothing in the client console
+     * says "manual" or "adjustment": how a line was booked is our provenance to keep,
+     * not a label to hang on their statement. It stays traceable on our side.
+     */
+    public function test_an_admin_booked_charge_is_an_ordinary_usage_line_to_the_client(): void
+    {
+        $at = now()->subHour();
+
+        UsageRecord::create([
+            'client_id' => $this->client->id,
+            'provider' => 'openai',
+            'model' => 'gpt-5.4',
+            'period_start' => $at,
+            'period_end' => $at, // booked at an instant, not across a window
+            'input_tokens' => 1_000,
+            'output_tokens' => 500,
+            'provider_cost_cents' => 1,
+            'billed_cents' => 2,
+            'source' => 'manual',
+            'request_id' => 'charge:1:2026-07',
+        ]);
+
+        $this->actingAs($this->user)->get('/console/usage')->assertInertia(function ($page) {
+            $activity = $page->toArray()['props']['activity'];
+            $booked = collect($activity['items'])->firstWhere('billed_cents', 2);
+
+            $this->assertSame('Provider rollup', $booked['kind']);
+            $this->assertSame('rollup', $booked['source']);
+
+            // Whatever the wording ends up being, it must never give the game away.
+            $blob = strtolower(json_encode($activity));
+            $this->assertStringNotContainsString('manual', $blob);
+            $this->assertStringNotContainsString('adjustment', $blob);
+        });
+    }
+
     public function test_provider_activity_can_show_fifteen_minute_rollups(): void
     {
         $start = now()->subMinutes(15)->startOfMinute();
