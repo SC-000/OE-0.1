@@ -58,7 +58,7 @@ class AdminSurfaceTest extends TestCase
         'admin.models.price-from-feed', 'admin.models.rebill', 'admin.models.sync', 'admin.models.retier',
         'admin.proposals.accept', 'admin.proposals.reject',
         'admin.rates.upsert', 'admin.rates.delete', 'admin.rates.default', 'admin.rates.preview',
-        'admin.charges.store', 'admin.charges.update', 'admin.charges.destroy', 'admin.charges.run',
+        'admin.charges.store', 'admin.charges.preview', 'admin.charges.update', 'admin.charges.destroy', 'admin.charges.run',
         'admin.platform', 'admin.backends.store', 'admin.backends.destroy', 'admin.keys.store',
         'admin.discover', 'admin.assign-project', 'admin.toggle-project',
         'admin.access-key.create', 'admin.access-key.revoke', 'admin.sync', 'admin.rebill',
@@ -284,6 +284,12 @@ class AdminSurfaceTest extends TestCase
             'name' => 'Platform fee (2026)', 'amount_cents' => 25_000, 'active' => false, 'description' => null, 'ends_at' => null,
         ])->assertRedirect();
         $this->assertFalse($charge->fresh()->active);
+
+        // the form quotes the charge before it is committed
+        $this->actingAs($this->admin)->post('/admin/charges/preview', [
+            'client_id' => $this->client->id,
+            'provider' => 'openai', 'model' => 'gpt-x', 'input_tokens' => 1_000_000, 'output_tokens' => 0,
+        ])->assertOk()->assertJson(['provider_cost_cents' => 200, 'billed_cents' => 250, 'margin_cents' => 50]);
 
         // one-off usage charge bills immediately and shows as token usage
         $this->actingAs($this->admin)->post('/admin/charges', [

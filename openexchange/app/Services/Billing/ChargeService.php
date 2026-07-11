@@ -140,6 +140,44 @@ class ChargeService
     }
 
     /**
+     * Price a usage charge exactly as it will be billed: the client's resolved rate card
+     * applied to the model's charge-on basis, with the margin floor respected — the same
+     * path gateway and pulled usage take. Not the client's default markup, which is only
+     * the fallback when no rate-card row matches.
+     *
+     * A charge is an aggregate bucket, not a request, so it passes `requests = 0` and
+     * skips any per-request fee.
+     *
+     * `$flatCents` pins the price and bypasses the rate card entirely — an agreed batch
+     * price. Zero (the usual case) means "price it off the rate card".
+     */
+    public function quoteUsage(
+        Client $client,
+        string $provider,
+        string $model,
+        int $inputTokens,
+        int $outputTokens,
+        int $flatCents = 0,
+    ): UsageQuote {
+        $catalog = ModelCatalog::where('provider', $provider)->where('model', $model)->first();
+        $costExact = $catalog ? $catalog->costCentsExact($inputTokens, $outputTokens) : 0.0;
+        $basisExact = $catalog ? $catalog->chargeBasisCentsExact($inputTokens, $outputTokens) : $costExact;
+
+        $rate = $this->rates->resolve($client, $provider, $model);
+
+        return new UsageQuote(
+            providerCostCentsExact: $costExact,
+            chargeBasisCentsExact: $basisExact,
+            billedCents: $flatCents > 0
+                ? $flatCents
+                : $rate->billedCents($basisExact, $inputTokens, $outputTokens, 0, $costExact),
+            rate: $rate,
+            pinned: $flatCents > 0,
+            priced: (bool) $catalog?->isPriced(),
+        );
+    }
+
+    /**
      * Materialise the charge as metered usage. Billed through the client's own rate
      * card unless the admin pinned a flat `amount_cents`.
      */
@@ -150,13 +188,9 @@ class ChargeService
         $in = (int) $charge->input_tokens;
         $out = (int) $charge->output_tokens;
 
-        $catalog = ModelCatalog::where('provider', $provider)->where('model', $model)->first();
-        $costExact = $catalog ? $catalog->costCentsExact($in, $out) : 0.0;
-        $basisExact = $catalog ? $catalog->chargeBasisCentsExact($in, $out) : $costExact;
-
-        $billed = $charge->amount_cents > 0
-            ? (int) $charge->amount_cents
-            : $this->rates->resolve($client, $provider, $model)->billedCents($basisExact, $in, $out, 0, $costExact);
+        $quote = $this->quoteUsage($client, $provider, $model, $in, $out, (int) $charge->amount_cents);
+        $costExact = $quote->providerCostCentsExact;
+        $billed = $quote->billedCents;
 
         $record = UsageRecord::create([
             'client_id' => $client->id,

@@ -4,11 +4,13 @@ namespace Tests\Feature;
 
 use App\Models\Charge;
 use App\Models\Client;
+use App\Models\ClientModelRate;
 use App\Models\ModelCatalog;
 use App\Models\User;
 use App\Services\Billing\ChargeService;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class ChargesTest extends TestCase
@@ -81,6 +83,66 @@ class ChargesTest extends TestCase
 
         // Billed at the pinned price, but the true provider cost is still recorded for margin.
         $this->assertDatabaseHas('usage_records', ['billed_cents' => 1_000, 'provider_cost_cents' => 280]);
+    }
+
+    /**
+     * The rate card, not the default markup. The default markup is only the fallback
+     * when nothing more specific matches — a charge that ignored an override would bill
+     * a rate the client never agreed to.
+     *
+     * Each case is priced two ways: quoted (what the admin is shown before committing)
+     * and billed (what actually lands on the client). They must be the same number.
+     *
+     * @return iterable<string, array{array<string, mixed>, int}>
+     */
+    public static function rateCards(): iterable
+    {
+        // Cost for 1M in + 1M out = 280c. Charge-on basis = 340c. Default markup = +25%.
+        yield 'client+model markup override beats the default markup' => [
+            ['pricing_mode' => 'markup', 'markup_bps' => 1_000], 374, // basis 340 x 1.10
+        ];
+        yield 'fixed sell price ignores cost and markup entirely' => [
+            ['pricing_mode' => 'fixed', 'input_usd_per_million' => 2.0, 'output_usd_per_million' => 20.0], 2_200,
+        ];
+        yield 'the margin floor lifts a markup that would sell too cheap' => [
+            ['pricing_mode' => 'markup', 'markup_bps' => 0, 'min_margin_bps' => 5_000], 420, // floor: cost 280 x 1.50
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $card
+     */
+    #[DataProvider('rateCards')]
+    public function test_a_usage_charge_is_quoted_and_billed_at_the_resolved_rate(array $card, int $expected): void
+    {
+        $client = $this->client();
+        ModelCatalog::create([
+            'provider' => 'google', 'model' => 'gemini-2.5-flash',
+            'input_usd_per_million' => 0.30, 'output_usd_per_million' => 2.50,
+            'base_input_usd_per_million' => 0.40, 'base_output_usd_per_million' => 3.00,
+        ]);
+        ClientModelRate::create($card + [
+            'client_id' => $client->id, 'provider' => 'google', 'model' => 'gemini-2.5-flash',
+        ]);
+
+        $charge = Charge::create([
+            'client_id' => $client->id, 'kind' => 'usage', 'cadence' => 'once', 'name' => 'Batch',
+            'provider' => 'google', 'model' => 'gemini-2.5-flash',
+            'input_tokens' => 1_000_000, 'output_tokens' => 1_000_000,
+        ]);
+
+        $service = app(ChargeService::class);
+
+        // What the admin is shown on the form…
+        $quote = $service->quoteUsage($client, 'google', 'gemini-2.5-flash', 1_000_000, 1_000_000);
+        $this->assertSame($expected, $quote->billedCents);
+        $this->assertSame('client_model', $quote->rate->origin);
+        $this->assertNotSame(350, $quote->billedCents, 'the default markup on raw cost is the wrong answer');
+
+        // …is exactly what the client is charged.
+        $service->apply($charge->load('client'));
+        $this->assertDatabaseHas('usage_records', ['billed_cents' => $expected, 'provider_cost_cents' => 280]);
+        $this->assertSame(100_000 - $expected, $client->fresh()->balance_cents);
     }
 
     public function test_running_the_same_period_twice_bills_once(): void

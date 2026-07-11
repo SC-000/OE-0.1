@@ -125,6 +125,7 @@ Route::middleware(['auth', 'verified', EnsureAdmin::class])->prefix('admin')->na
 
     // Charges (fees, credits, off-platform AI cost)
     Route::post('/charges', [ChargesController::class, 'store'])->name('charges.store');
+    Route::post('/charges/preview', [ChargesController::class, 'preview'])->name('charges.preview');
     Route::patch('/charges/{charge}', [ChargesController::class, 'update'])->name('charges.update');
     Route::delete('/charges/{charge}', [ChargesController::class, 'destroy'])->name('charges.destroy');
     Route::post('/charges/{charge}/run', [ChargesController::class, 'runNow'])->name('charges.run');

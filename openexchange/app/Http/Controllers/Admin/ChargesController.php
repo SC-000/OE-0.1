@@ -6,6 +6,7 @@ use App\Models\Charge;
 use App\Models\Client;
 use App\Services\Admin\AuditLogger;
 use App\Services\Billing\ChargeService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -61,6 +62,34 @@ class ChargesController
         $this->audit->log('charge.delete', $client, $summary);
 
         return back();
+    }
+
+    /**
+     * What a usage charge would bill, before the admin commits to it. Priced by
+     * ChargeService itself, so the quote on the form is the charge, not an estimate
+     * of it.
+     */
+    public function preview(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'client_id' => ['required', 'exists:clients,id'],
+            'provider' => ['required', 'string', 'max:40'],
+            'model' => ['required', 'string', 'max:120'],
+            'input_tokens' => ['nullable', 'integer', 'min:0', 'max:1000000000'],
+            'output_tokens' => ['nullable', 'integer', 'min:0', 'max:1000000000'],
+            'amount_cents' => ['nullable', 'integer', 'min:0', 'max:10000000'],
+        ]);
+
+        $client = Client::query()->whereKey($data['client_id'])->firstOrFail();
+
+        return response()->json($this->charges->quoteUsage(
+            $client,
+            $data['provider'],
+            $data['model'],
+            (int) ($data['input_tokens'] ?? 0),
+            (int) ($data['output_tokens'] ?? 0),
+            (int) ($data['amount_cents'] ?? 0),
+        )->toArray());
     }
 
     /** Bill a recurring charge immediately for the current period (idempotent). */

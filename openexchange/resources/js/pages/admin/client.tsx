@@ -1,5 +1,5 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Card, Badge, Button, Icon, StatCard } from '@/components/oe';
 import AdminLayout from '@/layouts/admin-layout';
 import { bps, money, num, pct, tokens } from '@/lib/format';
@@ -62,6 +62,27 @@ type Charge = {
     active: boolean;
     last_run: string | null;
     runs: number;
+};
+/** What POST /admin/charges/preview returns: the charge, priced by the code that bills it. */
+type UsageQuote = {
+    provider_cost_cents: number;
+    charge_basis_cents: number;
+    billed_cents: number;
+    margin_cents: number;
+    effective_markup_bps: number | null;
+    rate: { mode: string; origin: string; label: string };
+    pinned: boolean;
+    priced: boolean;
+};
+/** Which rate-card row won, in words an admin can act on. */
+const RATE_ORIGIN: Record<string, string> = {
+    client_model: "this client's rate for this model",
+    client_provider: "this client's rate for this provider",
+    client: "this client's rate",
+    global_model: 'the global rate for this model',
+    global_provider: 'the global rate for this provider',
+    global: 'the global rate',
+    client_default: 'their default markup',
 };
 type Staff = {
     id: number;
@@ -2073,20 +2094,84 @@ function ChargesTab({
         output_tokens: 0,
     });
 
-    const chosen = catalog.find((c) => c.model === form.data.model);
-    const estCost = chosen
-        ? (Number(form.data.input_tokens) / 1e6) * chosen.in +
-          (Number(form.data.output_tokens) / 1e6) * chosen.out
-        : 0;
-    const estBilled = estCost * (1 + client.markup_bps / 10000);
+    // Provider + model, never model alone: the rate card resolves per provider+model,
+    // so two providers shipping the same model id must not collapse to one rate.
+    const chosen =
+        catalog.find(
+            (c) =>
+                c.model === form.data.model &&
+                c.provider === form.data.provider,
+        ) ?? null;
+
+    const provider = chosen?.provider ?? '';
+    const model = chosen?.model ?? '';
+    const inTokens = Number(form.data.input_tokens) || 0;
+    const outTokens = Number(form.data.output_tokens) || 0;
+
+    // The price is the server's to compute — it is the only thing that knows this
+    // client's resolved rate card. Anything reckoned here would be a second opinion.
+    //
+    // A quote is stamped with the inputs it was asked for, and only rendered while they
+    // still match: a slow reply that lands after the tokens changed is stale, and a
+    // stale price on this form is a wrong price.
+    const quoteKey =
+        kind === 'usage' && model && inTokens + outTokens > 0
+            ? `${provider}|${model}|${inTokens}|${outTokens}`
+            : '';
+    const [quoted, setQuoted] = useState<{
+        key: string;
+        data: UsageQuote | null;
+    } | null>(null);
+
+    useEffect(() => {
+        if (!quoteKey) {
+            return;
+        }
+
+        const ctrl = new AbortController();
+        const t = setTimeout(async () => {
+            try {
+                const res = await fetch('/admin/charges/preview', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-XSRF-TOKEN': xsrf(),
+                    },
+                    body: JSON.stringify({
+                        client_id: client.id,
+                        provider,
+                        model,
+                        input_tokens: inTokens,
+                        output_tokens: outTokens,
+                    }),
+                    signal: ctrl.signal,
+                });
+                setQuoted({
+                    key: quoteKey,
+                    data: res.ok ? await res.json() : null,
+                });
+            } catch {
+                // Superseded by the next keystroke, or offline. Never guess a price.
+                if (!ctrl.signal.aborted) {
+                    setQuoted({ key: quoteKey, data: null });
+                }
+            }
+        }, 250);
+
+        return () => {
+            clearTimeout(t);
+            ctrl.abort();
+        };
+    }, [quoteKey, provider, model, inTokens, outTokens, client.id]);
+
+    const quote = quoted?.key === quoteKey ? quoted.data : null;
+    const quoting = Boolean(quoteKey) && quoted?.key !== quoteKey;
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        form.transform((d) => ({
-            ...d,
-            kind,
-            provider: d.provider || chosen?.provider || '',
-        }));
+        form.transform((d) => ({ ...d, kind }));
         form.post('/admin/charges', {
             preserveScroll: true,
             onSuccess: () =>
@@ -2352,19 +2437,38 @@ function ChargesTab({
                                     <Lbl>Model</Lbl>
                                     <select
                                         style={input}
-                                        value={String(form.data.model)}
-                                        onChange={(e) =>
+                                        value={
+                                            chosen
+                                                ? `${chosen.provider}|${chosen.model}`
+                                                : ''
+                                        }
+                                        onChange={(e) => {
+                                            const sep =
+                                                e.target.value.indexOf('|');
+                                            form.setData(
+                                                'provider',
+                                                sep < 0
+                                                    ? ''
+                                                    : e.target.value.slice(
+                                                          0,
+                                                          sep,
+                                                      ),
+                                            );
                                             form.setData(
                                                 'model',
-                                                e.target.value,
-                                            )
-                                        }
+                                                sep < 0
+                                                    ? ''
+                                                    : e.target.value.slice(
+                                                          sep + 1,
+                                                      ),
+                                            );
+                                        }}
                                     >
                                         <option value="">Select…</option>
                                         {catalog.map((c) => (
                                             <option
-                                                key={`${c.provider}/${c.model}`}
-                                                value={c.model}
+                                                key={`${c.provider}|${c.model}`}
+                                                value={`${c.provider}|${c.model}`}
                                             >
                                                 {c.model}
                                             </option>
@@ -2412,25 +2516,52 @@ function ChargesTab({
                         </Button>
                     </div>
 
-                    {kind === 'usage' &&
-                        chosen &&
-                        (Number(form.data.input_tokens) > 0 ||
-                            Number(form.data.output_tokens) > 0) && (
-                            <p
-                                style={{
-                                    marginTop: 12,
-                                    fontSize: 'var(--ox-text-xs)',
-                                    ...mono,
-                                    color: 'var(--ox-text-subtle)',
-                                }}
-                            >
-                                Costs you {money(Math.round(estCost * 100))} ·
-                                bills them {money(Math.round(estBilled * 100))}{' '}
-                                at their {bps(client.markup_bps)} markup ·
-                                margin{' '}
-                                {money(Math.round((estBilled - estCost) * 100))}
-                            </p>
-                        )}
+                    {quoteKey !== '' && (
+                        <p
+                            style={{
+                                marginTop: 12,
+                                fontSize: 'var(--ox-text-xs)',
+                                ...mono,
+                                color: 'var(--ox-text-subtle)',
+                            }}
+                        >
+                            {!quote ? (
+                                quoting ? (
+                                    'Pricing…'
+                                ) : (
+                                    'Could not price this charge.'
+                                )
+                            ) : !quote.priced ? (
+                                <span style={{ color: 'var(--ox-danger)' }}>
+                                    {model} has no cost price in the catalog —
+                                    this would bill {money(quote.billed_cents)}.
+                                    Price the model first.
+                                </span>
+                            ) : (
+                                <>
+                                    Costs you {money(quote.provider_cost_cents)}{' '}
+                                    · bills them {money(quote.billed_cents)} at{' '}
+                                    {quote.rate.label} (
+                                    {RATE_ORIGIN[quote.rate.origin] ??
+                                        quote.rate.origin.replace('_', ' ')}
+                                    ) · margin{' '}
+                                    <span
+                                        style={{
+                                            color:
+                                                quote.margin_cents < 0
+                                                    ? 'var(--ox-danger)'
+                                                    : 'var(--ox-success)',
+                                            fontWeight: 600,
+                                        }}
+                                    >
+                                        {money(quote.margin_cents)}
+                                    </span>
+                                    {quote.effective_markup_bps !== null &&
+                                        ` (${bps(quote.effective_markup_bps)})`}
+                                </>
+                            )}
+                        </p>
+                    )}
 
                     {kind === 'usage' && (
                         <p
