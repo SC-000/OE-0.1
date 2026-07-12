@@ -1,5 +1,14 @@
 import { Head, Link } from '@inertiajs/react';
-import { Badge, Button, Card, Icon, LineArea, StatCard } from '@/components/oe';
+import {
+    Badge,
+    Button,
+    Card,
+    Icon,
+    InkSwirl,
+    inkSwirlSurface,
+    LineArea,
+    StatCard,
+} from '@/components/oe';
 import ConsoleLayout from '@/layouts/console-layout';
 import { money, num, tokens as fmtTokens } from '@/lib/format';
 
@@ -111,17 +120,23 @@ export default function Overview({
             <Head title="Overview — Account" />
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                {/* Balance leads. It is the number the customer came here for. */}
+                {/* Balance leads. It is the number the customer came here for — so it
+                    wears the ink-and-swirl surface of the payment card, and nothing else
+                    on the page does. */}
                 <Card
                     padding="lg"
+                    className="ox-card oe-ink-swirl"
                     style={{
                         display: 'flex',
                         flexWrap: 'wrap',
                         gap: 28,
                         alignItems: 'center',
                         justifyContent: 'space-between',
+                        ...inkSwirlSurface,
                     }}
                 >
+                    <InkSwirl />
+
                     <div>
                         <div
                             style={{

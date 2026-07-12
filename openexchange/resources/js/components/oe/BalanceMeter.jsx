@@ -1,5 +1,5 @@
 import React from 'react';
-import { DotField } from './DotField.jsx';
+import { InkSwirl, inkSwirlSurface } from './InkSwirl.jsx';
 
 /**
  * Prepaid balance meter — shows a client's live credit balance against their
@@ -34,9 +34,7 @@ export function BalanceMeter({ balance = 42.5, min = 10, topUp = 50, currency = 
         : 'linear-gradient(90deg, var(--ox-green-600), var(--ox-green-400))';
     // The ink card is dark even when the page around it is the light theme, so the
     // dark chip/track values are literal here — the `.dark` theme vars won't apply.
-    const surface = swirl
-        ? 'linear-gradient(140deg, var(--ox-ink-800) 0%, var(--ox-ink-900) 46%, var(--ox-ink-950) 100%)'
-        : dark ? 'var(--ox-ink-800)' : 'var(--ox-surface)';
+    const surface = dark ? 'var(--ox-ink-800)' : 'var(--ox-surface)';
     const border = dark ? 'rgba(255,255,255,0.1)' : 'var(--ox-border)';
     const text = dark ? '#eef3f2' : 'var(--ox-text)';
     const muted = dark ? 'rgba(238,243,242,0.62)' : 'var(--ox-text-muted)';
@@ -49,30 +47,20 @@ export function BalanceMeter({ balance = 42.5, min = 10, topUp = 50, currency = 
         : (alert ? 'var(--ox-warning)' : 'var(--ox-success)');
     const fmt = (n) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     return (
-        <div className={swirl ? 'oe-balance oe-balance--ink' : 'oe-balance'} style={{ background: surface, border: `1px solid ${border}`, borderRadius: 'var(--ox-radius-lg)', boxShadow: swirl ? 'inset 0 1px 0 rgba(255,255,255,0.07), var(--ox-shadow-lg)' : dark ? 'none' : 'var(--ox-shadow-sm)', ...style }}>
-            {swirl && (
-                <>
-                    {/* Decorative, aria-hidden inside DotField. The wrapper owns the box so
-                        oe.css can re-anchor the swirl per breakpoint; DotField fills it.
+        <div
+            className={swirl ? 'oe-balance oe-ink-swirl' : 'oe-balance'}
+            style={{
+                background: surface,
+                border: `1px solid ${border}`,
+                borderRadius: 'var(--ox-radius-lg)',
+                boxShadow: dark ? 'none' : 'var(--ox-shadow-sm)',
+                ...(swirl ? inkSwirlSurface : {}),
+                ...style,
+            }}
+        >
+            {swirl && <InkSwirl />}
 
-                        PERFORMANCE. This is a small tile, not a hero, and it sits at 0.4
-                        opacity behind text — so it runs on a deliberately thin particle
-                        budget: ~3.1k particles/frame at 24fps, against the hero swirl's
-                        ~11.5k at 30fps. Dots overlap heavily at this size, so the strand
-                        and density cuts are invisible while costing ~4.5x less per second.
-                        `fit` shrinks the loop so it tucks behind the right edge instead of
-                        bisecting the card — DotField's own scaling assumes a hero-sized
-                        canvas and blows the swirl up inside a container this small. */}
-                    <div className="oe-balance-swirl">
-                        <DotField strands={10} density={0.6} fit={0.6} fps={24} />
-                    </div>
-                    {/* Depth only: a soft light from the top-left, deepening into the
-                        bottom-right corner. Sits above the swirl, below the content. */}
-                    <div className="oe-balance-vignette" />
-                </>
-            )}
-
-            <div className="oe-balance-body">
+            <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18, gap: 12, flexWrap: 'wrap' }}>
                     <div>
                         <div style={{ fontFamily: 'var(--ox-font-sans)', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: dark ? 'rgba(238,243,242,0.5)' : 'var(--ox-text-subtle)' }}>Prepaid balance</div>

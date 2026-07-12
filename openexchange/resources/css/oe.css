@@ -65,31 +65,6 @@
   --ox-info:    #2a7de1;
   --ox-info-surface: #e8f1fc;
 
-  /* ================= SEMANTIC ALIASES — light (beige) ================= */
-  --ox-bg:            var(--ox-beige-100);
-  --ox-bg-subtle:     var(--ox-beige-50);
-  --ox-bg-muted:      var(--ox-beige-200);
-  --ox-surface:       var(--ox-cream);
-  --ox-surface-raised:#ffffff;
-  --ox-overlay:       rgba(18, 32, 35, 0.45);
-
-  --ox-border:        #e7ddc9;   /* warm hairline */
-  --ox-border-strong: #d8cbb0;
-  --ox-divider:       #efe8d9;
-
-  --ox-text:          var(--ox-ink-900);
-  --ox-text-muted:    #5c655f;
-  --ox-text-subtle:   #837b6c;
-  --ox-text-inverse:  #ffffff;
-
-  --ox-primary:        var(--ox-green-500);
-  --ox-primary-hover:  var(--ox-green-600);
-  --ox-primary-active: var(--ox-green-700);
-  --ox-primary-subtle: var(--ox-green-50);
-  --ox-on-primary:     #06220b;
-
-  --ox-focus-ring:    rgba(51, 193, 62, 0.40);
-
   /* ---- Typography ---- */
   --ox-font-sans: 'Manrope', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
   --ox-font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', 'Menlo', 'Consolas', monospace;
@@ -163,6 +138,53 @@
   --ox-dot-size:    1.4px;
   --ox-dot-gap:     22px;
 }
+
+/* ================= SEMANTIC ALIASES — light (beige) =================
+   Declared on :root *and* on .ox-light, so the light palette can be pinned to a
+   subtree instead of only being the document default.
+
+   The public marketing site is light-by-design: its sections paint raw beige and
+   cream (--ox-beige-100, --ox-cream), which are palette values and so read the
+   same in both themes. But app.blade.php puts .dark on <html> whenever a
+   visitor's OS prefers dark — which flipped --ox-text to near-white and printed
+   white headings and body copy onto those beige sections. MarketingLayout
+   carries .ox-light to pin that whole subtree to the light palette regardless of
+   the <html> class. The ink sections inside it still opt into the dark palette
+   locally via .ox-dark, which nests fine — the nearest declaring ancestor wins. */
+:root, .ox-light {
+  --ox-bg:            var(--ox-beige-100);
+  --ox-bg-subtle:     var(--ox-beige-50);
+  --ox-bg-muted:      var(--ox-beige-200);
+  --ox-surface:       var(--ox-cream);
+  --ox-surface-raised:#ffffff;
+  --ox-overlay:       rgba(18, 32, 35, 0.45);
+
+  --ox-border:        #e7ddc9;   /* warm hairline */
+  --ox-border-strong: #d8cbb0;
+  --ox-divider:       #efe8d9;
+
+  --ox-text:          var(--ox-ink-900);
+  --ox-text-muted:    #5c655f;
+  --ox-text-subtle:   #837b6c;
+  --ox-text-inverse:  #ffffff;
+
+  --ox-primary:        var(--ox-green-500);
+  --ox-primary-hover:  var(--ox-green-600);
+  --ox-primary-active: var(--ox-green-700);
+  --ox-primary-subtle: var(--ox-green-50);
+  --ox-on-primary:     #06220b;
+
+  --ox-success-surface: #eafaec;
+  --ox-warning-surface: #fdf3dd;
+  --ox-danger-surface:  #fdecec;
+  --ox-info-surface:    #e8f1fc;
+
+  --ox-focus-ring:    rgba(51, 193, 62, 0.40);
+}
+
+/* app.blade.php paints <html> ink for dark-theme app users; on a light-pinned
+   marketing page that ink would show through as an overscroll band. */
+html.dark:has(.ox-light) { background-color: var(--ox-beige-100); }
 
 /* ================= SEMANTIC ALIASES — dark (brand ink) ================= */
 .dark, [data-theme="dark"], .ox-dark {
@@ -355,24 +377,56 @@ select.ox-field:hover:not(:focus) { border-color: var(--ox-border-strong); }
 .oe-scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .oe-fit { max-width: 100%; height: auto; }
 
-/* ============================== Balance meter ==============================
-   BalanceMeter styles itself inline, which media queries cannot reach — so the
-   values that must change across breakpoints (the swirl's box, the balance
-   figure) are owned here. Do NOT re-declare these inline or the inline value
-   wins and the breakpoint silently does nothing. */
-.oe-balance { position: relative; overflow: hidden; padding: var(--ox-space-6); }
-.oe-balance-body { position: relative; z-index: 2; }
-.oe-balance-figure { font-size: var(--ox-text-3xl); }
+/* ============================== Ink swirl surface ==========================
+   The PaymentCard's ground, reusable on any card (see InkSwirl.jsx). The host
+   carries `.oe-ink-swirl` and spreads `inkSwirlSurface` into its inline style —
+   the ground has to be inline because <Card> sets its own background inline and
+   inline beats a class.
 
-/* --- Ink variant: the PaymentCard's ground, so the swirl has something to glow
-   against. `isolation` keeps the vignette's blend inside the card. --- */
-.oe-balance--ink { isolation: isolate; }
+   Its hosts style themselves inline, which media queries cannot reach — so every
+   value that must change across breakpoints lives here. Do NOT re-declare these
+   inline or the inline value wins and the breakpoint silently does nothing. */
+.oe-ink-swirl {
+  position: relative; overflow: hidden; isolation: isolate;
 
-/* The swirl's box. DotField hard-codes `inset: 0` inline and fills whatever it's
-   given, so this wrapper — not the canvas — is the thing we can move per
-   breakpoint. Anchored off the right edge so it reads as motion behind the card
-   rather than a centred logo, exactly as it does on the payment card. */
-.oe-balance-swirl {
+  /* This card is ink in BOTH app themes — in the light theme it is the one dark
+     object on the page. So it carries the dark palette locally and every child
+     that speaks the semantic tokens (text, Badge, Button) adapts on its own,
+     rather than each one hard-coding an on-ink colour. Without this, the light
+     theme paints ink-900 text onto an ink-900 card and the balance vanishes.
+     These are the `.dark` aliases, with the status colours lifted a step so they
+     carry on ink rather than sinking into it. */
+  --ox-surface:        var(--ox-ink-800);
+  --ox-surface-raised: var(--ox-ink-700);
+  --ox-bg-subtle:      rgba(255, 255, 255, 0.06);
+  --ox-bg-muted:       rgba(255, 255, 255, 0.09);
+
+  --ox-border:         rgba(255, 255, 255, 0.09);
+  --ox-border-strong:  rgba(255, 255, 255, 0.18);
+  --ox-divider:        rgba(255, 255, 255, 0.06);
+
+  --ox-text:           #eef3f2;
+  --ox-text-muted:     #9fb0b2;
+  --ox-text-subtle:    #728486;
+
+  --ox-primary-subtle: rgba(51, 193, 62, 0.14);
+  --ox-success:         var(--ox-green-300);
+  --ox-success-surface: rgba(35, 165, 49, 0.16);
+  --ox-warning:         var(--ox-gold-400);
+  --ox-warning-surface: rgba(217, 149, 17, 0.16);
+  --ox-danger:          #f08a8a;
+  --ox-danger-surface:  rgba(216, 67, 67, 0.16);
+  --ox-info:            #7ab3f0;
+  --ox-info-surface:    rgba(42, 125, 225, 0.16);
+}
+/* Real content rides above the swirl and the vignette. */
+.oe-ink-swirl > * { position: relative; z-index: 2; }
+
+/* The swirl's box. DotField hard-codes `inset: 0` inline and fills whatever it is
+   given, so this wrapper — not the canvas — is what we can move per breakpoint.
+   Anchored off the right edge so it reads as motion behind the card rather than a
+   centred logo, exactly as it does on the payment card. */
+.oe-ink-swirl > .oe-ink-swirl__field {
   position: absolute;
   top: -35%; right: -14%;
   width: 56%; height: 170%;
@@ -382,9 +436,9 @@ select.ox-field:hover:not(:focus) { border-color: var(--ox-border-strong); }
 }
 
 /* Depth, not decoration: one soft light from the top-left, deepening into the
-   bottom-right corner. Subtle by design — it should read as a lit object, not a
-   gradient. Sits above the swirl so the corners fall away behind the numbers. */
-.oe-balance-vignette {
+   bottom-right corner. Subtle by design — it should read as a lit object, not as
+   a gradient. Sits above the swirl so the corners fall away behind the numbers. */
+.oe-ink-swirl > .oe-ink-swirl__vignette {
   position: absolute; inset: 0; z-index: 1; pointer-events: none;
   background:
     radial-gradient(128% 92% at 6% 0%, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0) 58%),
@@ -395,17 +449,25 @@ select.ox-field:hover:not(:focus) { border-color: var(--ox-border-strong); }
    the edge (it would otherwise sit under the balance figure) and dimmed a touch —
    the same particles read brighter against less card. */
 @media (max-width: 640px) {
-  .oe-balance-figure { font-size: var(--ox-text-2xl); }
-  .oe-balance-swirl {
+  .oe-ink-swirl > .oe-ink-swirl__field {
     top: -28%; right: -22%;
     width: 70%; height: 155%;
     opacity: 0.34;
   }
-  .oe-balance-vignette {
+  .oe-ink-swirl > .oe-ink-swirl__vignette {
     background:
       radial-gradient(140% 90% at 4% 0%, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0) 55%),
       radial-gradient(120% 90% at 100% 106%, rgba(6, 12, 13, 0.4), rgba(6, 12, 13, 0) 60%);
   }
+}
+
+/* ============================== Balance meter ==============================
+   Same rule as above: BalanceMeter styles itself inline, so its breakpoint-
+   sensitive values are owned here, not there. */
+.oe-balance { padding: var(--ox-space-6); }
+.oe-balance-figure { font-size: var(--ox-text-3xl); }
+@media (max-width: 640px) {
+  .oe-balance-figure { font-size: var(--ox-text-2xl); }
 }
 
 /* ============================== Portal shell ==============================
