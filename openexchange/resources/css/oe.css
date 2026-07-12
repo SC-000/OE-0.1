@@ -355,6 +355,59 @@ select.ox-field:hover:not(:focus) { border-color: var(--ox-border-strong); }
 .oe-scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .oe-fit { max-width: 100%; height: auto; }
 
+/* ============================== Balance meter ==============================
+   BalanceMeter styles itself inline, which media queries cannot reach — so the
+   values that must change across breakpoints (the swirl's box, the balance
+   figure) are owned here. Do NOT re-declare these inline or the inline value
+   wins and the breakpoint silently does nothing. */
+.oe-balance { position: relative; overflow: hidden; padding: var(--ox-space-6); }
+.oe-balance-body { position: relative; z-index: 2; }
+.oe-balance-figure { font-size: var(--ox-text-3xl); }
+
+/* --- Ink variant: the PaymentCard's ground, so the swirl has something to glow
+   against. `isolation` keeps the vignette's blend inside the card. --- */
+.oe-balance--ink { isolation: isolate; }
+
+/* The swirl's box. DotField hard-codes `inset: 0` inline and fills whatever it's
+   given, so this wrapper — not the canvas — is the thing we can move per
+   breakpoint. Anchored off the right edge so it reads as motion behind the card
+   rather than a centred logo, exactly as it does on the payment card. */
+.oe-balance-swirl {
+  position: absolute;
+  top: -35%; right: -14%;
+  width: 56%; height: 170%;
+  z-index: 0;
+  opacity: 0.42;
+  pointer-events: none;
+}
+
+/* Depth, not decoration: one soft light from the top-left, deepening into the
+   bottom-right corner. Subtle by design — it should read as a lit object, not a
+   gradient. Sits above the swirl so the corners fall away behind the numbers. */
+.oe-balance-vignette {
+  position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background:
+    radial-gradient(128% 92% at 6% 0%, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0) 58%),
+    radial-gradient(112% 92% at 100% 104%, rgba(6, 12, 13, 0.45), rgba(6, 12, 13, 0) 62%);
+}
+
+/* Mobile: the card goes full-width and short, so the swirl is pushed further off
+   the edge (it would otherwise sit under the balance figure) and dimmed a touch —
+   the same particles read brighter against less card. */
+@media (max-width: 640px) {
+  .oe-balance-figure { font-size: var(--ox-text-2xl); }
+  .oe-balance-swirl {
+    top: -28%; right: -22%;
+    width: 70%; height: 155%;
+    opacity: 0.34;
+  }
+  .oe-balance-vignette {
+    background:
+      radial-gradient(140% 90% at 4% 0%, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0) 55%),
+      radial-gradient(120% 90% at 100% 106%, rgba(6, 12, 13, 0.4), rgba(6, 12, 13, 0) 60%);
+  }
+}
+
 /* ============================== Portal shell ==============================
    The console/admin chrome. Portal pages style themselves with inline styles,
    which media queries cannot reach — so every responsive lever the portal has

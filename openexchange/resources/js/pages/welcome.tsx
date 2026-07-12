@@ -207,7 +207,7 @@ export default function Home() {
                     </div>
                     <div>
                         <div className="ox-eyebrow" style={{ marginBottom: 12 }}>Client billing · auto top-up</div>
-                        <BalanceMeter balance={42.5} min={10} topUp={50} />
+                        <BalanceMeter swirl balance={42.5} min={10} topUp={50} />
                         <p style={{ margin: '14px 2px 0', fontSize: 13, color: 'var(--ox-text-muted)', lineHeight: 1.55 }}>
                             Clients prepay a balance and set a minimum. When usage draws it below the threshold, Open Exchange tops it up automatically from their saved card.
                         </p>
