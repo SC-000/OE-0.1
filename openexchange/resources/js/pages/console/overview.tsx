@@ -202,7 +202,13 @@ export default function Overview({
                                 {balance.has_card ? 'off' : 'needs a card'}
                             </Badge>
                         )}
-                        <div style={{ display: 'flex', gap: 8 }}>
+                        <div
+                            style={{
+                                display: 'flex',
+                                flexWrap: 'wrap',
+                                gap: 8,
+                            }}
+                        >
                             <Button
                                 as={Link}
                                 href="/console/billing"
@@ -291,6 +297,7 @@ export default function Overview({
                         label="Projected month-end"
                         value={money(spend.projected_cents)}
                         unit=""
+                        estimate
                         delta={
                             spend.delta_pct !== null
                                 ? `${spend.delta_pct > 0 ? '+' : ''}${spend.delta_pct}%`
@@ -538,67 +545,71 @@ export default function Overview({
                                 to start.
                             </p>
                         ) : (
-                            <table
-                                style={{
-                                    width: '100%',
-                                    borderCollapse: 'collapse',
-                                }}
-                            >
-                                <thead>
-                                    <tr>
-                                        <th style={th}>Source</th>
-                                        <th
-                                            style={{
-                                                ...th,
-                                                textAlign: 'right',
-                                            }}
-                                        >
-                                            Share
-                                        </th>
-                                        <th
-                                            style={{
-                                                ...th,
-                                                textAlign: 'right',
-                                            }}
-                                        >
-                                            Spend
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {sources.map((s) => (
-                                        <tr key={s.label}>
-                                            <td
+                            <div className="oe-table-wrap">
+                                <table
+                                    style={{
+                                        width: '100%',
+                                        borderCollapse: 'collapse',
+                                    }}
+                                >
+                                    <thead>
+                                        <tr>
+                                            <th style={th}>Source</th>
+                                            <th
                                                 style={{
-                                                    ...td,
-                                                    fontWeight: 600,
-                                                }}
-                                            >
-                                                {s.label}
-                                            </td>
-                                            <td
-                                                style={{
-                                                    ...td,
+                                                    ...th,
                                                     textAlign: 'right',
-                                                    color: 'var(--ox-text-subtle)',
-                                                    ...mono,
                                                 }}
                                             >
-                                                {s.share_pct}%
-                                            </td>
-                                            <td
+                                                Share
+                                            </th>
+                                            <th
                                                 style={{
-                                                    ...td,
+                                                    ...th,
                                                     textAlign: 'right',
-                                                    ...mono,
                                                 }}
                                             >
-                                                {money(s.spend_cents)}
-                                            </td>
+                                                Spend
+                                            </th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody>
+                                        {sources.map((s) => (
+                                            <tr key={s.label}>
+                                                <td
+                                                    style={{
+                                                        ...td,
+                                                        fontWeight: 600,
+                                                        overflowWrap:
+                                                            'anywhere',
+                                                    }}
+                                                >
+                                                    {s.label}
+                                                </td>
+                                                <td
+                                                    style={{
+                                                        ...td,
+                                                        textAlign: 'right',
+                                                        color: 'var(--ox-text-subtle)',
+                                                        ...mono,
+                                                    }}
+                                                >
+                                                    {s.share_pct}%
+                                                </td>
+                                                <td
+                                                    style={{
+                                                        ...td,
+                                                        textAlign: 'right',
+                                                        ...mono,
+                                                    }}
+                                                >
+                                                    {money(s.spend_cents)}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         )}
                     </Card>
 
@@ -607,6 +618,8 @@ export default function Overview({
                             style={{
                                 padding: '16px 18px 10px',
                                 display: 'flex',
+                                flexWrap: 'wrap',
+                                gap: 8,
                                 justifyContent: 'space-between',
                                 alignItems: 'baseline',
                             }}
@@ -654,48 +667,56 @@ export default function Overview({
                                 Nothing metered yet.
                             </p>
                         ) : (
-                            <table
-                                style={{
-                                    width: '100%',
-                                    borderCollapse: 'collapse',
-                                }}
-                            >
-                                <tbody>
-                                    {recent.map((r, i) => (
-                                        <tr key={i}>
-                                            <td style={td}>
-                                                <div
+                            <div className="oe-table-wrap">
+                                <table
+                                    style={{
+                                        width: '100%',
+                                        borderCollapse: 'collapse',
+                                    }}
+                                >
+                                    <tbody>
+                                        {recent.map((r, i) => (
+                                            <tr key={i}>
+                                                <td
                                                     style={{
-                                                        fontWeight: 600,
-                                                        fontSize: 13,
+                                                        ...td,
+                                                        overflowWrap:
+                                                            'anywhere',
                                                     }}
                                                 >
-                                                    {r.model}
-                                                </div>
-                                                <div
+                                                    <div
+                                                        style={{
+                                                            fontWeight: 600,
+                                                            fontSize: 13,
+                                                        }}
+                                                    >
+                                                        {r.model}
+                                                    </div>
+                                                    <div
+                                                        style={{
+                                                            fontSize: 11.5,
+                                                            color: 'var(--ox-text-subtle)',
+                                                        }}
+                                                    >
+                                                        {fmtTokens(r.tokens)}{' '}
+                                                        tokens · {r.at}
+                                                    </div>
+                                                </td>
+                                                <td
                                                     style={{
-                                                        fontSize: 11.5,
-                                                        color: 'var(--ox-text-subtle)',
+                                                        ...td,
+                                                        textAlign: 'right',
+                                                        ...mono,
+                                                        whiteSpace: 'nowrap',
                                                     }}
                                                 >
-                                                    {fmtTokens(r.tokens)} tokens
-                                                    · {r.at}
-                                                </div>
-                                            </td>
-                                            <td
-                                                style={{
-                                                    ...td,
-                                                    textAlign: 'right',
-                                                    ...mono,
-                                                    whiteSpace: 'nowrap',
-                                                }}
-                                            >
-                                                {money(r.billed_cents)}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                                                    {money(r.billed_cents)}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         )}
                     </Card>
                 </div>
@@ -705,7 +726,13 @@ export default function Overview({
 }
 
 const Row = ({ label, value }: { label: string; value: string }) => (
-    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+    <div
+        style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            justifyContent: 'space-between',
+        }}
+    >
         <span>{label}</span>
         <span style={{ ...mono, color: 'var(--ox-text)' }}>{value}</span>
     </div>

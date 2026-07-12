@@ -1,5 +1,5 @@
-import { ReactNode } from 'react';
 import { Link, usePage } from '@inertiajs/react';
+import type { ReactNode } from 'react';
 import ConsoleLayout from '@/layouts/console-layout';
 
 const SUB = [
@@ -14,13 +14,19 @@ export default function OeSettingsLayout({ children }: { children: ReactNode }) 
 
     return (
         <ConsoleLayout active="settings" title="Settings" subtitle="Manage your profile and account">
-            <div style={{ display: 'flex', gap: 40, flexWrap: 'wrap', alignItems: 'flex-start' }}>
-                <nav style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 180 }}>
+            <div className="oe-settings-shell">
+                {/* Direction and width are owned by .oe-settings-nav in oe.css:
+                    a column beside the content on desktop, a full-width scrolling
+                    strip above it on a phone. Setting either inline would outrank
+                    the media query and pin the nav to a column forever. */}
+                <nav className="oe-settings-nav">
                     {SUB.map((s) => {
                         const on = url.startsWith(s.href);
+
                         return (
                             <Link key={s.href} href={s.href} style={{
                                 padding: '9px 12px', borderRadius: 9, textDecoration: 'none', fontSize: 14,
+                                whiteSpace: 'nowrap',
                                 fontWeight: on ? 600 : 500, color: on ? 'var(--ox-text)' : 'var(--ox-text-muted)',
                                 background: on ? 'var(--ox-bg-muted)' : 'transparent',
                             }}>{s.label}</Link>

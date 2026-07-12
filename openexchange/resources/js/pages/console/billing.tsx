@@ -291,36 +291,48 @@ export default function Billing({
                                     )}
                                 </div>
                             </div>
+                            {/* The sentence is one flex item, not many. Left as
+                                bare text nodes it becomes a row of anonymous
+                                flex items, and on a narrow screen each phrase
+                                collapses into its own column instead of the
+                                sentence simply wrapping. */}
                             <div
                                 style={{
                                     fontSize: 12.5,
                                     color: 'var(--ox-text-subtle)',
                                     display: 'flex',
-                                    alignItems: 'center',
+                                    alignItems: 'flex-start',
                                     gap: 6,
                                 }}
                             >
-                                <Icon
-                                    name="refresh-cw"
-                                    size={13}
-                                    color="var(--ox-text-subtle)"
-                                />
-                                We'll charge{' '}
                                 <span
-                                    className="ox-mono"
-                                    style={{ color: 'var(--ox-text)' }}
+                                    style={{ flexShrink: 0, marginTop: 1 }}
+                                    aria-hidden="true"
                                 >
-                                    +${amount}
-                                </span>{' '}
-                                when your balance drops below{' '}
-                                <span
-                                    className="ox-mono"
-                                    style={{ color: 'var(--ox-text)' }}
-                                >
-                                    ${min}
+                                    <Icon
+                                        name="refresh-cw"
+                                        size={13}
+                                        color="var(--ox-text-subtle)"
+                                    />
                                 </span>
-                                . Rate-limited to protect you from runaway
-                                charges.
+                                <span>
+                                    We'll charge{' '}
+                                    <span
+                                        className="ox-mono"
+                                        style={{ color: 'var(--ox-text)' }}
+                                    >
+                                        +${amount}
+                                    </span>{' '}
+                                    when your balance drops below{' '}
+                                    <span
+                                        className="ox-mono"
+                                        style={{ color: 'var(--ox-text)' }}
+                                    >
+                                        ${min}
+                                    </span>
+                                    . Rate-limited to protect you from runaway
+                                    charges.
+                                </span>
                             </div>
                         </div>
                     </Card>
@@ -419,7 +431,7 @@ export default function Billing({
                         >
                             Transactions
                         </div>
-                        <div style={{ overflowX: 'auto' }}>
+                        <div className="oe-table-wrap">
                             <table
                                 style={{
                                     width: '100%',

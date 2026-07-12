@@ -300,113 +300,118 @@ export default function Usage({
                                 No usage this month.
                             </p>
                         ) : (
-                            <table
-                                style={{
-                                    width: '100%',
-                                    borderCollapse: 'collapse',
-                                }}
-                            >
-                                <thead>
-                                    <tr>
-                                        <th style={th}>Class</th>
-                                        <th
-                                            style={{
-                                                ...th,
-                                                textAlign: 'right',
-                                            }}
-                                        >
-                                            Requests
-                                        </th>
-                                        <th
-                                            style={{
-                                                ...th,
-                                                textAlign: 'right',
-                                            }}
-                                        >
-                                            Tokens
-                                        </th>
-                                        <th
-                                            style={{
-                                                ...th,
-                                                textAlign: 'right',
-                                            }}
-                                        >
-                                            $ / 1k
-                                        </th>
-                                        <th
-                                            style={{
-                                                ...th,
-                                                textAlign: 'right',
-                                            }}
-                                        >
-                                            Spend
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {table.map((r) => (
-                                        <tr key={r.label}>
-                                            <td
+                            <div className="oe-table-wrap">
+                                <table
+                                    style={{
+                                        width: '100%',
+                                        minWidth: 560,
+                                        borderCollapse: 'collapse',
+                                    }}
+                                >
+                                    <thead>
+                                        <tr>
+                                            <th style={th}>Class</th>
+                                            <th
                                                 style={{
-                                                    ...td,
-                                                    fontWeight: 600,
+                                                    ...th,
+                                                    textAlign: 'right',
                                                 }}
                                             >
-                                                {r.label}
-                                                <div
+                                                Requests
+                                            </th>
+                                            <th
+                                                style={{
+                                                    ...th,
+                                                    textAlign: 'right',
+                                                }}
+                                            >
+                                                Tokens
+                                            </th>
+                                            <th
+                                                style={{
+                                                    ...th,
+                                                    textAlign: 'right',
+                                                }}
+                                            >
+                                                $ / 1k
+                                            </th>
+                                            <th
+                                                style={{
+                                                    ...th,
+                                                    textAlign: 'right',
+                                                }}
+                                            >
+                                                Spend
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {table.map((r) => (
+                                            <tr key={r.label}>
+                                                <td
                                                     style={{
-                                                        fontSize: 11,
-                                                        color: 'var(--ox-text-subtle)',
-                                                        fontWeight: 400,
+                                                        ...td,
+                                                        fontWeight: 600,
+                                                        overflowWrap:
+                                                            'anywhere',
                                                     }}
                                                 >
-                                                    {r.share_pct}% of spend
-                                                </div>
-                                            </td>
-                                            <td
-                                                style={{
-                                                    ...td,
-                                                    textAlign: 'right',
-                                                    ...mono,
-                                                    color: 'var(--ox-text-muted)',
-                                                }}
-                                            >
-                                                {num(r.requests)}
-                                            </td>
-                                            <td
-                                                style={{
-                                                    ...td,
-                                                    textAlign: 'right',
-                                                    ...mono,
-                                                    color: 'var(--ox-text-muted)',
-                                                }}
-                                            >
-                                                {fmtTokens(r.tokens)}
-                                            </td>
-                                            <td
-                                                style={{
-                                                    ...td,
-                                                    textAlign: 'right',
-                                                    ...mono,
-                                                    color: 'var(--ox-text-muted)',
-                                                }}
-                                            >
-                                                {per1k(r.per_1k_cents)}
-                                            </td>
-                                            <td
-                                                style={{
-                                                    ...td,
-                                                    textAlign: 'right',
-                                                    ...mono,
-                                                    fontWeight: 600,
-                                                }}
-                                            >
-                                                {money(r.spend_cents)}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                                                    {r.label}
+                                                    <div
+                                                        style={{
+                                                            fontSize: 11,
+                                                            color: 'var(--ox-text-subtle)',
+                                                            fontWeight: 400,
+                                                        }}
+                                                    >
+                                                        {r.share_pct}% of spend
+                                                    </div>
+                                                </td>
+                                                <td
+                                                    style={{
+                                                        ...td,
+                                                        textAlign: 'right',
+                                                        ...mono,
+                                                        color: 'var(--ox-text-muted)',
+                                                    }}
+                                                >
+                                                    {num(r.requests)}
+                                                </td>
+                                                <td
+                                                    style={{
+                                                        ...td,
+                                                        textAlign: 'right',
+                                                        ...mono,
+                                                        color: 'var(--ox-text-muted)',
+                                                    }}
+                                                >
+                                                    {fmtTokens(r.tokens)}
+                                                </td>
+                                                <td
+                                                    style={{
+                                                        ...td,
+                                                        textAlign: 'right',
+                                                        ...mono,
+                                                        color: 'var(--ox-text-muted)',
+                                                    }}
+                                                >
+                                                    {per1k(r.per_1k_cents)}
+                                                </td>
+                                                <td
+                                                    style={{
+                                                        ...td,
+                                                        textAlign: 'right',
+                                                        ...mono,
+                                                        fontWeight: 600,
+                                                    }}
+                                                >
+                                                    {money(r.spend_cents)}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         )}
                     </Card>
 
@@ -457,7 +462,9 @@ export default function Usage({
                                         key={p.label}
                                         style={{
                                             display: 'flex',
+                                            flexWrap: 'wrap',
                                             justifyContent: 'space-between',
+                                            gap: 8,
                                             padding: '3px 0',
                                         }}
                                     >
@@ -479,6 +486,7 @@ export default function Usage({
                         style={{
                             padding: '16px 20px 10px',
                             display: 'flex',
+                            flexWrap: 'wrap',
                             justifyContent: 'space-between',
                             alignItems: 'flex-start',
                             gap: 16,
@@ -536,101 +544,120 @@ export default function Usage({
                             Nothing metered yet.
                         </p>
                     ) : (
-                        <table
-                            style={{
-                                width: '100%',
-                                borderCollapse: 'collapse',
-                            }}
-                        >
-                            <thead>
-                                <tr>
-                                    <th style={th}>When</th>
-                                    <th style={th}>Type</th>
-                                    <th style={th}>Window</th>
-                                    <th style={{ ...th, textAlign: 'right' }}>
-                                        In / Out tokens
-                                    </th>
-                                    <th style={{ ...th, textAlign: 'right' }}>
-                                        Amount
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {activityRows.map((a) => (
-                                    <tr key={a.id}>
-                                        <td style={td}>
-                                            <div style={{ fontSize: 13 }}>
-                                                {a.at}
-                                            </div>
-                                            <div
-                                                style={{
-                                                    fontSize: 11,
-                                                    color: 'var(--ox-text-subtle)',
-                                                }}
-                                            >
-                                                {a.ago}
-                                            </div>
-                                        </td>
-                                        <td style={td}>
-                                            <span
-                                                style={{
-                                                    fontWeight: 600,
-                                                    marginRight: 8,
-                                                }}
-                                            >
-                                                {a.label}
-                                            </span>
-                                            <Badge
-                                                tone={
-                                                    SOURCE_TONE[a.source] ??
-                                                    'neutral'
-                                                }
-                                                dot={false}
-                                            >
-                                                {a.kind}
-                                            </Badge>
-                                        </td>
-                                        <td
+                        <div className="oe-table-wrap">
+                            <table
+                                style={{
+                                    width: '100%',
+                                    minWidth: 640,
+                                    borderCollapse: 'collapse',
+                                }}
+                            >
+                                <thead>
+                                    <tr>
+                                        <th style={th}>When</th>
+                                        <th style={th}>Type</th>
+                                        <th style={th}>Window</th>
+                                        <th
                                             style={{
-                                                ...td,
-                                                color: 'var(--ox-text-muted)',
-                                                fontSize: 12.5,
-                                            }}
-                                        >
-                                            {a.window}
-                                        </td>
-                                        <td
-                                            style={{
-                                                ...td,
+                                                ...th,
                                                 textAlign: 'right',
-                                                ...mono,
-                                                color: 'var(--ox-text-muted)',
-                                                fontSize: 12.5,
                                             }}
                                         >
-                                            {fmtTokens(a.input_tokens)} /{' '}
-                                            {fmtTokens(a.output_tokens)}
-                                        </td>
-                                        <td
+                                            In / Out tokens
+                                        </th>
+                                        <th
                                             style={{
-                                                ...td,
+                                                ...th,
                                                 textAlign: 'right',
-                                                ...mono,
-                                                fontWeight: 600,
                                             }}
                                         >
-                                            {money(a.billed_cents)}
-                                        </td>
+                                            Amount
+                                        </th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {activityRows.map((a) => (
+                                        <tr key={a.id}>
+                                            <td style={td}>
+                                                <div style={{ fontSize: 13 }}>
+                                                    {a.at}
+                                                </div>
+                                                <div
+                                                    style={{
+                                                        fontSize: 11,
+                                                        color: 'var(--ox-text-subtle)',
+                                                    }}
+                                                >
+                                                    {a.ago}
+                                                </div>
+                                            </td>
+                                            <td
+                                                style={{
+                                                    ...td,
+                                                    overflowWrap: 'anywhere',
+                                                }}
+                                            >
+                                                <span
+                                                    style={{
+                                                        fontWeight: 600,
+                                                        marginRight: 8,
+                                                    }}
+                                                >
+                                                    {a.label}
+                                                </span>
+                                                <Badge
+                                                    tone={
+                                                        SOURCE_TONE[a.source] ??
+                                                        'neutral'
+                                                    }
+                                                    dot={false}
+                                                >
+                                                    {a.kind}
+                                                </Badge>
+                                            </td>
+                                            <td
+                                                style={{
+                                                    ...td,
+                                                    color: 'var(--ox-text-muted)',
+                                                    fontSize: 12.5,
+                                                }}
+                                            >
+                                                {a.window}
+                                            </td>
+                                            <td
+                                                style={{
+                                                    ...td,
+                                                    textAlign: 'right',
+                                                    ...mono,
+                                                    color: 'var(--ox-text-muted)',
+                                                    fontSize: 12.5,
+                                                }}
+                                            >
+                                                {fmtTokens(a.input_tokens)} /{' '}
+                                                {fmtTokens(a.output_tokens)}
+                                            </td>
+                                            <td
+                                                style={{
+                                                    ...td,
+                                                    textAlign: 'right',
+                                                    ...mono,
+                                                    fontWeight: 600,
+                                                }}
+                                            >
+                                                {money(a.billed_cents)}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     )}
                     {activity.total > activity.per_page && (
                         <div
                             style={{
                                 padding: '12px 20px 16px',
                                 display: 'flex',
+                                flexWrap: 'wrap',
                                 justifyContent: 'space-between',
                                 alignItems: 'center',
                                 gap: 12,
@@ -645,7 +672,13 @@ export default function Usage({
                             >
                                 Page {activity.page} of {activity.last_page}
                             </span>
-                            <div style={{ display: 'flex', gap: 8 }}>
+                            <div
+                                style={{
+                                    display: 'flex',
+                                    flexWrap: 'wrap',
+                                    gap: 8,
+                                }}
+                            >
                                 {activity.page > 1 ? (
                                     <Link
                                         href={activityHref(activity.page - 1)}

@@ -48,6 +48,16 @@ class Charge extends Model
         return $this->kind === 'usage';
     }
 
+    /**
+     * What WE call this charge, in audit lines and admin screens. Never shown to the
+     * client: a nameless usage charge is meant to read as plain inference on their
+     * statement, so the fallback exists for our logs, not their invoice.
+     */
+    public function displayName(): string
+    {
+        return $this->name ?: trim(($this->model ?: 'AI').' usage');
+    }
+
     public function isRecurring(): bool
     {
         return in_array($this->cadence, ['daily', 'monthly'], true);

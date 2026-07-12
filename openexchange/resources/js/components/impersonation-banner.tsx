@@ -7,10 +7,18 @@ export type Impersonation = { client: { id: number; name: string }; admin: strin
  * Always-visible reminder that the data on screen belongs to someone else.
  * Sticky and loud on purpose — an admin must never mistake a client's console
  * for their own, and must always have a one-click exit.
+ *
+ * The stickiness lives on the shell's header stack, not here: when this banner
+ * was independently `sticky; top: 0` it scrolled up over the equally-sticky
+ * page header and covered the mobile nav button. It now rides along in that
+ * stack, which pins both and keeps them from colliding.
  */
 export default function ImpersonationBanner() {
     const { impersonation } = usePage().props as unknown as { impersonation: Impersonation };
-    if (!impersonation) return null;
+
+    if (!impersonation) {
+return null;
+}
 
     return (
         <div
@@ -18,7 +26,7 @@ export default function ImpersonationBanner() {
             style={{
                 display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
                 padding: '10px 20px', background: 'var(--ox-gold-500)', color: '#241a04',
-                fontSize: 'var(--ox-text-sm)', fontWeight: 600, position: 'sticky', top: 0, zIndex: 60,
+                fontSize: 'var(--ox-text-sm)', fontWeight: 600,
             }}
         >
             <Icon name="eye" size={16} color="#241a04" />

@@ -25,7 +25,7 @@ export function BalanceMeter({ balance = 42.5, min = 10, topUp = 50, currency = 
     const fmt = (n) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     return (
         <div style={{ background: surface, border: `1px solid ${border}`, borderRadius: 'var(--ox-radius-lg)', padding: 'var(--ox-space-6)', boxShadow: dark ? 'none' : 'var(--ox-shadow-sm)', ...style }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18, gap: 12, flexWrap: 'wrap' }}>
                 <div>
                     <div style={{ fontFamily: 'var(--ox-font-sans)', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: dark ? 'rgba(238,243,242,0.5)' : 'var(--ox-text-subtle)' }}>Prepaid balance</div>
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 6 }}>

@@ -145,6 +145,78 @@ class ChargesTest extends TestCase
         $this->assertSame(100_000 - $expected, $client->fresh()->balance_cents);
     }
 
+    /* ------------------------------------- naming ------------------------------------ */
+
+    /** A nameless usage charge leaves the client's statement line unlabelled — plain inference. */
+    public function test_a_usage_charge_can_be_created_with_no_name(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'client_id' => null]);
+        $client = $this->client();
+        ModelCatalog::create(['provider' => 'google', 'model' => 'gemini-2.5-flash', 'input_usd_per_million' => 0.30, 'output_usd_per_million' => 2.50]);
+
+        $this->actingAs($admin)->post('/admin/charges', [
+            'client_id' => $client->id, 'kind' => 'usage', 'cadence' => 'once', 'name' => '',
+            'provider' => 'google', 'model' => 'gemini-2.5-flash', 'input_tokens' => 1_000_000, 'output_tokens' => 1_000_000,
+        ])->assertRedirect();
+
+        $charge = Charge::firstOrFail();
+        $this->assertNull($charge->name, 'an empty name is stored as no name, not as ""');
+
+        // It still bills, and the ledger line it writes carries no label for the client to read.
+        $this->assertDatabaseHas('balance_ledger', ['type' => 'usage_debit', 'description' => null, 'amount_cents' => -350]);
+    }
+
+    /** A fee is a bare debit — without a name the client cannot tell what they paid for. */
+    public function test_a_fee_still_requires_a_name(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'client_id' => null]);
+        $client = $this->client();
+
+        $this->actingAs($admin)->post('/admin/charges', [
+            'client_id' => $client->id, 'kind' => 'fee', 'cadence' => 'monthly', 'name' => '', 'amount_cents' => 500,
+        ])->assertSessionHasErrors('name');
+
+        $charge = Charge::create(['client_id' => $client->id, 'kind' => 'fee', 'cadence' => 'monthly', 'name' => 'Platform fee', 'amount_cents' => 500]);
+
+        $this->actingAs($admin)->patch("/admin/charges/{$charge->id}", ['name' => ''])->assertSessionHasErrors('name');
+        $this->assertSame('Platform fee', $charge->fresh()->name);
+    }
+
+    /**
+     * Renaming is forward-only: the line already billed keeps the name it was billed
+     * under. Clearing the name hides it from every line billed after, but does not
+     * rewrite a statement the client has already read.
+     */
+    public function test_renaming_a_charge_leaves_lines_it_already_billed_alone(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'client_id' => null]);
+        $client = $this->client();
+        ModelCatalog::create(['provider' => 'google', 'model' => 'gemini-2.5-flash', 'input_usd_per_million' => 0.30, 'output_usd_per_million' => 2.50]);
+
+        $charge = Charge::create([
+            'client_id' => $client->id, 'kind' => 'usage', 'cadence' => 'daily', 'name' => 'Nightly batch',
+            'provider' => 'google', 'model' => 'gemini-2.5-flash', 'input_tokens' => 1_000_000, 'output_tokens' => 1_000_000,
+        ]);
+
+        $service = app(ChargeService::class);
+        $service->apply($charge->load('client'), CarbonImmutable::parse('2026-07-01 09:00'));
+
+        // A rename that only sends the name — the tokens and cadence are not restated.
+        $this->actingAs($admin)->patch("/admin/charges/{$charge->id}", ['name' => 'Overnight batch'])->assertRedirect();
+        $this->assertSame('Overnight batch', $charge->fresh()->name);
+        $this->assertSame(1_000_000, (int) $charge->fresh()->input_tokens, 'a partial patch must not blank the rest of the charge');
+
+        // Clearing it takes the label off every line billed from here on.
+        $this->actingAs($admin)->patch("/admin/charges/{$charge->id}", ['name' => '  '])->assertRedirect();
+        $this->assertNull($charge->fresh()->name);
+
+        $service->apply($charge->fresh()->load('client'), CarbonImmutable::parse('2026-07-02 09:00'));
+
+        // The line billed under the old name still says so; the new one says nothing.
+        $descriptions = $client->ledger()->where('type', 'usage_debit')->orderBy('id')->pluck('description')->all();
+        $this->assertSame(['Nightly batch', null], $descriptions);
+    }
+
     public function test_running_the_same_period_twice_bills_once(): void
     {
         $client = $this->client();

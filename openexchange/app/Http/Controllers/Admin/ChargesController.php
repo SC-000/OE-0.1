@@ -37,15 +37,29 @@ class ChargesController
         return back();
     }
 
+    /**
+     * A partial patch: only the fields actually sent are touched, so the name can be
+     * renamed or cleared on its own without restating the whole charge.
+     *
+     * Renaming is forward-only. The ledger lines this charge has already written keep
+     * the name they were billed under — a statement the client has already read is a
+     * record of what happened, not a draft.
+     */
     public function update(Request $request, Charge $charge): RedirectResponse
     {
         $data = $request->validate([
-            'name' => ['required', 'string', 'max:120'],
-            'description' => ['nullable', 'string', 'max:500'],
-            'amount_cents' => ['required', 'integer', 'min:-10000000', 'max:10000000'],
-            'active' => ['required', 'boolean'],
-            'ends_at' => ['nullable', 'date'],
+            // A usage charge may be nameless; a fee may not — its name is the only thing
+            // telling the client what the debit is for.
+            'name' => ['sometimes', $charge->isUsage() ? 'nullable' : 'required', 'string', 'max:120'],
+            'description' => ['sometimes', 'nullable', 'string', 'max:500'],
+            'amount_cents' => ['sometimes', 'integer', 'min:-10000000', 'max:10000000'],
+            'active' => ['sometimes', 'boolean'],
+            'ends_at' => ['sometimes', 'nullable', 'date'],
         ]);
+
+        if (array_key_exists('name', $data)) {
+            $data['name'] = $this->normalizeName($data['name']);
+        }
 
         $charge->update($data);
         $this->audit->log('charge.update', $charge->client, $this->describe($charge));
@@ -103,9 +117,11 @@ class ChargesController
             $run ? $this->describe($charge).' — billed now' : $this->describe($charge).' — already billed this period',
         );
 
+        $name = $charge->displayName();
+
         return back()->with('charge_run', $run
-            ? "Billed {$charge->name}."
-            : "{$charge->name} was already billed for this period.");
+            ? "Billed {$name}."
+            : "{$name} was already billed for this period.");
     }
 
     /** @return array<string, mixed> */
@@ -115,7 +131,10 @@ class ChargesController
             'client_id' => ['required', 'exists:clients,id'],
             'kind' => ['required', Rule::in(['fee', 'usage'])],
             'cadence' => ['required', Rule::in(['once', 'daily', 'monthly'])],
-            'name' => ['required', 'string', 'max:120'],
+            // A fee must be named or the client cannot tell what they are paying for.
+            // A usage charge need not be: unnamed, it reads as plain inference, which is
+            // what it is.
+            'name' => ['required_if:kind,fee', 'nullable', 'string', 'max:120'],
             'description' => ['nullable', 'string', 'max:500'],
 
             // fee: signed — negative is a credit. usage: 0 means "price it off the rate card".
@@ -130,6 +149,7 @@ class ChargesController
             'ends_at' => ['nullable', 'date', 'after:starts_at'],
         ]);
 
+        $data['name'] = $this->normalizeName($data['name'] ?? null);
         $data['amount_cents'] = (int) ($data['amount_cents'] ?? 0);
         $data['input_tokens'] = (int) ($data['input_tokens'] ?? 0);
         $data['output_tokens'] = (int) ($data['output_tokens'] ?? 0);
@@ -143,18 +163,31 @@ class ChargesController
         return $data;
     }
 
+    /**
+     * A cleared field means "no name", not an empty name. Whitespace is not a label, and
+     * "" would print as a blank detail line where NULL prints as nothing at all.
+     */
+    private function normalizeName(?string $name): ?string
+    {
+        $name = trim((string) $name);
+
+        return $name === '' ? null : $name;
+    }
+
     private function describe(Charge $charge): string
     {
+        $name = $charge->name ?: 'Unnamed';
+
         if ($charge->isUsage()) {
             return sprintf(
                 '%s (%s usage: %s, %s in / %s out tokens)',
-                $charge->name, $charge->cadence, $charge->model,
+                $name, $charge->cadence, $charge->model,
                 number_format($charge->input_tokens), number_format($charge->output_tokens),
             );
         }
 
         $verb = $charge->amount_cents >= 0 ? 'fee' : 'credit';
 
-        return sprintf('%s (%s %s: $%s)', $charge->name, $charge->cadence, $verb, number_format(abs($charge->amount_cents) / 100, 2));
+        return sprintf('%s (%s %s: $%s)', $name, $charge->cadence, $verb, number_format(abs($charge->amount_cents) / 100, 2));
     }
 }

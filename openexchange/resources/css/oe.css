@@ -324,6 +324,15 @@ select.ox-field:hover:not(:focus) { border-color: var(--ox-border-strong); }
   .oe-mobile-menu { display: none; }
 }
 
+/* A grid/flex item defaults to `min-width: auto`, i.e. "never shrink below my
+   content". `1fr` is `minmax(auto, 1fr)`, so that floor becomes the track's
+   minimum and a wide child (a table, a long mono figure) drags the track — and
+   the page — past the viewport. Stacking the columns below does NOT fix it on
+   its own: the single column just inherits the same oversized floor. Releasing
+   the floor here is what lets `.oe-table-wrap` actually scroll instead of
+   pushing. */
+.oe-2col > *, .oe-grid-2 > *, .oe-grid-3 > *, .oe-grid-4 > *, .ox-card { min-width: 0; }
+
 /* responsive marketing grids */
 @media (max-width: 900px) {
   .oe-footer-grid { grid-template-columns: 1fr 1fr !important; gap: 32px !important; }
@@ -345,6 +354,159 @@ select.ox-field:hover:not(:focus) { border-color: var(--ox-border-strong); }
 /* opt-in helpers: wide content scrolls, media never overflows on mobile */
 .oe-scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .oe-fit { max-width: 100%; height: auto; }
+
+/* ============================== Portal shell ==============================
+   The console/admin chrome. Portal pages style themselves with inline styles,
+   which media queries cannot reach — so every responsive lever the portal has
+   lives here, as a class the page opts into. Anything that must change across
+   breakpoints (display, position, width, grid-template-columns) is therefore
+   owned by this file and must NOT be re-declared inline, or the inline value
+   wins and the breakpoint silently does nothing. */
+.oe-portal { display: flex; min-height: 100vh; min-height: 100dvh; background: var(--ox-bg); }
+
+.oe-portal-sidebar {
+  width: 236px; flex-shrink: 0;
+  background: var(--ox-ink-900); color: #fff;
+  display: flex; flex-direction: column; gap: 22px;
+  padding: 18px 14px;
+  position: sticky; top: 0;
+  height: 100vh; height: 100dvh;
+  overflow-y: auto; overscroll-behavior: contain;
+}
+
+.oe-portal-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+/* Impersonation banner + header pin together. They used to be sticky
+   independently at `top: 0`, which meant they stacked on top of each other on
+   scroll instead of queueing — and the banner won, hiding the nav button. */
+.oe-portal-topstack { position: sticky; top: 0; z-index: 40; }
+
+.oe-portal-header {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 16px 28px;
+  border-bottom: 1px solid var(--ox-border);
+  background: var(--ox-surface);
+}
+/* `flex-basis: 0` (not `auto`) is the point: wrapping is decided on an item's
+   base size, so a heading sized to its content — a long subtitle, say — would
+   refuse to share a line with the nav button and drop to its own row. From
+   zero it always sits beside the button, then grows into whatever is left. */
+.oe-portal-heading { flex: 1 1 0%; min-width: 0; }
+.oe-portal-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+
+.oe-portal-content { flex: 1; min-width: 0; padding: 28px; }
+.oe-portal-content--flush { padding: 0; }
+
+/* Drawer affordances: inert on desktop, the whole nav story on mobile. */
+.oe-portal-burger { display: none; }
+.oe-portal-backdrop { display: none; }
+.oe-portal-sidebar-close { display: none; }
+
+@media (max-width: 900px) {
+  /* Sidebar leaves the flow and becomes an off-canvas drawer, so the main
+     column gets the full viewport instead of fighting a 236px column on a
+     375px screen. */
+  /* Above the header stack (z-40) — the drawer and its backdrop must cover the
+     impersonation banner, not slide under it. */
+  .oe-portal-sidebar {
+    position: fixed; inset: 0 auto 0 0; z-index: 80;
+    width: min(84vw, 300px); height: 100dvh;
+    transform: translateX(-100%);
+    /* `visibility` (not just the offscreen transform) is what pulls the closed
+       drawer out of the tab order and the a11y tree. It interpolates
+       discretely, so on the way out it stays visible for the whole slide and
+       only flips at the end — the animation is not cut short. */
+    visibility: hidden;
+    transition:
+      transform var(--ox-dur-base, .26s) cubic-bezier(.4, 0, .2, 1),
+      visibility var(--ox-dur-base, .26s);
+    box-shadow: 0 0 40px rgba(0, 0, 0, .45);
+    padding-top: max(18px, env(safe-area-inset-top));
+    padding-bottom: max(18px, env(safe-area-inset-bottom));
+    padding-left: max(14px, env(safe-area-inset-left));
+  }
+  .oe-portal-sidebar[data-open='true'] { transform: translateX(0); visibility: visible; }
+
+  .oe-portal-backdrop {
+    display: block; position: fixed; inset: 0; z-index: 70;
+    background: rgba(4, 10, 6, .55);
+    opacity: 0; pointer-events: none;
+    transition: opacity var(--ox-dur-base, .26s) var(--ox-ease, ease);
+  }
+  .oe-portal-backdrop[data-open='true'] { opacity: 1; pointer-events: auto; }
+
+  .oe-portal-burger {
+    display: inline-grid; place-items: center;
+    width: 40px; height: 40px; flex-shrink: 0;
+    border-radius: var(--ox-radius-md);
+    border: 1px solid var(--ox-border);
+    background: var(--ox-bg-subtle);
+    color: var(--ox-text);
+    cursor: pointer;
+  }
+  .oe-portal-sidebar-close {
+    display: inline-grid; place-items: center;
+    width: 36px; height: 36px;
+    border-radius: var(--ox-radius-md);
+    border: none; background: rgba(255, 255, 255, .08);
+    cursor: pointer;
+  }
+
+  .oe-portal-header { padding: 12px 16px; gap: 12px; }
+  .oe-portal-content { padding: 16px; }
+  /* Nav rows get a thumb-sized hit area once they're the only way to navigate. */
+  .oe-portal-navlink { padding: 12px 12px !important; font-size: var(--ox-text-base) !important; }
+}
+
+/* Page actions get their own full-width row rather than crushing the title. */
+@media (max-width: 560px) {
+  .oe-portal-header { flex-wrap: wrap; }
+  .oe-portal-actions { width: 100%; }
+  .oe-portal-actions > * { flex: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .oe-portal-sidebar, .oe-portal-backdrop { transition: none; }
+}
+
+/* Locks the page behind an open drawer so the body doesn't scroll under it. */
+.oe-portal-locked { overflow: hidden; }
+
+/* ---------- Portal content primitives ----------
+   Asymmetric splits (`2fr 1fr`) already stack via `.oe-2col` above — reuse it
+   rather than adding a portal-specific twin. For symmetric card grids prefer an
+   inline `repeat(auto-fit, minmax(min(100%, Npx), 1fr))`: the `min(100%, …)`
+   guard is what stops a track wider than the viewport from forcing a scrollbar,
+   and it needs no class and no breakpoint. */
+
+/* Wide data tables: scroll inside their own box so they never widen the page.
+   `min-width:0` is the load-bearing half — a grid/flex item defaults to
+   `min-width:auto` and will refuse to shrink below its content, so the table
+   pushes the whole page wide and `overflow-x` never gets a chance to fire.
+   Deliberately does NOT force `min-width:max-content` on the table: a
+   text-heavy column would then refuse to wrap and scroll when it could simply
+   have reflowed. Tables that need a legibility floor set their own `minWidth`. */
+.oe-table-wrap {
+  max-width: 100%; min-width: 0;
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+/* Account settings: sub-nav beside the content, then above it on a phone. The
+   content column can shrink to nothing (min-width: 0), so the row would never
+   wrap on its own — the nav has to claim the full width to force the break. */
+.oe-settings-shell { display: flex; gap: 40px; flex-wrap: wrap; align-items: flex-start; }
+.oe-settings-nav { display: flex; flex-direction: column; gap: 2px; min-width: 180px; }
+
+@media (max-width: 640px) {
+  .oe-settings-shell { gap: 24px; }
+  .oe-settings-nav {
+    flex-direction: row; width: 100%; min-width: 0;
+    gap: 4px; overflow-x: auto; -webkit-overflow-scrolling: touch;
+    border-bottom: 1px solid var(--ox-border); padding-bottom: 8px;
+  }
+}
+
 
 .ox-container { width: 100%; max-width: var(--ox-container); margin-inline: auto; padding-inline: 24px; }
 .ox-container-wide { width: 100%; max-width: var(--ox-container-wide); margin-inline: auto; padding-inline: 24px; }

@@ -302,7 +302,8 @@ export default function AdminDashboard({
             <div
                 style={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))',
+                    gridTemplateColumns:
+                        'repeat(auto-fit, minmax(min(100%, 190px), 1fr))',
                     gap: 14,
                     marginBottom: 22,
                 }}
@@ -374,6 +375,7 @@ export default function AdminDashboard({
                         aria-label="Revenue chart range"
                         style={{
                             display: 'inline-flex',
+                            flexWrap: 'wrap',
                             gap: 3,
                             padding: 3,
                             border: '1px solid var(--ox-border)',
@@ -447,7 +449,8 @@ export default function AdminDashboard({
             <div
                 style={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))',
+                    gridTemplateColumns:
+                        'repeat(auto-fit, minmax(min(100%, 420px), 1fr))',
                     gap: 18,
                     marginBottom: 22,
                 }}
@@ -466,67 +469,78 @@ export default function AdminDashboard({
                             text="Every model with traffic is billing above cost."
                         />
                     ) : (
-                        <table
-                            style={{
-                                width: '100%',
-                                borderCollapse: 'collapse',
-                            }}
-                        >
-                            <thead>
-                                <tr>
-                                    <th style={th}>Model</th>
-                                    <th style={th}>Issue</th>
-                                    <th style={{ ...th, textAlign: 'right' }}>
-                                        Impact
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {leaks.map((l) => (
-                                    <tr key={`${l.provider}/${l.model}`}>
-                                        <td style={td}>
-                                            <div
-                                                style={{
-                                                    ...mono,
-                                                    fontSize: 12.5,
-                                                }}
-                                            >
-                                                {l.model}
-                                            </div>
-                                            <div
-                                                style={{
-                                                    fontSize: 11,
-                                                    color: 'var(--ox-text-subtle)',
-                                                }}
-                                            >
-                                                {tokens(l.tokens)} tokens ·{' '}
-                                                {LEAK_COPY[l.kind].fix}
-                                            </div>
-                                        </td>
-                                        <td style={td}>
-                                            <Badge
-                                                tone={LEAK_COPY[l.kind].tone}
-                                            >
-                                                {LEAK_COPY[l.kind].label}
-                                            </Badge>
-                                        </td>
-                                        <td
+                        <div className="oe-table-wrap">
+                            <table
+                                style={{
+                                    width: '100%',
+                                    borderCollapse: 'collapse',
+                                }}
+                            >
+                                <thead>
+                                    <tr>
+                                        <th style={th}>Model</th>
+                                        <th style={th}>Issue</th>
+                                        <th
                                             style={{
-                                                ...td,
+                                                ...th,
                                                 textAlign: 'right',
-                                                ...mono,
-                                                color: 'var(--ox-danger)',
-                                                fontWeight: 600,
                                             }}
                                         >
-                                            {l.impact_cents > 0
-                                                ? `−${money(l.impact_cents).replace('$', '$')}`
-                                                : '—'}
-                                        </td>
+                                            Impact
+                                        </th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {leaks.map((l) => (
+                                        <tr key={`${l.provider}/${l.model}`}>
+                                            <td style={td}>
+                                                <div
+                                                    style={{
+                                                        ...mono,
+                                                        fontSize: 12.5,
+                                                        overflowWrap:
+                                                            'anywhere',
+                                                    }}
+                                                >
+                                                    {l.model}
+                                                </div>
+                                                <div
+                                                    style={{
+                                                        fontSize: 11,
+                                                        color: 'var(--ox-text-subtle)',
+                                                    }}
+                                                >
+                                                    {tokens(l.tokens)} tokens ·{' '}
+                                                    {LEAK_COPY[l.kind].fix}
+                                                </div>
+                                            </td>
+                                            <td style={td}>
+                                                <Badge
+                                                    tone={
+                                                        LEAK_COPY[l.kind].tone
+                                                    }
+                                                >
+                                                    {LEAK_COPY[l.kind].label}
+                                                </Badge>
+                                            </td>
+                                            <td
+                                                style={{
+                                                    ...td,
+                                                    textAlign: 'right',
+                                                    ...mono,
+                                                    color: 'var(--ox-danger)',
+                                                    fontWeight: 600,
+                                                }}
+                                            >
+                                                {l.impact_cents > 0
+                                                    ? `−${money(l.impact_cents).replace('$', '$')}`
+                                                    : '—'}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     )}
                     <Link
                         href="/admin/models"
@@ -562,64 +576,71 @@ export default function AdminDashboard({
                             text="Every account is funded and has a card on file."
                         />
                     ) : (
-                        <table
-                            style={{
-                                width: '100%',
-                                borderCollapse: 'collapse',
-                            }}
-                        >
-                            <thead>
-                                <tr>
-                                    <th style={th}>Client</th>
-                                    <th style={th}>Reason</th>
-                                    <th style={{ ...th, textAlign: 'right' }}>
-                                        Balance
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {risk.slice(0, 8).map((r) => (
-                                    <tr key={r.id}>
-                                        <td style={td}>
-                                            <Link
-                                                href={`/admin/clients/${r.id}`}
-                                                style={{
-                                                    color: 'var(--ox-text)',
-                                                    fontWeight: 600,
-                                                    textDecoration: 'none',
-                                                }}
-                                            >
-                                                {r.name}
-                                            </Link>
-                                        </td>
-                                        <td style={td}>
-                                            <Badge
-                                                tone={
-                                                    r.reason === 'in_debt'
-                                                        ? 'danger'
-                                                        : 'warning'
-                                                }
-                                            >
-                                                {RISK_COPY[r.reason]}
-                                            </Badge>
-                                        </td>
-                                        <td
+                        <div className="oe-table-wrap">
+                            <table
+                                style={{
+                                    width: '100%',
+                                    borderCollapse: 'collapse',
+                                }}
+                            >
+                                <thead>
+                                    <tr>
+                                        <th style={th}>Client</th>
+                                        <th style={th}>Reason</th>
+                                        <th
                                             style={{
-                                                ...td,
+                                                ...th,
                                                 textAlign: 'right',
-                                                ...mono,
-                                                color:
-                                                    r.balance_cents < 0
-                                                        ? 'var(--ox-danger)'
-                                                        : 'inherit',
                                             }}
                                         >
-                                            {money(r.balance_cents)}
-                                        </td>
+                                            Balance
+                                        </th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {risk.slice(0, 8).map((r) => (
+                                        <tr key={r.id}>
+                                            <td style={td}>
+                                                <Link
+                                                    href={`/admin/clients/${r.id}`}
+                                                    style={{
+                                                        color: 'var(--ox-text)',
+                                                        fontWeight: 600,
+                                                        textDecoration: 'none',
+                                                    }}
+                                                >
+                                                    {r.name}
+                                                </Link>
+                                            </td>
+                                            <td style={td}>
+                                                <Badge
+                                                    tone={
+                                                        r.reason === 'in_debt'
+                                                            ? 'danger'
+                                                            : 'warning'
+                                                    }
+                                                >
+                                                    {RISK_COPY[r.reason]}
+                                                </Badge>
+                                            </td>
+                                            <td
+                                                style={{
+                                                    ...td,
+                                                    textAlign: 'right',
+                                                    ...mono,
+                                                    color:
+                                                        r.balance_cents < 0
+                                                            ? 'var(--ox-danger)'
+                                                            : 'inherit',
+                                                }}
+                                            >
+                                                {money(r.balance_cents)}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     )}
                 </Card>
             </div>
@@ -627,7 +648,8 @@ export default function AdminDashboard({
             <div
                 style={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))',
+                    gridTemplateColumns:
+                        'repeat(auto-fit, minmax(min(100%, 420px), 1fr))',
                     gap: 18,
                     marginBottom: 22,
                 }}
@@ -640,82 +662,88 @@ export default function AdminDashboard({
                             ? `${topClient.name} is ${topClient.share_pct}% of revenue${topClient.share_pct > 50 ? ' — concentration risk' : ''}`
                             : 'No revenue yet',
                     )}
-                    <table
-                        style={{ width: '100%', borderCollapse: 'collapse' }}
-                    >
-                        <thead>
-                            <tr>
-                                <th style={th}>Client</th>
-                                <th style={{ ...th, textAlign: 'right' }}>
-                                    Revenue
-                                </th>
-                                <th style={{ ...th, textAlign: 'right' }}>
-                                    Margin
-                                </th>
-                                <th style={{ ...th, textAlign: 'right' }}>
-                                    Share
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {clients.slice(0, 8).map((c) => (
-                                <tr key={c.id}>
-                                    <td style={td}>
-                                        <Link
-                                            href={`/admin/clients/${c.id}`}
-                                            style={{
-                                                color: 'var(--ox-text)',
-                                                fontWeight: 600,
-                                                textDecoration: 'none',
-                                            }}
-                                        >
-                                            {c.name}
-                                        </Link>
-                                    </td>
-                                    <td
-                                        style={{
-                                            ...td,
-                                            textAlign: 'right',
-                                            ...mono,
-                                        }}
-                                    >
-                                        {money(c.revenue_cents)}
-                                    </td>
-                                    <td
-                                        style={{
-                                            ...td,
-                                            textAlign: 'right',
-                                            ...mono,
-                                            color:
-                                                c.margin_cents < 0
-                                                    ? 'var(--ox-danger)'
-                                                    : 'var(--ox-success)',
-                                        }}
-                                    >
-                                        {money(c.margin_cents)}{' '}
-                                        <span
-                                            style={{
-                                                color: 'var(--ox-text-subtle)',
-                                                fontSize: 11,
-                                            }}
-                                        >
-                                            {pct(c.margin_pct, 0)}
-                                        </span>
-                                    </td>
-                                    <td
-                                        style={{
-                                            ...td,
-                                            textAlign: 'right',
-                                            ...mono,
-                                            color: 'var(--ox-text-subtle)',
-                                        }}
-                                    >
-                                        {c.share_pct}%
-                                    </td>
+                    <div className="oe-table-wrap">
+                        <table
+                            style={{
+                                width: '100%',
+                                borderCollapse: 'collapse',
+                                minWidth: 520,
+                            }}
+                        >
+                            <thead>
+                                <tr>
+                                    <th style={th}>Client</th>
+                                    <th style={{ ...th, textAlign: 'right' }}>
+                                        Revenue
+                                    </th>
+                                    <th style={{ ...th, textAlign: 'right' }}>
+                                        Margin
+                                    </th>
+                                    <th style={{ ...th, textAlign: 'right' }}>
+                                        Share
+                                    </th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {clients.slice(0, 8).map((c) => (
+                                    <tr key={c.id}>
+                                        <td style={td}>
+                                            <Link
+                                                href={`/admin/clients/${c.id}`}
+                                                style={{
+                                                    color: 'var(--ox-text)',
+                                                    fontWeight: 600,
+                                                    textDecoration: 'none',
+                                                }}
+                                            >
+                                                {c.name}
+                                            </Link>
+                                        </td>
+                                        <td
+                                            style={{
+                                                ...td,
+                                                textAlign: 'right',
+                                                ...mono,
+                                            }}
+                                        >
+                                            {money(c.revenue_cents)}
+                                        </td>
+                                        <td
+                                            style={{
+                                                ...td,
+                                                textAlign: 'right',
+                                                ...mono,
+                                                color:
+                                                    c.margin_cents < 0
+                                                        ? 'var(--ox-danger)'
+                                                        : 'var(--ox-success)',
+                                            }}
+                                        >
+                                            {money(c.margin_cents)}{' '}
+                                            <span
+                                                style={{
+                                                    color: 'var(--ox-text-subtle)',
+                                                    fontSize: 11,
+                                                }}
+                                            >
+                                                {pct(c.margin_pct, 0)}
+                                            </span>
+                                        </td>
+                                        <td
+                                            style={{
+                                                ...td,
+                                                textAlign: 'right',
+                                                ...mono,
+                                                color: 'var(--ox-text-subtle)',
+                                            }}
+                                        >
+                                            {c.share_pct}%
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </Card>
 
                 {/* Top models */}
@@ -724,81 +752,88 @@ export default function AdminDashboard({
                         'Most profitable models',
                         'Where your margin actually comes from',
                     )}
-                    <table
-                        style={{ width: '100%', borderCollapse: 'collapse' }}
-                    >
-                        <thead>
-                            <tr>
-                                <th style={th}>Model</th>
-                                <th style={{ ...th, textAlign: 'right' }}>
-                                    Revenue
-                                </th>
-                                <th style={{ ...th, textAlign: 'right' }}>
-                                    Margin
-                                </th>
-                                <th style={{ ...th, textAlign: 'right' }}>
-                                    Tokens
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {topModels.length === 0 && (
+                    <div className="oe-table-wrap">
+                        <table
+                            style={{
+                                width: '100%',
+                                borderCollapse: 'collapse',
+                                minWidth: 520,
+                            }}
+                        >
+                            <thead>
                                 <tr>
-                                    <td style={td} colSpan={4}>
-                                        <Empty
-                                            icon="activity"
-                                            text="No usage this month yet."
-                                        />
-                                    </td>
+                                    <th style={th}>Model</th>
+                                    <th style={{ ...th, textAlign: 'right' }}>
+                                        Revenue
+                                    </th>
+                                    <th style={{ ...th, textAlign: 'right' }}>
+                                        Margin
+                                    </th>
+                                    <th style={{ ...th, textAlign: 'right' }}>
+                                        Tokens
+                                    </th>
                                 </tr>
-                            )}
-                            {topModels.map((m) => (
-                                <tr key={`${m.provider}/${m.model}`}>
-                                    <td
-                                        style={{
-                                            ...td,
-                                            ...mono,
-                                            fontSize: 12.5,
-                                        }}
-                                    >
-                                        {m.model}
-                                    </td>
-                                    <td
-                                        style={{
-                                            ...td,
-                                            textAlign: 'right',
-                                            ...mono,
-                                        }}
-                                    >
-                                        {money(m.revenue_cents)}
-                                    </td>
-                                    <td
-                                        style={{
-                                            ...td,
-                                            textAlign: 'right',
-                                            ...mono,
-                                            color:
-                                                m.margin_cents < 0
-                                                    ? 'var(--ox-danger)'
-                                                    : 'var(--ox-success)',
-                                        }}
-                                    >
-                                        {money(m.margin_cents)}
-                                    </td>
-                                    <td
-                                        style={{
-                                            ...td,
-                                            textAlign: 'right',
-                                            ...mono,
-                                            color: 'var(--ox-text-subtle)',
-                                        }}
-                                    >
-                                        {tokens(m.tokens)}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {topModels.length === 0 && (
+                                    <tr>
+                                        <td style={td} colSpan={4}>
+                                            <Empty
+                                                icon="activity"
+                                                text="No usage this month yet."
+                                            />
+                                        </td>
+                                    </tr>
+                                )}
+                                {topModels.map((m) => (
+                                    <tr key={`${m.provider}/${m.model}`}>
+                                        <td
+                                            style={{
+                                                ...td,
+                                                ...mono,
+                                                fontSize: 12.5,
+                                                overflowWrap: 'anywhere',
+                                            }}
+                                        >
+                                            {m.model}
+                                        </td>
+                                        <td
+                                            style={{
+                                                ...td,
+                                                textAlign: 'right',
+                                                ...mono,
+                                            }}
+                                        >
+                                            {money(m.revenue_cents)}
+                                        </td>
+                                        <td
+                                            style={{
+                                                ...td,
+                                                textAlign: 'right',
+                                                ...mono,
+                                                color:
+                                                    m.margin_cents < 0
+                                                        ? 'var(--ox-danger)'
+                                                        : 'var(--ox-success)',
+                                            }}
+                                        >
+                                            {money(m.margin_cents)}
+                                        </td>
+                                        <td
+                                            style={{
+                                                ...td,
+                                                textAlign: 'right',
+                                                ...mono,
+                                                color: 'var(--ox-text-subtle)',
+                                            }}
+                                        >
+                                            {tokens(m.tokens)}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </Card>
             </div>
 

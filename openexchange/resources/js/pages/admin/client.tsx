@@ -1,5 +1,5 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Card, Badge, Button, Icon, StatCard } from '@/components/oe';
 import AdminLayout from '@/layouts/admin-layout';
 import { bps, money, num, pct, tokens } from '@/lib/format';
@@ -53,7 +53,8 @@ type Charge = {
     id: number;
     kind: string;
     cadence: string;
-    name: string;
+    /** Null on a usage charge means the client's statement shows no label at all. */
+    name: string | null;
     amount_cents: number;
     model: string | null;
     provider: string | null;
@@ -248,9 +249,10 @@ const Section = ({
                 alignItems: 'flex-start',
                 gap: 12,
                 marginBottom: 12,
+                flexWrap: 'wrap',
             }}
         >
-            <div>
+            <div style={{ minWidth: 0 }}>
                 <h2
                     style={{
                         margin: 0,
@@ -370,7 +372,8 @@ export default function ClientProfile(props: Props) {
             <div
                 style={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
+                    gridTemplateColumns:
+                        'repeat(auto-fit, minmax(min(100%, 170px), 1fr))',
                     gap: 12,
                     marginBottom: 20,
                 }}
@@ -523,7 +526,7 @@ function OverviewTab({ client }: { client: Client }) {
                         style={{
                             display: 'grid',
                             gridTemplateColumns:
-                                'repeat(auto-fit, minmax(200px, 1fr))',
+                                'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',
                             gap: 14,
                         }}
                     >
@@ -950,7 +953,7 @@ function UsageTab({
                     No usage this month.
                 </p>
             ) : (
-                <div style={{ overflowX: 'auto' }}>
+                <div className="oe-table-wrap">
                     <table
                         style={{
                             width: '100%',
@@ -1245,7 +1248,11 @@ function RatesTab({
                             Only models they use ({used})
                         </label>
                         <input
-                            style={{ ...input, width: 170 }}
+                            style={{
+                                ...input,
+                                flex: '1 1 170px',
+                                minWidth: 140,
+                            }}
                             placeholder="Search models…"
                             value={q}
                             onChange={(e) => setQ(e.target.value)}
@@ -1253,7 +1260,7 @@ function RatesTab({
                     </div>
                 }
             >
-                <div style={{ overflowX: 'auto' }}>
+                <div className="oe-table-wrap">
                     <table
                         style={{
                             width: '100%',
@@ -1646,7 +1653,15 @@ function RecostDialog({
                 padding: 20,
             }}
         >
-            <Card padding="lg" style={{ maxWidth: 560, width: '100%' }}>
+            <Card
+                padding="lg"
+                style={{
+                    maxWidth: 560,
+                    width: '100%',
+                    maxHeight: '90dvh',
+                    overflowY: 'auto',
+                }}
+            >
                 <h2
                     style={{
                         margin: '0 0 4px',
@@ -1873,7 +1888,14 @@ function AdvancedOverrideForm({
 
     return (
         <form onSubmit={submit}>
-            <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+            <div
+                style={{
+                    display: 'flex',
+                    gap: 6,
+                    marginBottom: 14,
+                    flexWrap: 'wrap',
+                }}
+            >
                 {(
                     [
                         ['fixed', 'Fixed sell price'],
@@ -1913,7 +1935,8 @@ function AdvancedOverrideForm({
             <div
                 style={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
+                    gridTemplateColumns:
+                        'repeat(auto-fit, minmax(min(100%, 170px), 1fr))',
                     gap: 12,
                     alignItems: 'end',
                 }}
@@ -2169,6 +2192,34 @@ function ChargesTab({
     const quote = quoted?.key === quoteKey ? quoted.data : null;
     const quoting = Boolean(quoteKey) && quoted?.key !== quoteKey;
 
+    // Rename in place. A usage charge can be cleared back to nameless; a fee cannot, so
+    // an empty name there reverts rather than sending a doomed request.
+    const [editing, setEditing] = useState<number | null>(null);
+    const [draft, setDraft] = useState('');
+    const cancelled = useRef(false);
+
+    const saveName = (c: Charge) => {
+        if (cancelled.current) {
+            cancelled.current = false;
+            setEditing(null);
+
+            return;
+        }
+
+        const next = draft.trim();
+        setEditing(null);
+
+        if (next === (c.name ?? '') || (next === '' && c.kind !== 'usage')) {
+            return;
+        }
+
+        router.patch(
+            `/admin/charges/${c.id}`,
+            { name: next },
+            { preserveScroll: true },
+        );
+    };
+
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
         form.transform((d) => ({ ...d, kind }));
@@ -2188,7 +2239,7 @@ function ChargesTab({
         <>
             <Section
                 title="Charges"
-                hint="Recurring fees, one-off credits, and off-platform AI cost billed through the rate card."
+                hint="Recurring fees, one-off credits, and off-platform AI cost billed through the rate card. Click a name to rename it — a usage charge needs no name (its model and tokens identify it), and renaming only affects lines billed from here on."
             >
                 {charges.length === 0 ? (
                     <p
@@ -2200,142 +2251,242 @@ function ChargesTab({
                         No charges configured.
                     </p>
                 ) : (
-                    <table
-                        style={{ width: '100%', borderCollapse: 'collapse' }}
-                    >
-                        <thead>
-                            <tr>
-                                <th style={th}>Name</th>
-                                <th style={th}>Type</th>
-                                <th style={th}>Cadence</th>
-                                <th style={{ ...th, textAlign: 'right' }}>
-                                    Amount
-                                </th>
-                                <th style={th}>Last billed</th>
-                                <th style={{ ...th, textAlign: 'right' }}></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {charges.map((c) => (
-                                <tr
-                                    key={c.id}
-                                    style={
-                                        !c.active
-                                            ? { opacity: 0.55 }
-                                            : undefined
-                                    }
-                                >
-                                    <td style={{ ...td, fontWeight: 600 }}>
-                                        {c.name}
-                                        {c.kind === 'usage' && (
-                                            <div
-                                                style={{
-                                                    fontSize: 11,
-                                                    fontWeight: 400,
-                                                    color: 'var(--ox-text-subtle)',
-                                                    ...mono,
-                                                }}
+                    <div className="oe-table-wrap">
+                        <table
+                            style={{
+                                width: '100%',
+                                borderCollapse: 'collapse',
+                                minWidth: 640,
+                            }}
+                        >
+                            <thead>
+                                <tr>
+                                    <th style={th}>Name</th>
+                                    <th style={th}>Type</th>
+                                    <th style={th}>Cadence</th>
+                                    <th style={{ ...th, textAlign: 'right' }}>
+                                        Amount
+                                    </th>
+                                    <th style={th}>Last billed</th>
+                                    <th
+                                        style={{ ...th, textAlign: 'right' }}
+                                    ></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {charges.map((c) => (
+                                    <tr
+                                        key={c.id}
+                                        style={
+                                            !c.active
+                                                ? { opacity: 0.55 }
+                                                : undefined
+                                        }
+                                    >
+                                        <td style={{ ...td, fontWeight: 600 }}>
+                                            {editing === c.id ? (
+                                                <input
+                                                    autoFocus
+                                                    style={{
+                                                        ...input,
+                                                        fontWeight: 600,
+                                                        padding: '4px 8px',
+                                                    }}
+                                                    value={draft}
+                                                    placeholder={
+                                                        c.kind === 'usage'
+                                                            ? 'No name — plain usage line'
+                                                            : 'A fee needs a name'
+                                                    }
+                                                    onChange={(e) =>
+                                                        setDraft(e.target.value)
+                                                    }
+                                                    onBlur={() => saveName(c)}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') {
+                                                            e.preventDefault();
+                                                            e.currentTarget.blur();
+                                                        }
+
+                                                        if (
+                                                            e.key === 'Escape'
+                                                        ) {
+                                                            cancelled.current = true;
+                                                            e.currentTarget.blur();
+                                                        }
+                                                    }}
+                                                />
+                                            ) : (
+                                                <button
+                                                    type="button"
+                                                    title="Rename"
+                                                    onClick={() => {
+                                                        setDraft(c.name ?? '');
+                                                        setEditing(c.id);
+                                                    }}
+                                                    style={{
+                                                        background: 'none',
+                                                        border: 0,
+                                                        padding: 0,
+                                                        font: 'inherit',
+                                                        color: 'inherit',
+                                                        cursor: 'text',
+                                                        textAlign: 'left',
+                                                    }}
+                                                >
+                                                    {/* A nameless usage charge is not
+                                                        anonymous — the model and tokens
+                                                        below already say what it is, so
+                                                        they become the row's identity
+                                                        rather than a "No name" scold. */}
+                                                    {c.name ??
+                                                        (c.kind === 'usage' ? (
+                                                            <span
+                                                                style={{
+                                                                    ...mono,
+                                                                    fontSize: 12.5,
+                                                                    color: 'var(--ox-text-muted)',
+                                                                }}
+                                                            >
+                                                                {c.model}
+                                                            </span>
+                                                        ) : (
+                                                            <span
+                                                                style={{
+                                                                    fontWeight: 400,
+                                                                    fontStyle:
+                                                                        'italic',
+                                                                    color: 'var(--ox-text-subtle)',
+                                                                }}
+                                                            >
+                                                                No name
+                                                            </span>
+                                                        ))}
+                                                </button>
+                                            )}
+                                            {c.kind === 'usage' && (
+                                                <div
+                                                    style={{
+                                                        fontSize: 11,
+                                                        fontWeight: 400,
+                                                        color: 'var(--ox-text-subtle)',
+                                                        ...mono,
+                                                    }}
+                                                >
+                                                    {c.name
+                                                        ? `${c.model} · `
+                                                        : ''}
+                                                    {tokens(c.input_tokens)} in
+                                                    / {tokens(c.output_tokens)}{' '}
+                                                    out
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td style={td}>
+                                            <Badge
+                                                tone={
+                                                    c.kind === 'usage'
+                                                        ? 'info'
+                                                        : c.amount_cents < 0
+                                                          ? 'success'
+                                                          : 'neutral'
+                                                }
+                                                dot={false}
                                             >
-                                                {c.model} ·{' '}
-                                                {tokens(c.input_tokens)} in /{' '}
-                                                {tokens(c.output_tokens)} out
-                                            </div>
-                                        )}
-                                    </td>
-                                    <td style={td}>
-                                        <Badge
-                                            tone={
-                                                c.kind === 'usage'
-                                                    ? 'info'
+                                                {c.kind === 'usage'
+                                                    ? 'Shows as usage'
                                                     : c.amount_cents < 0
-                                                      ? 'success'
-                                                      : 'neutral'
-                                            }
-                                            dot={false}
+                                                      ? 'Credit'
+                                                      : 'Fee'}
+                                            </Badge>
+                                        </td>
+                                        <td style={{ ...td, fontSize: 12.5 }}>
+                                            {c.cadence}
+                                        </td>
+                                        <td
+                                            style={{
+                                                ...td,
+                                                textAlign: 'right',
+                                                ...mono,
+                                            }}
                                         >
-                                            {c.kind === 'usage'
-                                                ? 'Shows as usage'
-                                                : c.amount_cents < 0
-                                                  ? 'Credit'
-                                                  : 'Fee'}
-                                        </Badge>
-                                    </td>
-                                    <td style={{ ...td, fontSize: 12.5 }}>
-                                        {c.cadence}
-                                    </td>
-                                    <td
-                                        style={{
-                                            ...td,
-                                            textAlign: 'right',
-                                            ...mono,
-                                        }}
-                                    >
-                                        {c.kind === 'usage' &&
-                                        c.amount_cents === 0
-                                            ? 'rate card'
-                                            : money(c.amount_cents)}
-                                    </td>
-                                    <td
-                                        style={{
-                                            ...td,
-                                            fontSize: 12,
-                                            color: 'var(--ox-text-subtle)',
-                                        }}
-                                    >
-                                        {c.last_run ?? 'never'} · {c.runs} run
-                                        {c.runs === 1 ? '' : 's'}
-                                    </td>
-                                    <td
-                                        style={{
-                                            ...td,
-                                            textAlign: 'right',
-                                            whiteSpace: 'nowrap',
-                                        }}
-                                    >
-                                        {c.cadence !== 'once' && (
+                                            {c.kind === 'usage' &&
+                                            c.amount_cents === 0
+                                                ? 'rate card'
+                                                : money(c.amount_cents)}
+                                        </td>
+                                        <td
+                                            style={{
+                                                ...td,
+                                                fontSize: 12,
+                                                color: 'var(--ox-text-subtle)',
+                                            }}
+                                        >
+                                            {c.last_run ?? 'never'} · {c.runs}{' '}
+                                            run
+                                            {c.runs === 1 ? '' : 's'}
+                                        </td>
+                                        <td
+                                            style={{
+                                                ...td,
+                                                textAlign: 'right',
+                                                whiteSpace: 'nowrap',
+                                            }}
+                                        >
+                                            {c.cadence !== 'once' && (
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    onClick={() =>
+                                                        router.post(
+                                                            `/admin/charges/${c.id}/run`,
+                                                            {},
+                                                            {
+                                                                preserveScroll: true,
+                                                            },
+                                                        )
+                                                    }
+                                                >
+                                                    Bill now
+                                                </Button>
+                                            )}
                                             <Button
                                                 size="sm"
                                                 variant="ghost"
                                                 onClick={() =>
-                                                    router.post(
-                                                        `/admin/charges/${c.id}/run`,
-                                                        {},
+                                                    router.delete(
+                                                        `/admin/charges/${c.id}`,
                                                         {
                                                             preserveScroll: true,
                                                         },
                                                     )
                                                 }
                                             >
-                                                Bill now
+                                                <Icon
+                                                    name="trash"
+                                                    size={13}
+                                                    color="var(--ox-danger)"
+                                                />
                                             </Button>
-                                        )}
-                                        <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            onClick={() =>
-                                                router.delete(
-                                                    `/admin/charges/${c.id}`,
-                                                    { preserveScroll: true },
-                                                )
-                                            }
-                                        >
-                                            <Icon
-                                                name="trash"
-                                                size={13}
-                                                color="var(--ox-danger)"
-                                            />
-                                        </Button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 )}
             </Section>
 
             <Section title="Add a charge">
                 <form onSubmit={submit}>
-                    <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+                    <div
+                        style={{
+                            display: 'flex',
+                            gap: 6,
+                            marginBottom: 14,
+                            flexWrap: 'wrap',
+                        }}
+                    >
                         {(
                             [
                                 ['fee', 'Fee or credit'],
@@ -2376,13 +2527,17 @@ function ChargesTab({
                         style={{
                             display: 'grid',
                             gridTemplateColumns:
-                                'repeat(auto-fit, minmax(170px, 1fr))',
+                                'repeat(auto-fit, minmax(min(100%, 170px), 1fr))',
                             gap: 12,
                             alignItems: 'end',
                         }}
                     >
                         <label>
-                            <Lbl>Name (shown on their statement)</Lbl>
+                            <Lbl>
+                                {kind === 'usage'
+                                    ? 'Name (optional — shown on their statement)'
+                                    : 'Name (shown on their statement)'}
+                            </Lbl>
                             <input
                                 style={input}
                                 value={String(form.data.name)}
@@ -2392,7 +2547,7 @@ function ChargesTab({
                                 placeholder={
                                     kind === 'fee'
                                         ? 'Platform fee'
-                                        : 'Batch processing'
+                                        : 'Optional — the model and tokens say it'
                                 }
                             />
                         </label>
@@ -2580,8 +2735,12 @@ function ChargesTab({
                             />
                             This writes a real usage record. The client sees an
                             ordinary token-usage line — same wording as any
-                            other rollup, not flagged as an adjustment. On our
-                            side it stays stamped
+                            other rollup, not flagged as an adjustment. The line
+                            already carries the model and token counts, so a
+                            name is usually redundant: leave it blank and it
+                            reads as plain inference. Name it only when the
+                            client needs to see something specific on their
+                            statement. On our side it stays stamped
                             <code style={{ margin: '0 3px' }}>
                                 source=manual
                             </code>{' '}
@@ -2618,92 +2777,101 @@ function PeopleTab({
                 title="People"
                 hint="Everyone who can sign in to this client's portal."
             >
-                <table
-                    style={{
-                        width: '100%',
-                        borderCollapse: 'collapse',
-                        marginBottom: 16,
-                    }}
-                >
-                    <thead>
-                        <tr>
-                            <th style={th}>Name</th>
-                            <th style={th}>Email</th>
-                            <th style={th}>Role</th>
-                            <th style={th}>Last seen</th>
-                            <th style={{ ...th, textAlign: 'right' }}></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {staff.map((u) => (
-                            <tr key={u.id}>
-                                <td style={{ ...td, fontWeight: 600 }}>
-                                    {u.name}
-                                </td>
-                                <td style={{ ...td, ...mono, fontSize: 12.5 }}>
-                                    {u.email}
-                                </td>
-                                <td style={td}>
-                                    <Badge
-                                        tone={
-                                            u.role === 'owner'
-                                                ? 'brand'
-                                                : 'neutral'
-                                        }
-                                    >
-                                        {u.role}
-                                    </Badge>
-                                </td>
-                                <td
-                                    style={{
-                                        ...td,
-                                        fontSize: 12.5,
-                                        color: 'var(--ox-text-subtle)',
-                                    }}
-                                >
-                                    {u.last_login}
-                                </td>
-                                <td
-                                    style={{
-                                        ...td,
-                                        textAlign: 'right',
-                                        whiteSpace: 'nowrap',
-                                    }}
-                                >
-                                    <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        onClick={() =>
-                                            router.post(
-                                                `/admin/clients/${client.id}/staff/${u.id}/invite`,
-                                                {},
-                                                { preserveScroll: true },
-                                            )
-                                        }
-                                    >
-                                        Resend invite
-                                    </Button>
-                                    <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        onClick={() =>
-                                            router.delete(
-                                                `/admin/clients/${client.id}/staff/${u.id}`,
-                                                { preserveScroll: true },
-                                            )
-                                        }
-                                    >
-                                        <Icon
-                                            name="trash"
-                                            size={13}
-                                            color="var(--ox-danger)"
-                                        />
-                                    </Button>
-                                </td>
+                <div className="oe-table-wrap" style={{ marginBottom: 16 }}>
+                    <table
+                        style={{
+                            width: '100%',
+                            borderCollapse: 'collapse',
+                            minWidth: 620,
+                        }}
+                    >
+                        <thead>
+                            <tr>
+                                <th style={th}>Name</th>
+                                <th style={th}>Email</th>
+                                <th style={th}>Role</th>
+                                <th style={th}>Last seen</th>
+                                <th style={{ ...th, textAlign: 'right' }}></th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {staff.map((u) => (
+                                <tr key={u.id}>
+                                    <td style={{ ...td, fontWeight: 600 }}>
+                                        {u.name}
+                                    </td>
+                                    <td
+                                        style={{
+                                            ...td,
+                                            ...mono,
+                                            fontSize: 12.5,
+                                            overflowWrap: 'anywhere',
+                                        }}
+                                    >
+                                        {u.email}
+                                    </td>
+                                    <td style={td}>
+                                        <Badge
+                                            tone={
+                                                u.role === 'owner'
+                                                    ? 'brand'
+                                                    : 'neutral'
+                                            }
+                                        >
+                                            {u.role}
+                                        </Badge>
+                                    </td>
+                                    <td
+                                        style={{
+                                            ...td,
+                                            fontSize: 12.5,
+                                            color: 'var(--ox-text-subtle)',
+                                        }}
+                                    >
+                                        {u.last_login}
+                                    </td>
+                                    <td
+                                        style={{
+                                            ...td,
+                                            textAlign: 'right',
+                                            whiteSpace: 'nowrap',
+                                        }}
+                                    >
+                                        <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            onClick={() =>
+                                                router.post(
+                                                    `/admin/clients/${client.id}/staff/${u.id}/invite`,
+                                                    {},
+                                                    { preserveScroll: true },
+                                                )
+                                            }
+                                        >
+                                            Resend invite
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            onClick={() =>
+                                                router.delete(
+                                                    `/admin/clients/${client.id}/staff/${u.id}`,
+                                                    { preserveScroll: true },
+                                                )
+                                            }
+                                        >
+                                            <Icon
+                                                name="trash"
+                                                size={13}
+                                                color="var(--ox-danger)"
+                                            />
+                                        </Button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
 
                 <form
                     onSubmit={(e) => {
@@ -2716,7 +2884,7 @@ function PeopleTab({
                     style={{
                         display: 'grid',
                         gridTemplateColumns:
-                            'repeat(auto-fit, minmax(160px, 1fr))',
+                            'repeat(auto-fit, minmax(min(100%, 160px), 1fr))',
                         gap: 12,
                         alignItems: 'end',
                     }}
@@ -2783,10 +2951,14 @@ function PeopleTab({
                                 onSuccess: () => keyForm.reset('name'),
                             });
                         }}
-                        style={{ display: 'flex', gap: 8 }}
+                        style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}
                     >
                         <input
-                            style={{ ...input, width: 150 }}
+                            style={{
+                                ...input,
+                                flex: '1 1 150px',
+                                minWidth: 140,
+                            }}
                             placeholder="Key name"
                             value={keyForm.data.name}
                             onChange={(e) =>
@@ -2813,75 +2985,89 @@ function PeopleTab({
                         No gateway keys yet.
                     </p>
                 ) : (
-                    <table
-                        style={{ width: '100%', borderCollapse: 'collapse' }}
-                    >
-                        <thead>
-                            <tr>
-                                <th style={th}>Name</th>
-                                <th style={th}>Key</th>
-                                <th style={th}>Status</th>
-                                <th style={th}>Last used</th>
-                                <th style={{ ...th, textAlign: 'right' }}></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {accessKeys.map((k) => (
-                                <tr key={k.id}>
-                                    <td style={{ ...td, fontWeight: 600 }}>
-                                        {k.name}
-                                    </td>
-                                    <td
-                                        style={{
-                                            ...td,
-                                            ...mono,
-                                            fontSize: 12.5,
-                                        }}
-                                    >
-                                        {k.frag}
-                                    </td>
-                                    <td style={td}>
-                                        <Badge
-                                            tone={
-                                                k.status === 'active'
-                                                    ? 'success'
-                                                    : 'neutral'
-                                            }
+                    <div className="oe-table-wrap">
+                        <table
+                            style={{
+                                width: '100%',
+                                borderCollapse: 'collapse',
+                                minWidth: 620,
+                            }}
+                        >
+                            <thead>
+                                <tr>
+                                    <th style={th}>Name</th>
+                                    <th style={th}>Key</th>
+                                    <th style={th}>Status</th>
+                                    <th style={th}>Last used</th>
+                                    <th
+                                        style={{ ...th, textAlign: 'right' }}
+                                    ></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {accessKeys.map((k) => (
+                                    <tr key={k.id}>
+                                        <td style={{ ...td, fontWeight: 600 }}>
+                                            {k.name}
+                                        </td>
+                                        <td
+                                            style={{
+                                                ...td,
+                                                ...mono,
+                                                fontSize: 12.5,
+                                                overflowWrap: 'anywhere',
+                                            }}
                                         >
-                                            {k.status}
-                                        </Badge>
-                                    </td>
-                                    <td
-                                        style={{
-                                            ...td,
-                                            fontSize: 12.5,
-                                            color: 'var(--ox-text-subtle)',
-                                        }}
-                                    >
-                                        {k.last_used}
-                                    </td>
-                                    <td style={{ ...td, textAlign: 'right' }}>
-                                        {k.status === 'active' && (
-                                            <Button
-                                                size="sm"
-                                                variant="ghost"
-                                                onClick={() =>
-                                                    router.delete(
-                                                        `/admin/platform/access-keys/${k.id}`,
-                                                        {
-                                                            preserveScroll: true,
-                                                        },
-                                                    )
+                                            {k.frag}
+                                        </td>
+                                        <td style={td}>
+                                            <Badge
+                                                tone={
+                                                    k.status === 'active'
+                                                        ? 'success'
+                                                        : 'neutral'
                                                 }
                                             >
-                                                Revoke
-                                            </Button>
-                                        )}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                                                {k.status}
+                                            </Badge>
+                                        </td>
+                                        <td
+                                            style={{
+                                                ...td,
+                                                fontSize: 12.5,
+                                                color: 'var(--ox-text-subtle)',
+                                            }}
+                                        >
+                                            {k.last_used}
+                                        </td>
+                                        <td
+                                            style={{
+                                                ...td,
+                                                textAlign: 'right',
+                                            }}
+                                        >
+                                            {k.status === 'active' && (
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    onClick={() =>
+                                                        router.delete(
+                                                            `/admin/platform/access-keys/${k.id}`,
+                                                            {
+                                                                preserveScroll: true,
+                                                            },
+                                                        )
+                                                    }
+                                                >
+                                                    Revoke
+                                                </Button>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 )}
             </Section>
 
@@ -2890,66 +3076,77 @@ function PeopleTab({
                     title="Attributed provider projects"
                     hint="Usage pulled from these projects bills to this client."
                 >
-                    <table
-                        style={{ width: '100%', borderCollapse: 'collapse' }}
-                    >
-                        <thead>
-                            <tr>
-                                <th style={th}>Label</th>
-                                <th style={th}>Provider</th>
-                                <th style={th}>Project</th>
-                                <th style={th}>Status</th>
-                                <th style={{ ...th, textAlign: 'right' }}>
-                                    Revenue MTD
-                                </th>
-                                <th style={th}>Synced</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {sources.map((s) => (
-                                <tr key={s.id}>
-                                    <td style={{ ...td, fontWeight: 600 }}>
-                                        {s.label}
-                                    </td>
-                                    <td style={td}>{s.provider}</td>
-                                    <td
-                                        style={{ ...td, ...mono, fontSize: 12 }}
-                                    >
-                                        {s.project ?? '—'}
-                                    </td>
-                                    <td style={td}>
-                                        <Badge
-                                            tone={
-                                                s.status === 'active'
-                                                    ? 'success'
-                                                    : 'neutral'
-                                            }
-                                        >
-                                            {s.status}
-                                        </Badge>
-                                    </td>
-                                    <td
-                                        style={{
-                                            ...td,
-                                            textAlign: 'right',
-                                            ...mono,
-                                        }}
-                                    >
-                                        {money(s.revenue_cents)}
-                                    </td>
-                                    <td
-                                        style={{
-                                            ...td,
-                                            fontSize: 12.5,
-                                            color: 'var(--ox-text-subtle)',
-                                        }}
-                                    >
-                                        {s.synced}
-                                    </td>
+                    <div className="oe-table-wrap">
+                        <table
+                            style={{
+                                width: '100%',
+                                borderCollapse: 'collapse',
+                                minWidth: 640,
+                            }}
+                        >
+                            <thead>
+                                <tr>
+                                    <th style={th}>Label</th>
+                                    <th style={th}>Provider</th>
+                                    <th style={th}>Project</th>
+                                    <th style={th}>Status</th>
+                                    <th style={{ ...th, textAlign: 'right' }}>
+                                        Revenue MTD
+                                    </th>
+                                    <th style={th}>Synced</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {sources.map((s) => (
+                                    <tr key={s.id}>
+                                        <td style={{ ...td, fontWeight: 600 }}>
+                                            {s.label}
+                                        </td>
+                                        <td style={td}>{s.provider}</td>
+                                        <td
+                                            style={{
+                                                ...td,
+                                                ...mono,
+                                                fontSize: 12,
+                                                overflowWrap: 'anywhere',
+                                            }}
+                                        >
+                                            {s.project ?? '—'}
+                                        </td>
+                                        <td style={td}>
+                                            <Badge
+                                                tone={
+                                                    s.status === 'active'
+                                                        ? 'success'
+                                                        : 'neutral'
+                                                }
+                                            >
+                                                {s.status}
+                                            </Badge>
+                                        </td>
+                                        <td
+                                            style={{
+                                                ...td,
+                                                textAlign: 'right',
+                                                ...mono,
+                                            }}
+                                        >
+                                            {money(s.revenue_cents)}
+                                        </td>
+                                        <td
+                                            style={{
+                                                ...td,
+                                                fontSize: 12.5,
+                                                color: 'var(--ox-text-subtle)',
+                                            }}
+                                        >
+                                            {s.synced}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </Section>
             )}
         </>
@@ -3040,62 +3237,68 @@ function BillingTab({
                         No top-ups yet.
                     </p>
                 ) : (
-                    <table
-                        style={{ width: '100%', borderCollapse: 'collapse' }}
-                    >
-                        <thead>
-                            <tr>
-                                <th style={th}>Date</th>
-                                <th style={{ ...th, textAlign: 'right' }}>
-                                    Amount
-                                </th>
-                                <th style={th}>Trigger</th>
-                                <th style={th}>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {topUps.map((t, i) => (
-                                <tr key={i}>
-                                    <td style={td}>{t.date}</td>
-                                    <td
-                                        style={{
-                                            ...td,
-                                            textAlign: 'right',
-                                            ...mono,
-                                        }}
-                                    >
-                                        {money(t.amount_cents)}
-                                    </td>
-                                    <td style={{ ...td, fontSize: 12.5 }}>
-                                        {t.trigger}
-                                    </td>
-                                    <td style={td}>
-                                        <Badge
-                                            tone={
-                                                t.status === 'succeeded'
-                                                    ? 'success'
-                                                    : t.status === 'failed'
-                                                      ? 'danger'
-                                                      : 'warning'
-                                            }
-                                        >
-                                            {t.status}
-                                        </Badge>
-                                        {t.reason && (
-                                            <div
-                                                style={{
-                                                    fontSize: 11,
-                                                    color: 'var(--ox-danger)',
-                                                }}
-                                            >
-                                                {t.reason}
-                                            </div>
-                                        )}
-                                    </td>
+                    <div className="oe-table-wrap">
+                        <table
+                            style={{
+                                width: '100%',
+                                borderCollapse: 'collapse',
+                                minWidth: 520,
+                            }}
+                        >
+                            <thead>
+                                <tr>
+                                    <th style={th}>Date</th>
+                                    <th style={{ ...th, textAlign: 'right' }}>
+                                        Amount
+                                    </th>
+                                    <th style={th}>Trigger</th>
+                                    <th style={th}>Status</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {topUps.map((t, i) => (
+                                    <tr key={i}>
+                                        <td style={td}>{t.date}</td>
+                                        <td
+                                            style={{
+                                                ...td,
+                                                textAlign: 'right',
+                                                ...mono,
+                                            }}
+                                        >
+                                            {money(t.amount_cents)}
+                                        </td>
+                                        <td style={{ ...td, fontSize: 12.5 }}>
+                                            {t.trigger}
+                                        </td>
+                                        <td style={td}>
+                                            <Badge
+                                                tone={
+                                                    t.status === 'succeeded'
+                                                        ? 'success'
+                                                        : t.status === 'failed'
+                                                          ? 'danger'
+                                                          : 'warning'
+                                                }
+                                            >
+                                                {t.status}
+                                            </Badge>
+                                            {t.reason && (
+                                                <div
+                                                    style={{
+                                                        fontSize: 11,
+                                                        color: 'var(--ox-danger)',
+                                                    }}
+                                                >
+                                                    {t.reason}
+                                                </div>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 )}
             </Section>
 
@@ -3103,71 +3306,85 @@ function BillingTab({
                 title="Ledger"
                 hint="Every movement on this account, newest first."
             >
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                        <tr>
-                            <th style={th}>Date</th>
-                            <th style={th}>Type</th>
-                            <th style={th}>Description</th>
-                            <th style={{ ...th, textAlign: 'right' }}>
-                                Amount
-                            </th>
-                            <th style={{ ...th, textAlign: 'right' }}>
-                                Balance
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {ledger.map((e, i) => (
-                            <tr key={i}>
-                                <td
-                                    style={{
-                                        ...td,
-                                        whiteSpace: 'nowrap',
-                                        fontSize: 12.5,
-                                    }}
-                                >
-                                    {e.date}
-                                </td>
-                                <td
-                                    style={{
-                                        ...td,
-                                        fontSize: 12.5,
-                                        color: 'var(--ox-text-subtle)',
-                                    }}
-                                >
-                                    {e.type}
-                                </td>
-                                <td style={{ ...td, fontSize: 12.5 }}>
-                                    {e.desc ?? '—'}
-                                </td>
-                                <td
-                                    style={{
-                                        ...td,
-                                        textAlign: 'right',
-                                        ...mono,
-                                        color:
-                                            e.amount_cents >= 0
-                                                ? 'var(--ox-success)'
-                                                : 'var(--ox-text)',
-                                    }}
-                                >
-                                    {money(e.amount_cents, { sign: true })}
-                                </td>
-                                <td
-                                    style={{
-                                        ...td,
-                                        textAlign: 'right',
-                                        ...mono,
-                                        color: 'var(--ox-text-subtle)',
-                                    }}
-                                >
-                                    {money(e.balance_after_cents)}
-                                </td>
+                <div className="oe-table-wrap">
+                    <table
+                        style={{
+                            width: '100%',
+                            borderCollapse: 'collapse',
+                            minWidth: 600,
+                        }}
+                    >
+                        <thead>
+                            <tr>
+                                <th style={th}>Date</th>
+                                <th style={th}>Type</th>
+                                <th style={th}>Description</th>
+                                <th style={{ ...th, textAlign: 'right' }}>
+                                    Amount
+                                </th>
+                                <th style={{ ...th, textAlign: 'right' }}>
+                                    Balance
+                                </th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {ledger.map((e, i) => (
+                                <tr key={i}>
+                                    <td
+                                        style={{
+                                            ...td,
+                                            whiteSpace: 'nowrap',
+                                            fontSize: 12.5,
+                                        }}
+                                    >
+                                        {e.date}
+                                    </td>
+                                    <td
+                                        style={{
+                                            ...td,
+                                            fontSize: 12.5,
+                                            color: 'var(--ox-text-subtle)',
+                                        }}
+                                    >
+                                        {e.type}
+                                    </td>
+                                    <td
+                                        style={{
+                                            ...td,
+                                            fontSize: 12.5,
+                                            overflowWrap: 'anywhere',
+                                        }}
+                                    >
+                                        {e.desc ?? '—'}
+                                    </td>
+                                    <td
+                                        style={{
+                                            ...td,
+                                            textAlign: 'right',
+                                            ...mono,
+                                            color:
+                                                e.amount_cents >= 0
+                                                    ? 'var(--ox-success)'
+                                                    : 'var(--ox-text)',
+                                        }}
+                                    >
+                                        {money(e.amount_cents, { sign: true })}
+                                    </td>
+                                    <td
+                                        style={{
+                                            ...td,
+                                            textAlign: 'right',
+                                            ...mono,
+                                            color: 'var(--ox-text-subtle)',
+                                        }}
+                                    >
+                                        {money(e.balance_after_cents)}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             </Section>
         </>
     );
@@ -3189,46 +3406,62 @@ function ActivityTab({ audit }: { audit: Props['audit'] }) {
                     Nothing yet.
                 </p>
             ) : (
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                        <tr>
-                            <th style={th}>When</th>
-                            <th style={th}>Action</th>
-                            <th style={th}>Actor</th>
-                            <th style={th}>Detail</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {audit.map((a, i) => (
-                            <tr key={i}>
-                                <td
-                                    style={{
-                                        ...td,
-                                        whiteSpace: 'nowrap',
-                                        fontSize: 12.5,
-                                    }}
-                                >
-                                    {a.at}
-                                </td>
-                                <td style={{ ...td, ...mono, fontSize: 12 }}>
-                                    {a.action}
-                                </td>
-                                <td style={{ ...td, fontSize: 12.5 }}>
-                                    {a.actor}
-                                </td>
-                                <td
-                                    style={{
-                                        ...td,
-                                        fontSize: 12.5,
-                                        color: 'var(--ox-text-subtle)',
-                                    }}
-                                >
-                                    {a.summary ?? '—'}
-                                </td>
+                <div className="oe-table-wrap">
+                    <table
+                        style={{
+                            width: '100%',
+                            borderCollapse: 'collapse',
+                            minWidth: 560,
+                        }}
+                    >
+                        <thead>
+                            <tr>
+                                <th style={th}>When</th>
+                                <th style={th}>Action</th>
+                                <th style={th}>Actor</th>
+                                <th style={th}>Detail</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {audit.map((a, i) => (
+                                <tr key={i}>
+                                    <td
+                                        style={{
+                                            ...td,
+                                            whiteSpace: 'nowrap',
+                                            fontSize: 12.5,
+                                        }}
+                                    >
+                                        {a.at}
+                                    </td>
+                                    <td
+                                        style={{
+                                            ...td,
+                                            ...mono,
+                                            fontSize: 12,
+                                            overflowWrap: 'anywhere',
+                                        }}
+                                    >
+                                        {a.action}
+                                    </td>
+                                    <td style={{ ...td, fontSize: 12.5 }}>
+                                        {a.actor}
+                                    </td>
+                                    <td
+                                        style={{
+                                            ...td,
+                                            fontSize: 12.5,
+                                            color: 'var(--ox-text-subtle)',
+                                            overflowWrap: 'anywhere',
+                                        }}
+                                    >
+                                        {a.summary ?? '—'}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             )}
         </Section>
     );

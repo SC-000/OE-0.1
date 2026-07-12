@@ -154,7 +154,9 @@ export function Donut({ segments, size = 200, thickness = 26, centerValue, cente
     let acc = 0;
     return (
         <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap', ...style }}>
-            <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ flexShrink: 0 }}>
+            {/* maxWidth lets the viewBox scale the donut down on a narrow card;
+                flexShrink:0 alone would hold it at `size` and push the legend out. */}
+            <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ flexShrink: 0, maxWidth: '100%', height: 'auto' }}>
                 <g transform={`rotate(-90 ${size / 2} ${size / 2})`}>
                     <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--ox-beige-200)" strokeWidth={thickness} />
                     {segments.map((s, i) => {
@@ -170,11 +172,11 @@ export function Donut({ segments, size = 200, thickness = 26, centerValue, cente
                 {centerValue && <text x={size / 2} y={size / 2 - 2} textAnchor="middle" fontFamily={MONO} fontSize="26" fontWeight="600" fill={INK}>{centerValue}</text>}
                 {centerLabel && <text x={size / 2} y={size / 2 + 18} textAnchor="middle" fontFamily={SANS} fontSize="11.5" fill={AXIS}>{centerLabel}</text>}
             </svg>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0, flex: '1 1 auto' }}>
                 {segments.map((s, i) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <span style={{ width: 11, height: 11, borderRadius: 3, background: s.color || CAT_PALETTE[i], flexShrink: 0 }} />
-                        <span style={{ fontFamily: SANS, fontSize: 13, color: INK, minWidth: 130 }}>{s.label}</span>
+                        <span style={{ fontFamily: SANS, fontSize: 13, color: INK, minWidth: 0, flexBasis: 130, overflowWrap: 'anywhere' }}>{s.label}</span>
                         <span style={{ fontFamily: MONO, fontSize: 12.5, color: 'var(--ox-text-muted)', marginLeft: 'auto' }}>{Math.round((s.value / total) * 100)}%</span>
                     </div>
                 ))}

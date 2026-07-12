@@ -101,7 +101,7 @@ export default function Audit({ logs, actions, filters }: Props) {
             </div>
 
             <Card padding="none" style={{ overflow: 'hidden' }}>
-                <div style={{ overflowX: 'auto' }}>
+                <div className="oe-table-wrap">
                     <table
                         style={{
                             width: '100%',
@@ -184,6 +184,7 @@ export default function Audit({ logs, actions, filters }: Props) {
                                             ...td,
                                             fontSize: 12.5,
                                             maxWidth: 340,
+                                            overflowWrap: 'anywhere',
                                         }}
                                     >
                                         {l.summary ?? '—'}

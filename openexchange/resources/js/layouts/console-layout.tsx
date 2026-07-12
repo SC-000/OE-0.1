@@ -3,13 +3,18 @@ import type { ReactNode } from 'react';
 import ImpersonationBanner from '@/components/impersonation-banner';
 import type { Impersonation } from '@/components/impersonation-banner';
 import { Icon, Logo } from '@/components/oe';
+import PortalShell from '@/layouts/portal-shell';
+import type { PortalNavItem } from '@/layouts/portal-shell';
 
 /**
  * The CLIENT console. Nothing admin lives here — platform operators get their own
  * shell at /admin. An admin only sees this chrome while impersonating, in which
  * case the banner makes whose account they're in unmistakable.
+ *
+ * PortalShell supplies only the chrome (drawer, header). This NAV is passed in
+ * and is the console's alone; admin passes its own. The two are never merged.
  */
-const NAV = [
+const NAV: PortalNavItem[] = [
     { id: 'overview', label: 'Overview', icon: 'activity', href: '/console' },
     {
         id: 'usage',
@@ -66,273 +71,145 @@ export default function ConsoleLayout({
         .join('')
         .toUpperCase();
 
-    const navBtn = (n: {
-        id: string;
-        label: string;
-        icon: string;
-        href: string;
-    }) => {
-        const on = n.id === active;
-
-        return (
+    const sidebarFooter = (
+        <>
             <Link
-                key={n.id}
-                href={n.href}
+                href="/console/billing"
+                style={{
+                    padding: 12,
+                    borderRadius: 'var(--ox-radius-md)',
+                    background: 'rgba(255,255,255,0.05)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 6,
+                    textDecoration: 'none',
+                }}
+            >
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>
+                    Billing account
+                </span>
+                <span
+                    style={{
+                        fontSize: 12.5,
+                        color: 'var(--ox-green-400)',
+                        fontWeight: 600,
+                    }}
+                >
+                    Manage balance &amp; top-up →
+                </span>
+            </Link>
+            <div
                 style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 11,
-                    padding: '9px 11px',
-                    borderRadius: 'var(--ox-radius-md)',
-                    textDecoration: 'none',
-                    background: on ? 'rgba(51,193,62,0.16)' : 'transparent',
-                    color: on
-                        ? 'var(--ox-green-400)'
-                        : 'rgba(255,255,255,0.72)',
-                    fontSize: 'var(--ox-text-sm)',
-                    fontWeight: on ? 600 : 500,
+                    gap: 10,
+                    padding: '4px 6px',
                 }}
             >
-                <Icon
-                    name={n.icon}
-                    size={17}
-                    color={
-                        on ? 'var(--ox-green-400)' : 'rgba(255,255,255,0.72)'
-                    }
-                />
-                {n.label}
-            </Link>
-        );
-    };
-
-    return (
-        <div
-            style={{
-                display: 'flex',
-                minHeight: '100vh',
-                background: 'var(--ox-bg)',
-            }}
-        >
-            <aside
-                className="oe-console-sidebar"
-                style={{
-                    width: 236,
-                    flexShrink: 0,
-                    background: 'var(--ox-ink-900)',
-                    color: '#fff',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    padding: '18px 14px',
-                    gap: 22,
-                    position: 'sticky',
-                    top: 0,
-                    height: '100vh',
-                }}
-            >
-                <Link href="/" style={{ padding: '4px 8px' }}>
-                    <Logo size={26} />
-                </Link>
-                <nav
-                    style={{ display: 'flex', flexDirection: 'column', gap: 2 }}
-                >
-                    {NAV.map(navBtn)}
-                </nav>
-
                 <div
                     style={{
-                        marginTop: 'auto',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 12,
+                        width: 30,
+                        height: 30,
+                        flexShrink: 0,
+                        borderRadius: '50%',
+                        background: 'var(--ox-green-600)',
+                        display: 'grid',
+                        placeItems: 'center',
+                        fontSize: 12,
+                        fontWeight: 700,
+                        color: '#06220b',
                     }}
                 >
-                    <Link
-                        href="/console/billing"
-                        style={{
-                            padding: 12,
-                            borderRadius: 'var(--ox-radius-md)',
-                            background: 'rgba(255,255,255,0.05)',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: 6,
-                            textDecoration: 'none',
-                        }}
-                    >
-                        <span
-                            style={{
-                                fontSize: 11,
-                                color: 'rgba(255,255,255,0.55)',
-                            }}
-                        >
-                            Billing account
-                        </span>
-                        <span
-                            style={{
-                                fontSize: 12.5,
-                                color: 'var(--ox-green-400)',
-                                fontWeight: 600,
-                            }}
-                        >
-                            Manage balance &amp; top-up →
-                        </span>
-                    </Link>
+                    {initials}
+                </div>
+                <div style={{ lineHeight: 1.2, minWidth: 0, flex: 1 }}>
                     <div
                         style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 10,
-                            padding: '4px 6px',
+                            fontSize: 12,
+                            fontWeight: 600,
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
                         }}
                     >
-                        <div
-                            style={{
-                                width: 30,
-                                height: 30,
-                                borderRadius: '50%',
-                                background: 'var(--ox-green-600)',
-                                display: 'grid',
-                                placeItems: 'center',
-                                fontSize: 12,
-                                fontWeight: 700,
-                                color: '#06220b',
-                            }}
-                        >
-                            {initials}
-                        </div>
-                        <div style={{ lineHeight: 1.2, minWidth: 0, flex: 1 }}>
-                            <div
-                                style={{
-                                    fontSize: 12,
-                                    fontWeight: 600,
-                                    whiteSpace: 'nowrap',
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                }}
-                            >
-                                {user?.name || 'Ada Reyes'}
-                            </div>
-                            <div
-                                style={{
-                                    fontSize: 10,
-                                    color: 'rgba(255,255,255,0.5)',
-                                    whiteSpace: 'nowrap',
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                }}
-                            >
-                                {accountName ?? 'Your account'}
-                            </div>
-                        </div>
-                        <Link
-                            href="/logout"
-                            method="post"
-                            as="button"
-                            style={{
-                                background: 'transparent',
-                                border: 'none',
-                                cursor: 'pointer',
-                                color: 'rgba(255,255,255,0.5)',
-                                padding: 4,
-                            }}
-                            aria-label="Log out"
-                        >
-                            <Icon
-                                name="log-out"
-                                size={16}
-                                color="rgba(255,255,255,0.5)"
-                            />
-                        </Link>
+                        {user?.name || 'Ada Reyes'}
+                    </div>
+                    <div
+                        style={{
+                            fontSize: 10,
+                            color: 'rgba(255,255,255,0.5)',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                        }}
+                    >
+                        {accountName ?? 'Your account'}
                     </div>
                 </div>
-            </aside>
+                <Link
+                    href="/logout"
+                    method="post"
+                    as="button"
+                    style={{
+                        background: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        color: 'rgba(255,255,255,0.5)',
+                        padding: 8,
+                    }}
+                    aria-label="Log out"
+                >
+                    <Icon
+                        name="log-out"
+                        size={16}
+                        color="rgba(255,255,255,0.5)"
+                    />
+                </Link>
+            </div>
+        </>
+    );
 
-            <div
+    const search = (
+        <div
+            className="oe-desktop-nav"
+            style={{
+                alignItems: 'center',
+                gap: 8,
+                padding: '0 12px',
+                height: 38,
+                borderRadius: 'var(--ox-radius-md)',
+                border: '1px solid var(--ox-border)',
+                background: 'var(--ox-bg-subtle)',
+                width: 200,
+            }}
+        >
+            <Icon name="search" size={15} color="var(--ox-text-subtle)" />
+            <span
                 style={{
-                    flex: 1,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    minWidth: 0,
+                    fontSize: 'var(--ox-text-sm)',
+                    color: 'var(--ox-text-subtle)',
                 }}
             >
-                <ImpersonationBanner />
-                <header
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: 16,
-                        padding: '16px 28px',
-                        borderBottom: '1px solid var(--ox-border)',
-                        background: 'var(--ox-surface)',
-                        position: 'sticky',
-                        top: 0,
-                        zIndex: 20,
-                    }}
-                >
-                    <div>
-                        <h1
-                            style={{
-                                margin: 0,
-                                fontSize: 'var(--ox-text-xl)',
-                                fontWeight: 700,
-                                letterSpacing: '-0.01em',
-                            }}
-                        >
-                            {title}
-                        </h1>
-                        {subtitle && (
-                            <p
-                                style={{
-                                    margin: '3px 0 0',
-                                    fontSize: 'var(--ox-text-sm)',
-                                    color: 'var(--ox-text-subtle)',
-                                }}
-                            >
-                                {subtitle}
-                            </p>
-                        )}
-                    </div>
-                    <div
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 10,
-                        }}
-                    >
-                        <div
-                            className="oe-desktop-nav"
-                            style={{
-                                alignItems: 'center',
-                                gap: 8,
-                                padding: '0 12px',
-                                height: 38,
-                                borderRadius: 'var(--ox-radius-md)',
-                                border: '1px solid var(--ox-border)',
-                                background: 'var(--ox-bg-subtle)',
-                                width: 200,
-                            }}
-                        >
-                            <Icon
-                                name="search"
-                                size={15}
-                                color="var(--ox-text-subtle)"
-                            />
-                            <span
-                                style={{
-                                    fontSize: 'var(--ox-text-sm)',
-                                    color: 'var(--ox-text-subtle)',
-                                }}
-                            >
-                                Search…
-                            </span>
-                        </div>
-                        {actions}
-                    </div>
-                </header>
-                <div style={{ padding: contentPadding ? 28 : 0, flex: 1 }}>
-                    {children}
-                </div>
-            </div>
+                Search…
+            </span>
         </div>
+    );
+
+    return (
+        <PortalShell
+            nav={NAV}
+            active={active}
+            brand={<Logo size={26} />}
+            brandHref="/"
+            sidebarFooter={sidebarFooter}
+            title={title}
+            subtitle={subtitle}
+            actions={actions}
+            headerExtras={search}
+            banner={<ImpersonationBanner />}
+            contentPadding={contentPadding}
+        >
+            {children}
+        </PortalShell>
     );
 }

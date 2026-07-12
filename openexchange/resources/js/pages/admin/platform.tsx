@@ -359,7 +359,8 @@ export default function Platform({
             <div
                 style={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
+                    gridTemplateColumns:
+                        'repeat(auto-fit, minmax(min(100%, 170px), 1fr))',
                     gap: 12,
                     marginBottom: 20,
                 }}
@@ -558,7 +559,7 @@ function BackendsTab({ backends }: { backends: Backend[] }) {
                     style={{
                         display: 'grid',
                         gridTemplateColumns:
-                            'repeat(auto-fit, minmax(150px, 1fr))',
+                            'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',
                         gap: 12,
                         alignItems: 'end',
                         marginBottom: 18,
@@ -676,9 +677,13 @@ function BackendsTab({ backends }: { backends: Backend[] }) {
             )}
 
             {backends.length > 0 && (
-                <div style={{ overflowX: 'auto' }}>
+                <div className="oe-table-wrap">
                     <table
-                        style={{ width: '100%', borderCollapse: 'collapse' }}
+                        style={{
+                            width: '100%',
+                            borderCollapse: 'collapse',
+                            minWidth: 640,
+                        }}
                     >
                         <thead>
                             <tr>
@@ -708,7 +713,12 @@ function BackendsTab({ backends }: { backends: Backend[] }) {
                                         {b.backend}
                                     </td>
                                     <td
-                                        style={{ ...td, ...mono, fontSize: 12 }}
+                                        style={{
+                                            ...td,
+                                            ...mono,
+                                            fontSize: 12,
+                                            overflowWrap: 'anywhere',
+                                        }}
                                     >
                                         {b.project}
                                     </td>
@@ -808,7 +818,7 @@ function DiscoveryTab({
                         : 'Discovery is unavailable until OPENAI_ADMIN_KEY is set.'}
                 </Empty>
             ) : (
-                <div style={{ overflowX: 'auto' }}>
+                <div className="oe-table-wrap">
                     <table
                         style={{
                             width: '100%',
@@ -849,6 +859,7 @@ function DiscoveryTab({
                                                 ...mono,
                                                 fontSize: 11,
                                                 color: 'var(--ox-text-subtle)',
+                                                overflowWrap: 'anywhere',
                                             }}
                                         >
                                             {p.id}
@@ -1089,7 +1100,7 @@ function AttributionTab({
                     style={{
                         display: 'grid',
                         gridTemplateColumns:
-                            'repeat(auto-fit, minmax(150px, 1fr))',
+                            'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',
                         gap: 12,
                         alignItems: 'end',
                         marginBottom: 18,
@@ -1188,7 +1199,7 @@ function AttributionTab({
                     attach one by hand.
                 </Empty>
             ) : (
-                <div style={{ overflowX: 'auto' }}>
+                <div className="oe-table-wrap">
                     <table
                         style={{
                             width: '100%',
@@ -1240,7 +1251,12 @@ function AttributionTab({
                                         )}
                                     </td>
                                     <td
-                                        style={{ ...td, ...mono, fontSize: 12 }}
+                                        style={{
+                                            ...td,
+                                            ...mono,
+                                            fontSize: 12,
+                                            overflowWrap: 'anywhere',
+                                        }}
                                     >
                                         {k.project}
                                     </td>
@@ -1354,7 +1370,7 @@ function KeysTab({
             {accessKeys.length === 0 ? (
                 <Empty>No gateway keys issued yet.</Empty>
             ) : (
-                <div style={{ overflowX: 'auto' }}>
+                <div className="oe-table-wrap">
                     <table
                         style={{
                             width: '100%',
@@ -1405,6 +1421,7 @@ function KeysTab({
                                             ...td,
                                             ...mono,
                                             fontSize: 12.5,
+                                            overflowWrap: 'anywhere',
                                         }}
                                     >
                                         {k.frag}

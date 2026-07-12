@@ -135,7 +135,7 @@ export default function Clients({ clients }: { clients: Client[] }) {
                         style={{
                             display: 'grid',
                             gridTemplateColumns:
-                                'repeat(auto-fit, minmax(200px, 1fr))',
+                                'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',
                             gap: 12,
                             alignItems: 'end',
                         }}
@@ -184,7 +184,13 @@ export default function Clients({ clients }: { clients: Client[] }) {
                                 placeholder="owen@northwind.com"
                             />
                         </Field>
-                        <div style={{ display: 'flex', gap: 8 }}>
+                        <div
+                            style={{
+                                display: 'flex',
+                                gap: 8,
+                                flexWrap: 'wrap',
+                            }}
+                        >
                             <Button
                                 type="submit"
                                 size="sm"
@@ -215,6 +221,7 @@ export default function Clients({ clients }: { clients: Client[] }) {
                         display: 'flex',
                         alignItems: 'center',
                         gap: 8,
+                        flexWrap: 'wrap',
                     }}
                 >
                     <Icon
@@ -228,6 +235,7 @@ export default function Clients({ clients }: { clients: Client[] }) {
                         placeholder="Search name, email or company…"
                         style={{
                             flex: 1,
+                            minWidth: 140,
                             border: 'none',
                             outline: 'none',
                             background: 'transparent',
@@ -236,7 +244,7 @@ export default function Clients({ clients }: { clients: Client[] }) {
                         }}
                     />
                 </div>
-                <div style={{ overflowX: 'auto' }}>
+                <div className="oe-table-wrap">
                     <table
                         style={{
                             width: '100%',
@@ -284,6 +292,7 @@ export default function Clients({ clients }: { clients: Client[] }) {
                                             style={{
                                                 fontSize: 11.5,
                                                 color: 'var(--ox-text-subtle)',
+                                                overflowWrap: 'anywhere',
                                             }}
                                         >
                                             {c.email ?? 'no owner email'} ·{' '}

@@ -37,8 +37,8 @@ export default function Sources({ sources = [], newKey = null }: Props) {
                             <span style={{ marginLeft: 'auto' }}><Badge tone="warning">Shown once</Badge></span>
                         </div>
                         <p style={{ margin: '0 0 12px', fontSize: 13.5, color: 'var(--ox-text-muted)' }}>Copy it now — for your security the secret won’t be shown again.</p>
-                        <div style={{ display: 'flex', gap: 8, alignItems: 'center', background: 'var(--ox-ink-900)', borderRadius: 10, padding: '12px 14px' }}>
-                            <code style={{ flex: 1, fontFamily: 'var(--ox-font-mono)', fontSize: 13, color: '#eef3f2', wordBreak: 'break-all' }}>{newKey.secret}</code>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', background: 'var(--ox-ink-900)', borderRadius: 10, padding: '12px 14px' }}>
+                            <code style={{ flex: 1, minWidth: 0, fontFamily: 'var(--ox-font-mono)', fontSize: 13, color: '#eef3f2', wordBreak: 'break-all', overflowWrap: 'anywhere' }}>{newKey.secret}</code>
                             <Button size="sm" variant="secondary" onClick={() => copy(newKey.secret)} leadingIcon={<Icon name="copy" size={14} />}>{copied ? 'Copied' : 'Copy'}</Button>
                         </div>
                     </Card>
@@ -50,7 +50,7 @@ export default function Sources({ sources = [], newKey = null }: Props) {
                     </Card>
                 )}
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 320px), 1fr))', gap: 16 }}>
                     {sources.map((s) => (
                         <Card key={s.id} padding="lg" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
@@ -121,5 +121,5 @@ const cap: React.CSSProperties = { fontSize: 'var(--ox-text-2xs)', textTransform
 const fig: React.CSSProperties = { fontFamily: 'var(--ox-font-mono)', fontSize: 15, fontWeight: 600, color: 'var(--ox-text)', marginTop: 2 };
 const iconBtn: React.CSSProperties = { display: 'grid', placeItems: 'center', width: 34, height: 34, borderRadius: 8, border: '1px solid var(--ox-border)', background: 'var(--ox-surface)', cursor: 'pointer', flexShrink: 0 };
 const overlay: React.CSSProperties = { position: 'fixed', inset: 0, background: 'var(--ox-overlay)', backdropFilter: 'blur(2px)', display: 'grid', placeItems: 'center', zIndex: 1100, padding: 20 };
-const modalBox: React.CSSProperties = { width: '100%', maxWidth: 440, background: 'var(--ox-surface)', borderRadius: 'var(--ox-radius-xl)', border: '1px solid var(--ox-border)', boxShadow: 'var(--ox-shadow-xl)', padding: 24 };
+const modalBox: React.CSSProperties = { width: '100%', maxWidth: 440, maxHeight: '90dvh', overflowY: 'auto', background: 'var(--ox-surface)', borderRadius: 'var(--ox-radius-xl)', border: '1px solid var(--ox-border)', boxShadow: 'var(--ox-shadow-xl)', padding: 24 };
 const inp: React.CSSProperties = { width: '100%', height: 42, padding: '0 12px', borderRadius: 'var(--ox-radius-md)', border: '1px solid var(--ox-border-strong)', background: 'var(--ox-bg-subtle)', fontFamily: 'var(--ox-font-sans)', fontSize: 14, color: 'var(--ox-text)', outline: 'none' };

@@ -291,7 +291,11 @@ export default function AddCard({
                                             />
                                         </Field>
                                         <div
-                                            style={{ display: 'flex', gap: 12 }}
+                                            style={{
+                                                display: 'flex',
+                                                gap: 12,
+                                                flexWrap: 'wrap',
+                                            }}
                                         >
                                             <Field label="Expiry">
                                                 <input
@@ -383,6 +387,7 @@ export default function AddCard({
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
+                                flexWrap: 'wrap',
                                 gap: 8,
                                 marginBottom: 36,
                             }}

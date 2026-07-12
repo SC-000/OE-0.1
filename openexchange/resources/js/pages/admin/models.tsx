@@ -409,117 +409,128 @@ export default function Models({
                             markup rate card eats your margin silently.
                         </p>
                     </div>
-                    <table
-                        style={{ width: '100%', borderCollapse: 'collapse' }}
-                    >
-                        <thead>
-                            <tr>
-                                <th style={th}>Model</th>
-                                <th style={th}>Current cost</th>
-                                <th style={th}>Feed says</th>
-                                <th style={th}>Change</th>
-                                <th style={{ ...th, textAlign: 'right' }}>
-                                    Decide
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {proposals.map((p) => (
-                                <tr key={p.id}>
-                                    <td
-                                        style={{
-                                            ...td,
-                                            ...mono,
-                                            fontSize: 12.5,
-                                        }}
-                                    >
-                                        {p.model}
-                                        <div
-                                            style={{
-                                                fontSize: 11,
-                                                color: 'var(--ox-text-subtle)',
-                                                fontFamily:
-                                                    'var(--ox-font-sans)',
-                                            }}
-                                        >
-                                            {p.provider} · {p.at}
-                                        </div>
-                                    </td>
-                                    <td style={{ ...td, ...mono }}>
-                                        {usdPerM(p.current_in)} /{' '}
-                                        {usdPerM(p.current_out)}
-                                    </td>
-                                    <td
-                                        style={{
-                                            ...td,
-                                            ...mono,
-                                            fontWeight: 600,
-                                        }}
-                                    >
-                                        {usdPerM(p.proposed_in)} /{' '}
-                                        {usdPerM(p.proposed_out)}
-                                    </td>
-                                    <td style={td}>
-                                        <Badge
-                                            tone={
-                                                p.impact === 'cost_up'
-                                                    ? 'danger'
-                                                    : 'success'
-                                            }
-                                        >
-                                            {p.delta_pct > 0 ? '+' : ''}
-                                            {p.delta_pct}% cost
-                                        </Badge>
-                                        <div
-                                            style={{
-                                                fontSize: 10.5,
-                                                color: 'var(--ox-text-subtle)',
-                                                marginTop: 3,
-                                            }}
-                                        >
-                                            {p.impact === 'cost_up'
-                                                ? 'eats your margin'
-                                                : 'widens your margin'}
-                                        </div>
-                                    </td>
-                                    <td
-                                        style={{
-                                            ...td,
-                                            textAlign: 'right',
-                                            whiteSpace: 'nowrap',
-                                        }}
-                                    >
-                                        <Button
-                                            size="sm"
-                                            onClick={() =>
-                                                router.post(
-                                                    `/admin/proposals/${p.id}/accept`,
-                                                    {},
-                                                    { preserveScroll: true },
-                                                )
-                                            }
-                                        >
-                                            Accept
-                                        </Button>
-                                        <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            style={{ marginLeft: 6 }}
-                                            onClick={() =>
-                                                router.post(
-                                                    `/admin/proposals/${p.id}/reject`,
-                                                    {},
-                                                    { preserveScroll: true },
-                                                )
-                                            }
-                                        >
-                                            Keep mine
-                                        </Button>
-                                    </td>
+                    <div className="oe-table-wrap">
+                        <table
+                            style={{
+                                width: '100%',
+                                borderCollapse: 'collapse',
+                                minWidth: 640,
+                            }}
+                        >
+                            <thead>
+                                <tr>
+                                    <th style={th}>Model</th>
+                                    <th style={th}>Current cost</th>
+                                    <th style={th}>Feed says</th>
+                                    <th style={th}>Change</th>
+                                    <th style={{ ...th, textAlign: 'right' }}>
+                                        Decide
+                                    </th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {proposals.map((p) => (
+                                    <tr key={p.id}>
+                                        <td
+                                            style={{
+                                                ...td,
+                                                ...mono,
+                                                fontSize: 12.5,
+                                                overflowWrap: 'anywhere',
+                                            }}
+                                        >
+                                            {p.model}
+                                            <div
+                                                style={{
+                                                    fontSize: 11,
+                                                    color: 'var(--ox-text-subtle)',
+                                                    fontFamily:
+                                                        'var(--ox-font-sans)',
+                                                }}
+                                            >
+                                                {p.provider} · {p.at}
+                                            </div>
+                                        </td>
+                                        <td style={{ ...td, ...mono }}>
+                                            {usdPerM(p.current_in)} /{' '}
+                                            {usdPerM(p.current_out)}
+                                        </td>
+                                        <td
+                                            style={{
+                                                ...td,
+                                                ...mono,
+                                                fontWeight: 600,
+                                            }}
+                                        >
+                                            {usdPerM(p.proposed_in)} /{' '}
+                                            {usdPerM(p.proposed_out)}
+                                        </td>
+                                        <td style={td}>
+                                            <Badge
+                                                tone={
+                                                    p.impact === 'cost_up'
+                                                        ? 'danger'
+                                                        : 'success'
+                                                }
+                                            >
+                                                {p.delta_pct > 0 ? '+' : ''}
+                                                {p.delta_pct}% cost
+                                            </Badge>
+                                            <div
+                                                style={{
+                                                    fontSize: 10.5,
+                                                    color: 'var(--ox-text-subtle)',
+                                                    marginTop: 3,
+                                                }}
+                                            >
+                                                {p.impact === 'cost_up'
+                                                    ? 'eats your margin'
+                                                    : 'widens your margin'}
+                                            </div>
+                                        </td>
+                                        <td
+                                            style={{
+                                                ...td,
+                                                textAlign: 'right',
+                                                whiteSpace: 'nowrap',
+                                            }}
+                                        >
+                                            <Button
+                                                size="sm"
+                                                onClick={() =>
+                                                    router.post(
+                                                        `/admin/proposals/${p.id}/accept`,
+                                                        {},
+                                                        {
+                                                            preserveScroll: true,
+                                                        },
+                                                    )
+                                                }
+                                            >
+                                                Accept
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                style={{ marginLeft: 6 }}
+                                                onClick={() =>
+                                                    router.post(
+                                                        `/admin/proposals/${p.id}/reject`,
+                                                        {},
+                                                        {
+                                                            preserveScroll: true,
+                                                        },
+                                                    )
+                                                }
+                                            >
+                                                Keep mine
+                                            </Button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </Card>
             )}
 
@@ -548,7 +559,7 @@ export default function Models({
                         style={{
                             display: 'grid',
                             gridTemplateColumns:
-                                'repeat(auto-fit, minmax(160px, 1fr))',
+                                'repeat(auto-fit, minmax(min(100%, 160px), 1fr))',
                             gap: 12,
                             alignItems: 'end',
                         }}
@@ -602,7 +613,13 @@ export default function Models({
                                 placeholder="10.00"
                             />
                         </label>
-                        <div style={{ display: 'flex', gap: 8 }}>
+                        <div
+                            style={{
+                                display: 'flex',
+                                gap: 8,
+                                flexWrap: 'wrap',
+                            }}
+                        >
                             <Button
                                 type="submit"
                                 size="sm"
@@ -623,7 +640,14 @@ export default function Models({
                 </Card>
             )}
 
-            <div style={{ display: 'flex', gap: 4, marginBottom: 14 }}>
+            <div
+                style={{
+                    display: 'flex',
+                    gap: 4,
+                    marginBottom: 14,
+                    flexWrap: 'wrap',
+                }}
+            >
                 {(
                     [
                         ['catalog', 'Cost basis & margin'],
@@ -727,7 +751,7 @@ export default function Models({
                     )}
                 </div>
 
-                <div style={{ overflowX: 'auto' }}>
+                <div className="oe-table-wrap">
                     {tab === 'catalog' ? (
                         <table
                             style={{
@@ -867,6 +891,8 @@ export default function Models({
                                                     style={{
                                                         ...mono,
                                                         fontSize: 12.5,
+                                                        overflowWrap:
+                                                            'anywhere',
                                                     }}
                                                 >
                                                     {m.model}
@@ -1210,6 +1236,7 @@ export default function Models({
                                                     ...td,
                                                     ...mono,
                                                     fontSize: 12.5,
+                                                    overflowWrap: 'anywhere',
                                                 }}
                                             >
                                                 {m.model}
