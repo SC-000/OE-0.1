@@ -10,6 +10,7 @@ use App\Models\TopUp;
 use Illuminate\Contracts\Mail\Mailable;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Throwable;
 
@@ -27,33 +28,85 @@ class AutoTopupService
         private BalanceService $balance,
     ) {}
 
-    /** Top up if enabled, low, and within the guard rails. */
-    public function maybeTopup(Client $client): ?TopUp
+    /**
+     * Why a client would or wouldn't be topped up right now.
+     *
+     * Pure: acquires no lock and writes nothing, so `oe:autopay --dry-run` can ask
+     * "why is this client not being charged?" without consuming the rate-limit slot
+     * it is reporting on. maybeTopup() re-acquires the lock atomically before charging.
+     */
+    public function evaluate(Client $client): array
     {
-        $client->refresh();
-        if (! $client->isLow()) {
-            return null;
-        }
-        if (! $client->auto_topup) {
-            $this->maybeLowBalanceEmail($client);
-
-            return null;
-        }
-
-        $interval = (int) config('openexchange.metering.autotopup_min_interval_minutes', 15);
-        // Rate-limit key is set HERE (in the attempt branch) — never re-fires in a loop.
-        if (! Cache::add("autotopup:lock:{$client->id}", 1, now()->addMinutes($interval))) {
-            return null;
-        }
-
         $maxPerDay = (int) config('openexchange.metering.autotopup_max_per_day', 3);
         $todayCount = TopUp::where('client_id', $client->id)
             ->where('trigger', 'auto')
             ->whereDate('created_at', today())
             ->count();
-        if ($todayCount >= $maxPerDay) {
+
+        $context = [
+            'client_id' => $client->id,
+            'balance_cents' => (int) $client->balance_cents,
+            'min_balance_cents' => (int) $client->min_balance_cents,
+            'auto_topup' => (bool) $client->auto_topup,
+            'auto_today' => $todayCount,
+            'max_per_day' => $maxPerDay,
+        ];
+
+        $skip = fn (string $reason, string $detail) => $context + [
+            'eligible' => false, 'reason' => $reason, 'detail' => $detail,
+        ];
+
+        if (! $client->isLow()) {
+            return $skip('not_low', "balance {$client->balance_cents}c >= minimum {$client->min_balance_cents}c");
+        }
+        if (! $client->auto_topup) {
+            return $skip('auto_topup_off', 'auto top-up is disabled for this client');
+        }
+        // A max of 0 (or less) disables the per-day guard rail entirely.
+        if ($maxPerDay > 0 && $todayCount >= $maxPerDay) {
+            return $skip('daily_cap', "{$todayCount} auto top-up(s) today >= cap {$maxPerDay}");
+        }
+        if (Cache::has("autotopup:lock:{$client->id}")) {
+            $interval = (int) config('openexchange.metering.autotopup_min_interval_minutes', 15);
+
+            return $skip('rate_limited', "attempted within the last {$interval} minute(s)");
+        }
+        // Reported, deliberately NOT enforced: a missing card still goes through to
+        // billings so the attempt is recorded as a failed top-up. Silently skipping it
+        // here would hide a real, actionable problem from the admin's attempt log.
+        $detail = $client->defaultPaymentMethod() ? 'will attempt' : 'will attempt — but no card on file';
+
+        return $context + ['eligible' => true, 'reason' => 'eligible', 'detail' => $detail];
+    }
+
+    /** Top up if enabled, low, and within the guard rails. */
+    public function maybeTopup(Client $client): ?TopUp
+    {
+        $client->refresh();
+
+        // Every skip is logged with its reason. A silent return here is indistinguishable
+        // from "auto top-up is broken", which is exactly the hole this fills.
+        $decision = $this->evaluate($client);
+        if (! $decision['eligible']) {
+            Log::info('autotopup.skipped', $decision);
+
+            if ($decision['reason'] === 'auto_topup_off') {
+                $this->maybeLowBalanceEmail($client);
+            }
+
             return null;
         }
+
+        $interval = (int) config('openexchange.metering.autotopup_min_interval_minutes', 15);
+        // Rate-limit key is acquired HERE (in the attempt branch) — never re-fires in a
+        // loop, and a client blocked by another guard no longer burns its lock slot.
+        if (! Cache::add("autotopup:lock:{$client->id}", 1, now()->addMinutes($interval))) {
+            Log::info('autotopup.skipped', $decision + ['reason' => 'rate_limited', 'detail' => 'lost lock race']);
+
+            return null;
+        }
+
+        Log::info('autotopup.attempting', $decision);
 
         return $this->topup($client, 'auto');
     }
@@ -84,8 +137,17 @@ class AutoTopupService
             $payment = $this->billings->payWithDefault($invoiceId);
 
             $this->confirmTopup($topup->fresh(), data_get($payment, 'transaction.id') ?? data_get($payment, 'id'));
+            Log::info('autotopup.charged', [
+                'client_id' => $client->id, 'topup_id' => $topup->id,
+                'amount_cents' => $amount, 'trigger' => $trigger, 'invoice' => $invoiceId,
+            ]);
         } catch (Throwable $e) {
             $topup->update(['status' => 'failed', 'failure_reason' => mb_substr($e->getMessage(), 0, 250)]);
+            Log::error('autotopup.failed', [
+                'client_id' => $client->id, 'topup_id' => $topup->id,
+                'amount_cents' => $amount, 'trigger' => $trigger,
+                'error' => mb_substr($e->getMessage(), 0, 250),
+            ]);
             report($e);
             $this->notifyClient($client->fresh(), new TopUpFailedMail($client->fresh(), $topup->fresh()->failure_reason ?? 'Payment declined'));
         }
