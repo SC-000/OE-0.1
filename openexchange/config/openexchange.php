@@ -53,6 +53,11 @@ return [
         'pull_lookback_hours' => (int) env('METERING_LOOKBACK_HOURS', 48),
         'autotopup_min_interval_minutes' => (int) env('AUTOTOPUP_MIN_INTERVAL', 15),
         'autotopup_max_per_day' => (int) env('AUTOTOPUP_MAX_PER_DAY', 3),
+        // Failed auto top-ups back off aggressively but never give up. Minutes to
+        // wait before the Nth consecutive-failure retry: hourly for the first few
+        // hours, then widening (6h, 12h). The last value repeats forever, so a card
+        // that keeps declining settles into a steady daily cadence instead of stopping.
+        'autotopup_backoff_minutes' => [60, 60, 360, 720, 1440],
         // hard cap on how far negative a balance may go before access is refused
         'debt_limit_cents' => (int) env('DEBT_LIMIT_CENTS', 5000),
     ],

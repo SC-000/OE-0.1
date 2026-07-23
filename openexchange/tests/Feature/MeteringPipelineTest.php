@@ -156,6 +156,84 @@ class MeteringPipelineTest extends TestCase
         $this->assertSame(1, TopUp::where('client_id', $client->id)->count());
     }
 
+    public function test_failed_auto_topups_back_off_exponentially_but_never_stop(): void
+    {
+        $svc = app(AutoTopupService::class);
+        $client = $this->client(['balance_cents' => 500]); // below the $10 minimum
+
+        // No failures yet → eligible immediately.
+        $this->assertSame('eligible', $svc->evaluate($client)['reason']);
+
+        // One failure 30 min ago → held; the first backoff step is 60 min.
+        $this->failedAutoTopup($client, now()->subMinutes(30));
+        $d = $svc->evaluate($client->fresh());
+        $this->assertSame('backoff', $d['reason']);
+        $this->assertSame(1, $d['failures']);
+
+        // Same single failure but 61 min ago → the hour has passed, eligible again.
+        TopUp::where('client_id', $client->id)->update(['created_at' => now()->subMinutes(61)]);
+        $this->assertSame('eligible', $svc->evaluate($client->fresh())['reason']);
+
+        // The window WIDENS: after three failures the wait jumps to 6h, so 61 min later
+        // it is still backing off.
+        $this->failedAutoTopup($client, now()->subMinutes(61));
+        $this->failedAutoTopup($client, now()->subMinutes(61));
+        $d = $svc->evaluate($client->fresh());
+        $this->assertSame(3, $d['failures']);
+        $this->assertSame('backoff', $d['reason']);
+
+        // It NEVER gives up: many failures clamp to the final 24h step, and once a day
+        // has passed the card is retried again rather than abandoned.
+        TopUp::where('client_id', $client->id)->update(['created_at' => now()->subHours(25)]);
+        $this->failedAutoTopup($client, now()->subHours(25));
+        $this->failedAutoTopup($client, now()->subHours(25));
+        $d = $svc->evaluate($client->fresh());
+        $this->assertGreaterThanOrEqual(5, $d['failures']);
+        $this->assertSame('eligible', $d['reason']);
+
+        // A successful top-up resets the streak.
+        $this->succeededAutoTopup($client, now());
+        $this->assertSame(0, $svc->evaluate($client->fresh())['failures']);
+    }
+
+    public function test_the_daily_cap_counts_successful_charges_not_failures(): void
+    {
+        $svc = app(AutoTopupService::class);
+
+        // Three FAILED auto top-ups today (last well outside the backoff window) do not
+        // trip the daily cap — a declining card keeps being retried.
+        $failing = $this->client(['balance_cents' => 500]);
+        for ($i = 0; $i < 3; $i++) {
+            $this->failedAutoTopup($failing, now()->subHours(7));
+        }
+        $this->assertSame('eligible', $svc->evaluate($failing->fresh())['reason']);
+
+        // Three SUCCESSFUL auto charges today do trip it — the runaway-charge guard.
+        $spending = $this->client(['balance_cents' => 500]);
+        for ($i = 0; $i < 3; $i++) {
+            $this->succeededAutoTopup($spending, now());
+        }
+        $this->assertSame('daily_cap', $svc->evaluate($spending->fresh())['reason']);
+    }
+
+    private function failedAutoTopup(Client $client, \DateTimeInterface $at): void
+    {
+        $t = TopUp::create([
+            'client_id' => $client->id, 'amount_cents' => 5000,
+            'status' => 'failed', 'trigger' => 'auto', 'failure_reason' => 'card_declined',
+        ]);
+        TopUp::whereKey($t->id)->update(['created_at' => $at]);
+    }
+
+    private function succeededAutoTopup(Client $client, \DateTimeInterface $at): void
+    {
+        $t = TopUp::create([
+            'client_id' => $client->id, 'amount_cents' => 5000,
+            'status' => 'succeeded', 'trigger' => 'auto',
+        ]);
+        TopUp::whereKey($t->id)->update(['created_at' => $at]);
+    }
+
     public function test_webhook_verifies_signature_and_credits_idempotently(): void
     {
         Config::set('openexchange.billings.webhook_secret', 'whsec_test');

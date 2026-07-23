@@ -8,6 +8,7 @@ use App\Mail\TopUpReceiptMail;
 use App\Models\Client;
 use App\Models\TopUp;
 use Illuminate\Contracts\Mail\Mailable;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -38,10 +39,27 @@ class AutoTopupService
     public function evaluate(Client $client): array
     {
         $maxPerDay = (int) config('openexchange.metering.autotopup_max_per_day', 3);
+        // The per-day cap is a runaway-CHARGE guard, so it counts money that actually
+        // left the card — successful charges only. A declining card must never be able
+        // to burn through the day's allowance with failures and stop retrying.
         $todayCount = TopUp::where('client_id', $client->id)
             ->where('trigger', 'auto')
+            ->where('status', 'succeeded')
             ->whereDate('created_at', today())
             ->count();
+
+        // The current failure streak: consecutive failed auto top-ups since the last
+        // SUCCESSFUL top-up of any kind (a manual top-up or a good auto charge resets
+        // it). This is what the exponential backoff is measured against.
+        $lastSuccessAt = TopUp::where('client_id', $client->id)
+            ->where('status', 'succeeded')
+            ->max('created_at');
+        $failuresQuery = TopUp::where('client_id', $client->id)
+            ->where('trigger', 'auto')
+            ->where('status', 'failed')
+            ->when($lastSuccessAt, fn ($q) => $q->where('created_at', '>', $lastSuccessAt));
+        $failures = (int) (clone $failuresQuery)->count();
+        $lastFailureAt = (clone $failuresQuery)->max('created_at');
 
         $context = [
             'client_id' => $client->id,
@@ -50,6 +68,7 @@ class AutoTopupService
             'auto_topup' => (bool) $client->auto_topup,
             'auto_today' => $todayCount,
             'max_per_day' => $maxPerDay,
+            'failures' => $failures,
         ];
 
         $skip = fn (string $reason, string $detail) => $context + [
@@ -64,7 +83,17 @@ class AutoTopupService
         }
         // A max of 0 (or less) disables the per-day guard rail entirely.
         if ($maxPerDay > 0 && $todayCount >= $maxPerDay) {
-            return $skip('daily_cap', "{$todayCount} auto top-up(s) today >= cap {$maxPerDay}");
+            return $skip('daily_cap', "{$todayCount} successful auto top-up(s) today >= cap {$maxPerDay}");
+        }
+        // Exponential backoff after failures — aggressive first (hourly), then widening.
+        // It never gives up: the schedule's last step repeats forever, so a bad card is
+        // retried at a steady cadence rather than being abandoned.
+        if ($failures > 0 && $lastFailureAt) {
+            $wait = $this->backoffMinutes($failures);
+            $nextAt = Carbon::parse($lastFailureAt)->addMinutes($wait);
+            if ($nextAt->isFuture()) {
+                return $skip('backoff', "failure #{$failures}: next retry {$nextAt->toDateTimeString()} ({$wait}m after last failure)");
+            }
         }
         if (Cache::has("autotopup:lock:{$client->id}")) {
             $interval = (int) config('openexchange.metering.autotopup_min_interval_minutes', 15);
@@ -77,6 +106,26 @@ class AutoTopupService
         $detail = $client->defaultPaymentMethod() ? 'will attempt' : 'will attempt — but no card on file';
 
         return $context + ['eligible' => true, 'reason' => 'eligible', 'detail' => $detail];
+    }
+
+    /**
+     * Minutes to wait before the next attempt after N consecutive failures. Reads the
+     * configured schedule (hourly at first, then widening) and — crucially — clamps to
+     * its LAST entry for any higher failure count, so retries slow down but never stop.
+     */
+    private function backoffMinutes(int $failures): int
+    {
+        $schedule = array_values(array_filter(
+            array_map('intval', (array) config('openexchange.metering.autotopup_backoff_minutes', [60, 60, 360, 720, 1440])),
+            fn (int $m) => $m > 0,
+        ));
+        if ($schedule === []) {
+            $schedule = [60];
+        }
+
+        $index = min(max($failures, 1), count($schedule)) - 1;
+
+        return $schedule[$index];
     }
 
     /** Top up if enabled, low, and within the guard rails. */
