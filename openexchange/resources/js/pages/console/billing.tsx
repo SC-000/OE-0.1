@@ -1,5 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
+import { TopUpsList } from '@/components/console/topups-section';
+import type { Account, TopUp } from '@/components/console/topups-section';
 import {
     Card,
     Button,
@@ -21,6 +23,8 @@ type Props = {
     balance?: number;
     settings?: { auto_topup: boolean; min: number; topup: number };
     card?: { brand: string; last4: string; exp: string } | null;
+    account?: Account;
+    topups?: TopUp[];
     transactions?: Tx[];
     topping?: boolean;
 };
@@ -29,6 +33,8 @@ export default function Billing({
     balance = 0,
     settings,
     card = null,
+    account = { name: 'Your account', email: null },
+    topups = [],
     transactions = [],
     topping = false,
 }: Props) {
@@ -383,6 +389,7 @@ export default function Billing({
                                         Replace
                                     </Button>
                                 </div>
+                                <TopUpsList topups={topups} account={account} />
                             </>
                         ) : (
                             <div

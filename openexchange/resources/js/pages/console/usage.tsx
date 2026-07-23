@@ -563,7 +563,7 @@ export default function Usage({
                                                 textAlign: 'right',
                                             }}
                                         >
-                                            In / Out tokens
+                                            Tokens
                                         </th>
                                         <th
                                             style={{
@@ -633,8 +633,10 @@ export default function Usage({
                                                     fontSize: 12.5,
                                                 }}
                                             >
-                                                {fmtTokens(a.input_tokens)} /{' '}
-                                                {fmtTokens(a.output_tokens)}
+                                                {fmtTokens(
+                                                    a.input_tokens +
+                                                        a.output_tokens,
+                                                )}
                                             </td>
                                             <td
                                                 style={{

@@ -38,6 +38,28 @@ class BillingController
             'type' => $e->amount_cents >= 0 ? 'credit' : 'debit',
         ]);
 
+        $brandLabel = $card ? strtoupper($card->brand ?? 'CARD') : null;
+        $methodLabel = $card ? trim($brandLabel.' •••• '.$card->last4) : null;
+
+        // Every prepaid top-up on the account, newest first — each one is a receiptable
+        // payment. The card shown is the current default; we don't retain a per-top-up
+        // snapshot, so treat it as "card on file" rather than a historical fact.
+        $topups = $client->topUps()->latest()->limit(60)->get()->map(fn ($t) => [
+            'id' => (int) $t->id,
+            // A long, random-looking receipt number that stays stable for a given
+            // top-up: derived from its immutable id, so the same payment always
+            // resolves to the same number rather than changing on every reload.
+            'receipt_no' => 'OX-'.substr(preg_replace('/\D/', '', hash('sha256', 'ox-receipt:'.$t->id)).'000000000000', 0, 12),
+            'date' => $t->created_at->format('M j, Y'),
+            'time' => $t->created_at->format('H:i').' UTC',
+            'amount' => '$'.number_format($t->amount_cents / 100, 2),
+            'amount_cents' => (int) $t->amount_cents,
+            'status' => $t->status,
+            'trigger' => $t->trigger,
+            'method' => $methodLabel,
+            'reference' => $t->billings_transaction_id ?: ($t->billings_invoice_id ?: null),
+        ])->values();
+
         return Inertia::render('console/billing', [
             'balance' => $client->balanceDollars(),
             'settings' => [
@@ -46,10 +68,15 @@ class BillingController
                 'topup' => (int) ($client->topup_amount_cents / 100),
             ],
             'card' => $card ? [
-                'brand' => strtoupper($card->brand ?? 'CARD'),
+                'brand' => $brandLabel,
                 'last4' => $card->last4,
                 'exp' => sprintf('%02d / %02d', $card->exp_month, $card->exp_year % 100),
             ] : null,
+            'account' => [
+                'name' => $client->company ?: $client->name,
+                'email' => $client->primaryEmail(),
+            ],
+            'topups' => $topups,
             'transactions' => $transactions,
             'topping' => TopUp::where('client_id', $client->id)->where('status', 'pending')->exists(),
             'publishableKey' => config('openexchange.billings.publishable'),

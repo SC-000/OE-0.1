@@ -6,6 +6,7 @@ use App\Models\AccessKey;
 use App\Models\Client;
 use App\Models\ModelCatalog;
 use App\Models\PaymentMethod;
+use App\Models\TopUp;
 use App\Models\UsageRecord;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -161,6 +162,22 @@ class ClientSurfaceTest extends TestCase
         $this->actingAs($this->user)->get('/console/billing')->assertInertia(fn ($page) => $page
             ->where('card.brand', 'VISA')
             ->where('card.last4', '4242'));
+    }
+
+    public function test_the_billing_page_lists_top_ups_with_receipt_details(): void
+    {
+        TopUp::create([
+            'client_id' => $this->client->id, 'amount_cents' => 5000,
+            'status' => 'succeeded', 'trigger' => 'manual',
+        ]);
+
+        $this->actingAs($this->user)->get('/console/billing')->assertInertia(fn ($page) => $page
+            ->where('account.name', 'Acme')
+            ->has('topups', 1)
+            ->where('topups.0.amount', '$50.00')
+            ->where('topups.0.status', 'succeeded')
+            ->where('topups.0.trigger', 'manual')
+            ->has('topups.0.receipt_no'));
     }
 
     /* -------------------------------- no model leakage ------------------------------ */
